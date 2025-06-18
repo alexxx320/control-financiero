@@ -65,6 +65,8 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto): Promise<AuthResponseDto> {
+    console.log('AuthService - Intentando login para:', loginDto.email);
+    
     // Buscar usuario por email
     const usuario = await this.usuarioModel.findOne({ 
       email: loginDto.email.toLowerCase(),
@@ -72,6 +74,7 @@ export class AuthService {
     });
 
     if (!usuario) {
+      console.error('Usuario no encontrado:', loginDto.email);
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
@@ -79,8 +82,16 @@ export class AuthService {
     const passwordValida = await bcrypt.compare(loginDto.password, usuario.password);
 
     if (!passwordValida) {
+      console.error('Contraseña inválida para:', loginDto.email);
       throw new UnauthorizedException('Credenciales inválidas');
     }
+
+    console.log('Login exitoso para usuario:', {
+      id: usuario._id,
+      email: usuario.email,
+      nombre: usuario.nombre,
+      rol: usuario.rol
+    });
 
     // Generar token
     const payload = { 
@@ -89,14 +100,16 @@ export class AuthService {
       rol: usuario.rol 
     };
 
+    console.log('Payload para JWT:', payload);
     const access_token = this.jwtService.sign(payload);
+    console.log('Token generado (primeros 20 chars):', access_token.substring(0, 20));
 
     // Actualizar último login
     await this.usuarioModel.findByIdAndUpdate(usuario._id, {
       ultimoLogin: new Date()
     });
 
-    return {
+    const response = {
       access_token,
       usuario: {
         id: usuario._id.toString(),
@@ -107,6 +120,9 @@ export class AuthService {
       },
       expires_in: 3600, // 1 hora
     };
+    
+    console.log('Respuesta de login:', response);
+    return response;
   }
 
   async validarUsuario(email: string, password: string): Promise<any> {
@@ -123,15 +139,24 @@ export class AuthService {
   }
 
   async obtenerUsuarioPorId(userId: string): Promise<UsuarioDocument> {
+    console.log('AuthService - Buscando usuario por ID:', userId);
+    
     const usuario = await this.usuarioModel
       .findById(userId)
       .select('-password') // No excluyas _id
       .exec();
 
     if (!usuario) {
+      console.error('Usuario no encontrado con ID:', userId);
       throw new UnauthorizedException('Usuario no encontrado');
     }
 
+    console.log('AuthService - Usuario encontrado:', {
+      id: usuario._id,
+      email: usuario.email,
+      nombre: usuario.nombre
+    });
+    
     return usuario as UsuarioDocument;
   }
 

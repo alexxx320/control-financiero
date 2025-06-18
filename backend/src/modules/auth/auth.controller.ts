@@ -72,6 +72,8 @@ export class AuthController {
     description: 'No autenticado' 
   })
   async obtenerPerfil(@GetUser() user: any) {
+    console.log('Usuario completo del token:', user);
+    
     return {
       id: user.userId,
       email: user.email,

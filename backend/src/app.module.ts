@@ -8,6 +8,7 @@ import { ReportesModule } from './modules/reportes/reportes.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
+import { HealthController } from './health.controller';
 
 @Module({
   imports: [
@@ -28,7 +29,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     TransaccionesModule,
     ReportesModule,
   ],
-  controllers: [],
+  controllers: [HealthController],
   providers: [
     {
       provide: APP_GUARD,

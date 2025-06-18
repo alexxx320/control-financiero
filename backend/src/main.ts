@@ -7,6 +7,9 @@ import { ConfigService } from '@nestjs/config';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
+  // Configurar prefijo global para todas las rutas
+  app.setGlobalPrefix('api');
+  
   // Configurar CORS
   app.enableCors({
     origin: ['http://localhost:4200', 'http://localhost:3000'],
