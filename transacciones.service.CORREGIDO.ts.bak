@@ -1,0 +1,363 @@
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
+import { Transaccion, TransaccionDocument } from './schemas/transaccion.schema';
+import { CreateTransaccionDto, UpdateTransaccionDto, FiltroTransaccionesDto } from '@/common/dto/transaccion.dto';
+import { FondosService } from '../fondos/fondos.service';
+
+@Injectable()
+export class TransaccionesService {
+  constructor(
+    @InjectModel(Transaccion.name) private transaccionModel: Model<TransaccionDocument>,
+    private fondosService: FondosService,
+  ) {}
+
+  async create(createTransaccionDto: CreateTransaccionDto, usuarioId: string): Promise<Transaccion> {
+    console.log('💰 Backend - Creando transacción:', createTransaccionDto);
+    
+    // Verificar que el fondo existe y pertenece al usuario
+    const fondo = await this.fondosService.findOne(createTransaccionDto.fondoId, usuarioId);
+    console.log(`📁 Fondo encontrado: "${fondo.nombre}" - Saldo actual: ${fondo.saldoActual}`);
+
+    // Verificar si el gasto excede el saldo disponible
+    if (createTransaccionDto.tipo === 'gasto' && fondo.saldoActual < createTransaccionDto.monto) {
+      console.warn(`⚠️ Gasto mayor al saldo disponible: Fondo "${fondo.nombre}" tiene ${fondo.saldoActual}, gasto solicitado: ${createTransaccionDto.monto}`);
+    }
+
+    // Actualizar el saldo del fondo según el tipo de transacción
+    console.log(`🔄 Actualizando saldo: ${createTransaccionDto.tipo} por ${createTransaccionDto.monto}`);
+    const fondoActualizado = await this.fondosService.actualizarSaldo(
+      createTransaccionDto.fondoId, 
+      createTransaccionDto.tipo, 
+      createTransaccionDto.monto, 
+      usuarioId
+    );
+    console.log(`✅ Saldo actualizado: ${fondo.saldoActual} → ${fondoActualizado.saldoActual}`);
+
+    const nuevaTransaccion = new this.transaccionModel({
+      ...createTransaccionDto,
+      usuarioId: new Types.ObjectId(usuarioId),
+      fondoId: new Types.ObjectId(createTransaccionDto.fondoId),
+      fecha: new Date(),
+    });
+
+    const transaccionGuardada = await nuevaTransaccion.save();
+    console.log('✅ Transacción creada exitosamente:', transaccionGuardada._id);
+    
+    return transaccionGuardada;
+  }
+
+  async findAll(usuarioId: string, filtros: FiltroTransaccionesDto = {}): Promise<{
+    transacciones: Transaccion[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
+    console.log('📄 Obteniendo transacciones con filtros:', filtros);
+    
+    const {
+      tipo,
+      categoria,
+      fechaInicio,
+      fechaFin,
+      montoMin,
+      montoMax,
+      page = 1,
+      limit = 10,
+      pagina, // alias
+      limite  // alias
+    } = filtros;
+
+    // Usar alias si están presentes
+    const pageNum = page || pagina || 1;
+    const limitNum = limit || limite || 10;
+
+    console.log('📋 Parámetros de paginación:', { page: pageNum, limit: limitNum });
+
+    // Construir filtros de consulta
+    const filtrosConsulta: any = {
+      usuarioId: new Types.ObjectId(usuarioId)
+    };
+
+    if (tipo) filtrosConsulta.tipo = tipo;
+    if (categoria) filtrosConsulta.categoria = categoria;
+    
+    if (fechaInicio || fechaFin) {
+      filtrosConsulta.fecha = {};
+      if (fechaInicio) filtrosConsulta.fecha.$gte = new Date(fechaInicio);
+      if (fechaFin) filtrosConsulta.fecha.$lte = new Date(fechaFin);
+    }
+
+    if (montoMin !== undefined || montoMax !== undefined) {
+      filtrosConsulta.monto = {};
+      if (montoMin !== undefined) filtrosConsulta.monto.$gte = montoMin;
+      if (montoMax !== undefined) filtrosConsulta.monto.$lte = montoMax;
+    }
+
+    console.log('🔍 Filtros de consulta MongoDB:', filtrosConsulta);
+
+    // Calcular paginación
+    const skip = (pageNum - 1) * limitNum;
+
+    // Ejecutar consultas
+    const [transacciones, total] = await Promise.all([
+      this.transaccionModel
+        .find(filtrosConsulta)
+        .populate({
+          path: 'fondoId',
+          select: 'nombre tipo descripcion',
+          strictPopulate: false
+        })
+        .sort({ fecha: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .exec(),
+      this.transaccionModel.countDocuments(filtrosConsulta),
+    ]);
+
+    console.log('✅ Transacciones encontradas:', transacciones.length, 'de', total, 'total');
+    
+    return {
+      transacciones,
+      total,
+      page: pageNum,
+      totalPages: Math.ceil(total / limitNum),
+    };
+  }
+
+  async findByFondo(fondoId: string, usuarioId: string, filtros: FiltroTransaccionesDto = {}): Promise<Transaccion[]> {
+    // Verificar que el fondo existe y pertenece al usuario
+    await this.fondosService.findOne(fondoId, usuarioId);
+
+    const filtrosConsulta: any = { 
+      fondoId: new Types.ObjectId(fondoId),
+      usuarioId: new Types.ObjectId(usuarioId)
+    };
+
+    // Aplicar filtros adicionales
+    if (filtros.tipo) filtrosConsulta.tipo = filtros.tipo;
+    if (filtros.categoria) filtrosConsulta.categoria = filtros.categoria;
+    
+    if (filtros.fechaInicio || filtros.fechaFin) {
+      filtrosConsulta.fecha = {};
+      if (filtros.fechaInicio) filtrosConsulta.fecha.$gte = new Date(filtros.fechaInicio);
+      if (filtros.fechaFin) filtrosConsulta.fecha.$lte = new Date(filtros.fechaFin);
+    }
+
+    return await this.transaccionModel
+      .find(filtrosConsulta)
+      .sort({ fecha: -1 })
+      .exec();
+  }
+
+  async findOne(id: string, usuarioId: string): Promise<Transaccion> {
+    const transaccion = await this.transaccionModel
+      .findOne({
+        _id: id,
+        usuarioId: new Types.ObjectId(usuarioId)
+      })
+      .populate('fondoId', 'nombre tipo')
+      .exec();
+    
+    if (!transaccion) {
+      throw new NotFoundException(`Transacción con ID "${id}" no encontrada`);
+    }
+    
+    return transaccion;
+  }
+
+  /**
+   * ACTUALIZACIÓN CORREGIDA: Maneja correctamente el cambio de saldos
+   */
+  async update(id: string, updateTransaccionDto: UpdateTransaccionDto, usuarioId: string): Promise<Transaccion> {
+    console.log('🔄 Backend - Actualizando transacción:', { id, updateTransaccionDto });
+    
+    // 1. Obtener la transacción original
+    const transaccionOriginal = await this.findOne(id, usuarioId);
+    console.log('📋 Transacción original:', {
+      tipo: transaccionOriginal.tipo,
+      monto: transaccionOriginal.monto,
+      fondoId: transaccionOriginal.fondoId
+    });
+    
+    // 2. Obtener el fondo original
+    const fondoOriginalId = transaccionOriginal.fondoId.toString();
+    const fondoOriginal = await this.fondosService.findOne(fondoOriginalId, usuarioId);
+    console.log(`📁 Fondo original: "${fondoOriginal.nombre}" - Saldo actual: ${fondoOriginal.saldoActual}`);
+    
+    // 3. REVERTIR el efecto de la transacción original en el saldo
+    console.log('🔄 PASO 1: Revirtiendo efecto de transacción original...');
+    const tipoOriginalInverso = transaccionOriginal.tipo === 'ingreso' ? 'gasto' : 'ingreso';
+    await this.fondosService.actualizarSaldo(
+      fondoOriginalId,
+      tipoOriginalInverso,
+      transaccionOriginal.monto,
+      usuarioId
+    );
+    console.log(`✅ Saldo revertido en fondo "${fondoOriginal.nombre}"`);
+    
+    // 4. Determinar los nuevos valores (usar los del update o mantener los originales)
+    const nuevoTipo = updateTransaccionDto.tipo || transaccionOriginal.tipo;
+    const nuevoMonto = updateTransaccionDto.monto !== undefined ? updateTransaccionDto.monto : transaccionOriginal.monto;
+    const nuevoFondoId = updateTransaccionDto.fondoId || fondoOriginalId;
+    
+    console.log('📊 Nuevos valores:', { nuevoTipo, nuevoMonto, nuevoFondoId });
+    
+    // 5. APLICAR el nuevo efecto con los datos actualizados
+    console.log('🔄 PASO 2: Aplicando nuevo efecto...');
+    const fondoActualizado = await this.fondosService.actualizarSaldo(
+      nuevoFondoId,
+      nuevoTipo,
+      nuevoMonto,
+      usuarioId
+    );
+    console.log(`✅ Nuevo saldo aplicado en fondo: ${fondoActualizado.saldoActual}`);
+    
+    // 6. Actualizar la transacción en la base de datos
+    const transaccionActualizada = await this.transaccionModel
+      .findOneAndUpdate(
+        { _id: id, usuarioId: new Types.ObjectId(usuarioId) },
+        {
+          ...updateTransaccionDto,
+          // Asegurar que se actualice el fondoId si cambió
+          ...(updateTransaccionDto.fondoId && { fondoId: new Types.ObjectId(updateTransaccionDto.fondoId) })
+        }, 
+        { new: true }
+      )
+      .populate('fondoId', 'nombre tipo')
+      .exec();
+
+    console.log('✅ Transacción actualizada exitosamente en BD');
+    
+    return transaccionActualizada;
+  }
+
+  /**
+   * ELIMINACIÓN CORREGIDA: Revierte correctamente el saldo
+   */
+  async remove(id: string, usuarioId: string): Promise<void> {
+    console.log('🗑️ Backend - Eliminando transacción:', id);
+    
+    // 1. Obtener la transacción antes de eliminarla
+    const transaccion = await this.findOne(id, usuarioId);
+    console.log('📋 Transacción a eliminar:', {
+      id: (transaccion as any)._id || transaccion.id,
+      tipo: transaccion.tipo,
+      monto: transaccion.monto,
+      descripcion: transaccion.descripcion
+    });
+    
+    // 2. Obtener el fondo para logs
+    const fondoId = transaccion.fondoId.toString();
+    const fondo = await this.fondosService.findOne(fondoId, usuarioId);
+    console.log(`📁 Fondo afectado: "${fondo.nombre}" - Saldo actual: ${fondo.saldoActual}`);
+    
+    // 3. REVERTIR el efecto en el saldo del fondo
+    console.log('🔄 Revirtiendo efecto de la transacción en el saldo...');
+    const tipoInverso = transaccion.tipo === 'ingreso' ? 'gasto' : 'ingreso';
+    const fondoActualizado = await this.fondosService.actualizarSaldo(
+      fondoId,
+      tipoInverso,
+      transaccion.monto,
+      usuarioId
+    );
+    console.log(`✅ Saldo actualizado: ${fondo.saldoActual} → ${fondoActualizado.saldoActual}`);
+    
+    // 4. Eliminar la transacción de la base de datos
+    const resultado = await this.transaccionModel.findOneAndDelete({
+      _id: id,
+      usuarioId: new Types.ObjectId(usuarioId)
+    }).exec();
+    
+    if (!resultado) {
+      throw new NotFoundException(`No se pudo eliminar la transacción con ID "${id}"`);
+    }
+    
+    console.log('✅ Transacción eliminada exitosamente de la BD');
+  }
+
+  async getEstadisticasPorCategoria(fondoId?: string): Promise<Array<{
+    categoria: string;
+    total: number;
+    cantidad: number;
+    promedio: number;
+  }>> {
+    const filtros: any = {};
+    if (fondoId) {
+      filtros.fondoId = new Types.ObjectId(fondoId);
+    }
+
+    const estadisticas = await this.transaccionModel.aggregate([
+      { $match: filtros },
+      {
+        $group: {
+          _id: '$categoria',
+          total: { $sum: '$monto' },
+          cantidad: { $sum: 1 },
+          promedio: { $avg: '$monto' },
+        },
+      },
+      {
+        $project: {
+          categoria: '$_id',
+          total: 1,
+          cantidad: 1,
+          promedio: { $round: ['$promedio', 2] },
+          _id: 0,
+        },
+      },
+      { $sort: { total: -1 } },
+    ]);
+
+    return estadisticas;
+  }
+
+  async getResumenMensual(año: number, mes: number, fondoId?: string): Promise<{
+    ingresos: number;
+    gastos: number;
+    balance: number;
+    transacciones: number;
+  }> {
+    const fechaInicio = new Date(año, mes - 1, 1);
+    const fechaFin = new Date(año, mes, 0, 23, 59, 59);
+
+    const filtros: any = {
+      fecha: { $gte: fechaInicio, $lte: fechaFin }
+    };
+
+    if (fondoId) {
+      filtros.fondoId = new Types.ObjectId(fondoId);
+    }
+
+    const resumen = await this.transaccionModel.aggregate([
+      { $match: filtros },
+      {
+        $group: {
+          _id: null,
+          ingresos: {
+            $sum: {
+              $cond: [{ $eq: ['$tipo', 'ingreso'] }, '$monto', 0]
+            }
+          },
+          gastos: {
+            $sum: {
+              $cond: [{ $eq: ['$tipo', 'gasto'] }, '$monto', 0]
+            }
+          },
+          transacciones: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          ingresos: 1,
+          gastos: 1,
+          balance: { $subtract: ['$ingresos', '$gastos'] },
+          transacciones: 1,
+          _id: 0,
+        },
+      },
+    ]);
+
+    return resumen[0] || { ingresos: 0, gastos: 0, balance: 0, transacciones: 0 };
+  }
+}

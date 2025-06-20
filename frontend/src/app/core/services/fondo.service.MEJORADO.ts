@@ -1,0 +1,257 @@
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpParams, HttpErrorResponse } from '@angular/common/http';
+import { Observable, BehaviorSubject, throwError } from 'rxjs';
+import { tap, catchError } from 'rxjs/operators';
+import { environment } from '../../../environments/environment';
+import { Fondo, CreateFondoDto, UpdateFondoDto, TipoFondo } from '../models/fondo.model';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class FondoService {
+  private apiUrl = `${environment.apiUrl}/fondos`;
+  private fondosSubject = new BehaviorSubject<Fondo[]>([]);
+  public fondos$ = this.fondosSubject.asObservable();
+
+  constructor(private http: HttpClient) {}
+
+  obtenerFondos(tipo?: string): Observable<Fondo[]> {
+    console.log('🏦 Obteniendo fondos del backend...');
+    
+    let params = new HttpParams();
+    if (tipo) {
+      params = params.set('tipo', tipo);
+    }
+
+    return this.http.get<Fondo[]>(this.apiUrl, { params })
+      .pipe(
+        tap(fondos => {
+          console.log('✅ Fondos obtenidos exitosamente:', fondos);
+          this.fondosSubject.next(fondos);
+          
+          // Guardar en localStorage para que transacciones los puedan usar
+          localStorage.setItem('fondos_cache', JSON.stringify(fondos));
+        }),
+        catchError(error => {
+          console.error('❌ Error al obtener fondos - NO se usarán datos simulados:', error);
+          
+          let mensaje = 'Error al cargar fondos';
+          if (error.status === 0) {
+            mensaje = 'No se puede conectar con el servidor. Verifica que el backend esté ejecutándose.';
+          } else if (error.status === 401) {
+            mensaje = 'No autorizado. Tu sesión puede haber expirado.';
+          } else if (error.status === 500) {
+            mensaje = 'Error del servidor. Verifica que MongoDB esté ejecutándose.';
+          }
+          
+          return throwError(() => ({
+            ...error,
+            message: mensaje
+          }));
+        })
+      );
+  }
+
+  obtenerFondoPorId(id: string): Observable<Fondo> {
+    return this.http.get<Fondo>(`${this.apiUrl}/${id}`)
+      .pipe(
+        catchError(error => {
+          console.error('Error al obtener fondo:', error);
+          throw error;
+        })
+      );
+  }
+
+  crearFondo(fondo: CreateFondoDto): Observable<Fondo> {
+    console.log('💾 Creando nuevo fondo:', fondo);
+    
+    return this.http.post<Fondo>(this.apiUrl, fondo)
+      .pipe(
+        tap(nuevoFondo => {
+          console.log('✅ Fondo creado exitosamente:', nuevoFondo);
+          const fondosActuales = this.fondosSubject.value;
+          this.fondosSubject.next([...fondosActuales, nuevoFondo]);
+        }),
+        catchError(error => {
+          console.error('❌ Error al crear fondo:', error);
+          
+          let mensaje = 'Error al crear el fondo';
+          if (error.status === 400) {
+            mensaje = error.error?.message || 'Datos del fondo inválidos';
+          } else if (error.status === 401) {
+            mensaje = 'No autorizado para crear fondos';
+          } else if (error.status === 500) {
+            mensaje = 'Error del servidor. Verifica que MongoDB esté ejecutándose.';
+          }
+          
+          return throwError(() => ({
+            ...error,
+            message: mensaje
+          }));
+        })
+      );
+  }
+
+  actualizarFondo(id: string, fondo: UpdateFondoDto): Observable<Fondo> {
+    console.log('✏️ Actualizando fondo:', id, fondo);
+    
+    return this.http.patch<Fondo>(`${this.apiUrl}/${id}`, fondo)
+      .pipe(
+        tap(fondoActualizado => {
+          console.log('✅ Fondo actualizado exitosamente:', fondoActualizado);
+          const fondosActuales = this.fondosSubject.value;
+          const index = fondosActuales.findIndex(f => f._id === id);
+          if (index !== -1) {
+            fondosActuales[index] = fondoActualizado;
+            this.fondosSubject.next([...fondosActuales]);
+          }
+        }),
+        catchError(error => {
+          console.error('❌ Error al actualizar fondo:', error);
+          
+          let mensaje = 'Error al actualizar el fondo';
+          if (error.status === 400) {
+            mensaje = error.error?.message || 'Datos del fondo inválidos';
+          } else if (error.status === 404) {
+            mensaje = 'Fondo no encontrado';
+          } else if (error.status === 401) {
+            mensaje = 'No autorizado para editar este fondo';
+          }
+          
+          return throwError(() => ({
+            ...error,
+            message: mensaje
+          }));
+        })
+      );
+  }
+
+  eliminarFondo(id: string): Observable<{message: string}> {
+    console.log('🗑️ FondoService - Iniciando eliminación de fondo:', {
+      id,
+      url: `${this.apiUrl}/${id}`,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Verificar que tenemos token antes de hacer la petición
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      console.error('❌ No hay token de autenticación disponible');
+      return throwError(() => ({
+        status: 401,
+        message: 'No hay token de autenticación. Inicia sesión nuevamente.'
+      }));
+    }
+    
+    console.log('🔑 Token disponible:', token.substring(0, 30) + '...');
+    
+    return this.http.delete<{message: string}>(`${this.apiUrl}/${id}`)
+      .pipe(
+        tap(response => {
+          console.log('✅ FondoService - Fondo eliminado exitosamente:', {
+            response,
+            fondoId: id,
+            timestamp: new Date().toISOString()
+          });
+          
+          // Actualizar el subject removiendo el fondo eliminado
+          const fondosActuales = this.fondosSubject.value;
+          const fondosFiltrados = fondosActuales.filter(f => f._id !== id);
+          console.log('📊 Actualizando lista local:', {
+            fondosAntes: fondosActuales.length,
+            fondosDespues: fondosFiltrados.length,
+            fondoEliminado: id
+          });
+          
+          this.fondosSubject.next(fondosFiltrados);
+        }),
+        catchError((error: HttpErrorResponse) => {
+          console.error('❌ FondoService - Error al eliminar fondo:', {
+            error,
+            fondoId: id,
+            status: error.status,
+            statusText: error.statusText,
+            url: error.url,
+            errorData: error.error,
+            timestamp: new Date().toISOString()
+          });
+          
+          let mensaje = 'Error al eliminar el fondo';
+          
+          switch (error.status) {
+            case 400:
+              mensaje = error.error?.message || 'El fondo no se puede eliminar. Puede tener transacciones asociadas.';
+              break;
+            case 401:
+              mensaje = 'No autorizado para eliminar este fondo. Tu sesión puede haber expirado.';
+              break;
+            case 403:
+              mensaje = 'No tienes permisos para eliminar este fondo.';
+              break;
+            case 404:
+              mensaje = 'El fondo que intentas eliminar no fue encontrado.';
+              break;
+            case 500:
+              mensaje = 'Error interno del servidor. Verifica que MongoDB esté ejecutándose.';
+              break;
+            case 0:
+              mensaje = 'No se puede conectar con el servidor. Verifica que el backend esté ejecutándose.';
+              break;
+            default:
+              mensaje = `Error inesperado (${error.status}): ${error.error?.message || error.message}`;
+          }
+          
+          return throwError(() => ({
+            ...error,
+            message: mensaje
+          }));
+        })
+      );
+  }
+
+  obtenerEstadisticasFondo(id: string): Observable<{
+    totalTransacciones: number;
+    totalIngresos: number;
+    totalGastos: number;
+    balance: number;
+    progresoMeta: number;
+    transaccionesRecientes: any[];
+  }> {
+    return this.http.get<{
+      totalTransacciones: number;
+      totalIngresos: number;
+      totalGastos: number;
+      balance: number;
+      progresoMeta: number;
+      transaccionesRecientes: any[];
+    }>(`${this.apiUrl}/${id}/estadisticas`)
+      .pipe(
+        catchError(error => {
+          console.error('Error al obtener estadísticas:', error);
+          throw error;
+        })
+      );
+  }
+
+  obtenerEstadisticasGenerales(): Observable<{
+    totalFondos: number;
+    fondosConMetas: number;
+    metaPromedioAhorro: number;
+  }> {
+    return this.http.get<{
+      totalFondos: number;
+      fondosConMetas: number;
+      metaPromedioAhorro: number;
+    }>(`${this.apiUrl}/estadisticas`)
+      .pipe(
+        catchError(error => {
+          console.error('Error al obtener estadísticas generales:', error);
+          throw error;
+        })
+      );
+  }
+
+  obtenerTiposFondo(): TipoFondo[] {
+    return ['ahorro', 'inversion', 'emergencia', 'gastos', 'personal'];
+  }
+}
