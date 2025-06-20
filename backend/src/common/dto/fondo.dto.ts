@@ -27,14 +27,26 @@ export class CreateFondoDto {
   @IsEnum(TipoFondo)
   tipo: TipoFondo;
 
-  @ApiProperty({
-    description: 'Meta de ahorro para este fondo',
+  @ApiPropertyOptional({
+    description: 'Saldo inicial del fondo (billetera)',
+    example: 0,
+    minimum: 0,
+    default: 0
+  })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  saldoActual?: number;
+
+  @ApiPropertyOptional({
+    description: 'Meta de ahorro para este fondo (opcional)',
     example: 10000,
     minimum: 0
   })
   @IsNumber()
   @Min(0)
-  metaAhorro: number;
+  @IsOptional()
+  metaAhorro?: number;
 }
 
 export class UpdateFondoDto {

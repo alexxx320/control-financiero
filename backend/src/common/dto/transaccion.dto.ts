@@ -1,4 +1,5 @@
 import { IsString, IsNotEmpty, IsNumber, IsOptional, IsEnum, Min, Max, IsArray } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { TipoTransaccion, CategoriaTransaccion } from '../interfaces/financiero.interface';
 
@@ -61,9 +62,24 @@ export class CreateTransaccionDto {
   @IsString({ each: true })
   @IsOptional()
   etiquetas?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Fecha de la transacción',
+    example: '2024-06-20T05:00:00.000Z',
+    type: Date
+  })
+  @IsOptional()
+  fecha?: Date;
 }
 
 export class UpdateTransaccionDto {
+  @ApiPropertyOptional({
+    description: 'ID del fondo al que pertenece la transacción'
+  })
+  @IsString()
+  @IsOptional()
+  fondoId?: string;
+
   @ApiPropertyOptional({
     description: 'Descripción de la transacción'
   })
@@ -111,6 +127,12 @@ export class UpdateTransaccionDto {
   @IsString({ each: true })
   @IsOptional()
   etiquetas?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Fecha de la transacción'
+  })
+  @IsOptional()
+  fecha?: Date;
 }
 
 export class FiltroTransaccionesDto {
@@ -131,6 +153,13 @@ export class FiltroTransaccionesDto {
   categoria?: CategoriaTransaccion;
 
   @ApiPropertyOptional({
+    description: 'Fecha específica (YYYY-MM-DD)',
+    example: '2024-01-01'
+  })
+  @IsOptional()
+  fecha?: string;
+
+  @ApiPropertyOptional({
     description: 'Fecha de inicio para el filtro (YYYY-MM-DD)',
     example: '2024-01-01'
   })
@@ -148,6 +177,7 @@ export class FiltroTransaccionesDto {
     description: 'Monto mínimo',
     minimum: 0
   })
+  @Transform(({ value }) => parseFloat(value))
   @IsNumber()
   @Min(0)
   @IsOptional()
@@ -157,6 +187,7 @@ export class FiltroTransaccionesDto {
     description: 'Monto máximo',
     minimum: 0
   })
+  @Transform(({ value }) => parseFloat(value))
   @IsNumber()
   @Min(0)
   @IsOptional()
@@ -167,10 +198,11 @@ export class FiltroTransaccionesDto {
     minimum: 1,
     default: 1
   })
+  @Transform(({ value }) => parseInt(value))
   @IsNumber()
   @Min(1)
   @IsOptional()
-  pagina?: number;
+  page?: number;
 
   @ApiPropertyOptional({
     description: 'Límite de resultados por página',
@@ -178,6 +210,31 @@ export class FiltroTransaccionesDto {
     maximum: 100,
     default: 10
   })
+  @Transform(({ value }) => parseInt(value))
+  @IsNumber()
+  @Min(1)
+  @Max(100)
+  @IsOptional()
+  limit?: number;
+
+  @ApiPropertyOptional({
+    description: 'Página para paginación (alias)',
+    minimum: 1,
+    default: 1
+  })
+  @Transform(({ value }) => parseInt(value))
+  @IsNumber()
+  @Min(1)
+  @IsOptional()
+  pagina?: number;
+
+  @ApiPropertyOptional({
+    description: 'Límite de resultados por página (alias)',
+    minimum: 1,
+    maximum: 100,
+    default: 10
+  })
+  @Transform(({ value }) => parseInt(value))
   @IsNumber()
   @Min(1)
   @Max(100)

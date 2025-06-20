@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Fondo, FondoDocument } from '../fondos/schemas/fondo.schema';
 import { Transaccion, TransaccionDocument } from '../transacciones/schemas/transaccion.schema';
 import { 
@@ -23,7 +23,9 @@ export class ReportesService {
     @InjectModel(Transaccion.name) private transaccionModel: Model<TransaccionDocument>,
   ) {}
 
-  async generarReporteMensual(mes: number, año: number): Promise<IReporteMensual> {
+  async generarReporteMensual(mes: number, año: number, usuarioId: string): Promise<IReporteMensual> {
+    console.log(`📊 Generando reporte mensual para usuario ${usuarioId}: ${mes}/${año}`);
+    
     if (mes < 1 || mes > 12) {
       throw new Error('El mes debe estar entre 1 y 12');
     }
@@ -31,7 +33,12 @@ export class ReportesService {
     const fechaInicio = new Date(año, mes - 1, 1);
     const fechaFin = new Date(año, mes, 0, 23, 59, 59);
 
-    const fondos = await this.fondoModel.find({ activo: true }).exec();
+    // Filtrar fondos por usuario
+    const fondos = await this.fondoModel.find({ 
+      usuarioId: new Types.ObjectId(usuarioId),
+      activo: true 
+    }).exec();
+    
     const reportesFondos: IReporteFondo[] = [];
     
     let totalIngresosMes = 0;
@@ -42,6 +49,7 @@ export class ReportesService {
       const transaccionesMes = await this.transaccionModel
         .find({
           fondoId: fondo._id,
+          usuarioId: new Types.ObjectId(usuarioId), // Filtrar por usuario
           fecha: { $gte: fechaInicio, $lte: fechaFin }
         })
         .exec();
@@ -55,7 +63,10 @@ export class ReportesService {
         .reduce((sum, t) => sum + t.monto, 0);
 
       const todasTransacciones = await this.transaccionModel
-        .find({ fondoId: fondo._id })
+        .find({ 
+          fondoId: fondo._id,
+          usuarioId: new Types.ObjectId(usuarioId) // Filtrar por usuario
+        })
         .exec();
 
       const totalIngresosFondo = todasTransacciones
@@ -91,6 +102,8 @@ export class ReportesService {
       transaccionesTotales: totalTransacciones,
     };
 
+    console.log(`✅ Reporte mensual generado para usuario ${usuarioId}:`, resumen);
+
     return {
       periodo: moment().month(mes - 1).year(año).format('MMMM YYYY'),
       mes,
@@ -100,13 +113,21 @@ export class ReportesService {
     };
   }
 
-  async obtenerAlertasFinancieras(): Promise<IAlerta[]> {
+  async obtenerAlertasFinancieras(usuarioId: string): Promise<IAlerta[]> {
+    console.log(`🚨 Obteniendo alertas financieras para usuario ${usuarioId}`);
+    
     const alertas: IAlerta[] = [];
-    const fondos = await this.fondoModel.find({ activo: true }).exec();
+    const fondos = await this.fondoModel.find({ 
+      usuarioId: new Types.ObjectId(usuarioId),
+      activo: true 
+    }).exec();
 
     for (const fondo of fondos) {
       const transacciones = await this.transaccionModel
-        .find({ fondoId: fondo._id })
+        .find({ 
+          fondoId: fondo._id,
+          usuarioId: new Types.ObjectId(usuarioId)
+        })
         .exec();
 
       const totalIngresos = transacciones
@@ -169,7 +190,7 @@ export class ReportesService {
     }
 
     // Alerta por balance total negativo
-    const balanceTotal = await this.calcularBalanceTotal();
+    const balanceTotal = await this.calcularBalanceTotal(usuarioId);
     if (balanceTotal < 0) {
       alertas.push({
         tipo: TipoAlerta.ERROR,
@@ -185,10 +206,17 @@ export class ReportesService {
     });
   }
 
-  async obtenerEstadisticasGenerales(): Promise<IEstadisticas> {
+  async obtenerEstadisticasGenerales(usuarioId: string): Promise<IEstadisticas> {
+    console.log(`📈 Obteniendo estadísticas generales para usuario ${usuarioId}`);
+    
     const [fondos, transacciones] = await Promise.all([
-      this.fondoModel.find({ activo: true }).exec(),
-      this.transaccionModel.find().exec(),
+      this.fondoModel.find({ 
+        usuarioId: new Types.ObjectId(usuarioId),
+        activo: true 
+      }).exec(),
+      this.transaccionModel.find({
+        usuarioId: new Types.ObjectId(usuarioId)
+      }).exec(),
     ]);
 
     const totalIngresos = transacciones
@@ -256,7 +284,7 @@ export class ReportesService {
     };
   }
 
-  async generarReporteAnual(año: number): Promise<{
+  async generarReporteAnual(año: number, usuarioId: string): Promise<{
     año: number;
     meses: Array<{
       mes: number;
@@ -274,12 +302,14 @@ export class ReportesService {
       peorMes: { nombre: string; balance: number } | null;
     };
   }> {
+    console.log(`📅 Generando reporte anual para usuario ${usuarioId}: ${año}`);
+    
     const meses = [];
     let totalIngresosAnual = 0;
     let totalGastosAnual = 0;
 
     for (let mes = 1; mes <= 12; mes++) {
-      const reporteMes = await this.generarReporteMensual(mes, año);
+      const reporteMes = await this.generarReporteMensual(mes, año, usuarioId);
       
       meses.push({
         mes,
@@ -326,8 +356,10 @@ export class ReportesService {
     };
   }
 
-  private async calcularBalanceTotal(): Promise<number> {
-    const transacciones = await this.transaccionModel.find().exec();
+  private async calcularBalanceTotal(usuarioId: string): Promise<number> {
+    const transacciones = await this.transaccionModel.find({
+      usuarioId: new Types.ObjectId(usuarioId)
+    }).exec();
     
     return transacciones
       .filter(t => t.tipo === TipoTransaccion.INGRESO)

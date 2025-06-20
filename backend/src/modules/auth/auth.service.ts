@@ -139,25 +139,49 @@ export class AuthService {
   }
 
   async obtenerUsuarioPorId(userId: string): Promise<UsuarioDocument> {
-    console.log('AuthService - Buscando usuario por ID:', userId);
+    console.log('=== AUTH SERVICE DEBUG ===');
+    console.log('Buscando usuario por ID:', userId);
+    console.log('Tipo de userId:', typeof userId);
+    console.log('Longitud de userId:', userId.length);
     
-    const usuario = await this.usuarioModel
-      .findById(userId)
-      .select('-password') // No excluyas _id
-      .exec();
+    try {
+      const usuario = await this.usuarioModel
+        .findById(userId)
+        .select('-password')
+        .exec();
 
-    if (!usuario) {
-      console.error('Usuario no encontrado con ID:', userId);
-      throw new UnauthorizedException('Usuario no encontrado');
+      if (!usuario) {
+        console.error('❌ Usuario no encontrado con ID:', userId);
+        console.log('Verificando todos los usuarios en la BD...');
+        
+        const todosLosUsuarios = await this.usuarioModel
+          .find({})
+          .select('_id email nombre')
+          .limit(5)
+          .exec();
+          
+        console.log('Primeros 5 usuarios en BD:', todosLosUsuarios.map(u => ({
+          id: u._id.toString(),
+          email: u.email,
+          nombre: u.nombre
+        })));
+        
+        throw new UnauthorizedException('Usuario no encontrado');
+      }
+
+      console.log('✅ Usuario encontrado en AuthService:', {
+        id: usuario._id.toString(),
+        email: usuario.email,
+        nombre: usuario.nombre,
+        activo: usuario.activo
+      });
+      console.log('=== FIN AUTH SERVICE DEBUG ===');
+      
+      return usuario as UsuarioDocument;
+    } catch (error) {
+      console.error('❌ Error en obtenerUsuarioPorId:', error.message);
+      throw error;
     }
-
-    console.log('AuthService - Usuario encontrado:', {
-      id: usuario._id,
-      email: usuario.email,
-      nombre: usuario.nombre
-    });
-    
-    return usuario as UsuarioDocument;
   }
 
   async verificarToken(token: string): Promise<any> {

@@ -1,4 +1,4 @@
-import { Injectable, ExecutionContext } from '@nestjs/common';
+import { Injectable, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 
@@ -15,10 +15,30 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       context.getClass(),
     ]);
     
+    console.log('JwtAuthGuard - Ruta:', context.getHandler().name, 'Es pública:', isPublic);
+    
     if (isPublic) {
+      console.log('JwtAuthGuard - Ruta pública, permitiendo acceso');
       return true;
     }
     
+    console.log('JwtAuthGuard - Ruta protegida, verificando token...');
     return super.canActivate(context);
+  }
+
+  handleRequest(err: any, user: any, info: any, context: ExecutionContext) {
+    console.log('JwtAuthGuard - handleRequest:', {
+      error: err?.message,
+      user: user ? { id: user.userId, email: user.email } : null,
+      info: info?.message
+    });
+    
+    if (err || !user) {
+      console.error('JwtAuthGuard - Usuario no autorizado:', err?.message || info?.message);
+      throw err || new UnauthorizedException('Token inválido o usuario no encontrado');
+    }
+    
+    console.log('JwtAuthGuard - Usuario autorizado:', user.email);
+    return user;
   }
 }

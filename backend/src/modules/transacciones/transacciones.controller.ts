@@ -140,7 +140,12 @@ export class TransaccionesController {
     @Body() updateTransaccionDto: UpdateTransaccionDto,
     @GetUser('userId') usuarioId: string
   ): Promise<Transaccion> {
-    return await this.transaccionesService.update(id, updateTransaccionDto, usuarioId);
+    console.log('🔄 Backend - Actualizando transacción:', { id, updateTransaccionDto, usuarioId });
+    
+    const resultado = await this.transaccionesService.update(id, updateTransaccionDto, usuarioId);
+    console.log('✅ Backend - Transacción actualizada exitosamente:', resultado);
+    
+    return resultado;
   }
 
   @Delete(':id')
@@ -158,7 +163,12 @@ export class TransaccionesController {
     @Param('id') id: string,
     @GetUser('userId') usuarioId: string
   ): Promise<{ message: string }> {
+    console.log('🗑️ Backend - Eliminando transacción:', { id, usuarioId });
+    
     await this.transaccionesService.remove(id, usuarioId);
-    return { message: 'Transacción eliminada exitosamente' };
+    const resultado = { message: 'Transacción eliminada exitosamente' };
+    
+    console.log('✅ Backend - Transacción eliminada exitosamente:', resultado);
+    return resultado;
   }
 }

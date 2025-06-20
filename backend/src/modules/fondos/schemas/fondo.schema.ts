@@ -27,7 +27,10 @@ export class Fondo {
   })
   tipo: TipoFondo;
 
-  @Prop({ required: true, min: 0, default: 0 })
+  @Prop({ required: true, default: 0 })
+  saldoActual: number;
+
+  @Prop({ min: 0, default: 0 })
   metaAhorro: number;
 
   @Prop({ default: Date.now })

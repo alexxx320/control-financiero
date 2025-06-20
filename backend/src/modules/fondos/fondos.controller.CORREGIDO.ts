@@ -114,11 +114,14 @@ export class FondosController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar un fondo (soft delete)' })
+  @ApiOperation({ 
+    summary: 'Eliminar un fondo COMPLETAMENTE (incluye todas las transacciones asociadas)',
+    description: 'ATENCIÓN: Esta operación elimina permanentemente el fondo y TODAS sus transacciones asociadas de la base de datos. Esta acción NO se puede deshacer.'
+  })
   @ApiParam({ name: 'id', description: 'ID del fondo' })
   @ApiResponse({ 
     status: 200, 
-    description: 'Fondo eliminado exitosamente' 
+    description: 'Fondo y todas sus transacciones eliminados exitosamente' 
   })
   @ApiResponse({ 
     status: 404, 
@@ -128,12 +131,14 @@ export class FondosController {
     @Param('id') id: string,
     @GetUser('userId') usuarioId: string
   ): Promise<{ message: string }> {
-    console.log('🗑️ Backend - Eliminando fondo:', { id, usuarioId });
+    console.log('🗑️ Backend - Eliminando COMPLETAMENTE fondo y transacciones:', { id, usuarioId });
     
     await this.fondosService.remove(id, usuarioId);
-    const resultado = { message: 'Fondo eliminado exitosamente' };
+    const resultado = { 
+      message: 'Fondo y todas sus transacciones eliminados exitosamente de la base de datos' 
+    };
     
-    console.log('✅ Backend - Fondo eliminado exitosamente:', resultado);
+    console.log('✅ Backend - Eliminación COMPLETA exitosa:', resultado);
     return resultado;
   }
 }

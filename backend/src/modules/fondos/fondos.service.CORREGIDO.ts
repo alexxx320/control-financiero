@@ -86,39 +86,56 @@ export class FondosService {
     return fondoActualizado;
   }
 
+  /**
+   * ELIMINACIÓN COMPLETA: Elimina el fondo y TODAS sus transacciones asociadas
+   */
   async remove(id: string, usuarioId: string): Promise<void> {
-    console.log(`🗑️ Eliminando fondo ${id} y sus transacciones asociadas...`);
+    console.log(`🗑️ Backend - Iniciando eliminación COMPLETA del fondo: ${id}`);
     
     // Verificar que el fondo existe
     const fondo = await this.findOne(id, usuarioId);
+    console.log(`📋 Fondo encontrado: "${fondo.nombre}"`);
     
-    // Contar transacciones asociadas
-    const transaccionesCount = await this.transaccionModel.countDocuments({ 
+    // Buscar transacciones asociadas
+    const transaccionesAsociadas = await this.transaccionModel.find({ 
       fondoId: new Types.ObjectId(id),
       usuarioId: new Types.ObjectId(usuarioId)
     });
     
-    if (transaccionesCount > 0) {
-      console.log(`📋 Eliminando ${transaccionesCount} transacción(es) asociadas al fondo "${fondo.nombre}"...`);
+    console.log(`📊 Transacciones asociadas encontradas: ${transaccionesAsociadas.length}`);
+    
+    if (transaccionesAsociadas.length > 0) {
+      console.log(`🔥 Eliminando ${transaccionesAsociadas.length} transacciones asociadas...`);
       
-      // Eliminar todas las transacciones asociadas al fondo
-      await this.transaccionModel.deleteMany({
+      // ELIMINAR TODAS LAS TRANSACCIONES ASOCIADAS
+      const resultadoTransacciones = await this.transaccionModel.deleteMany({ 
         fondoId: new Types.ObjectId(id),
         usuarioId: new Types.ObjectId(usuarioId)
-      }).exec();
+      });
       
-      console.log(`✅ ${transaccionesCount} transacción(es) eliminadas`);
+      console.log(`✅ Transacciones eliminadas: ${resultadoTransacciones.deletedCount}`);
+    } else {
+      console.log(`ℹ️ No hay transacciones asociadas para eliminar`);
     }
     
-    // Eliminar el fondo
-    await this.fondoModel
+    // ELIMINAR EL FONDO COMPLETAMENTE
+    console.log(`🔥 Eliminando fondo "${fondo.nombre}" de la base de datos...`);
+    
+    const resultadoFondo = await this.fondoModel
       .findOneAndDelete({
         _id: id, 
         usuarioId: new Types.ObjectId(usuarioId)
       })
       .exec();
-      
-    console.log(`✅ Fondo "${fondo.nombre}" eliminado exitosamente`);
+
+    if (!resultadoFondo) {
+      throw new NotFoundException(`Error: No se pudo eliminar el fondo con ID "${id}"`);
+    }
+    
+    console.log(`✅ Backend - Eliminación COMPLETA exitosa:`);
+    console.log(`   📁 Fondo eliminado: "${fondo.nombre}"`);
+    console.log(`   📊 Transacciones eliminadas: ${transaccionesAsociadas.length}`);
+    console.log(`   🗃️ Eliminación física de la base de datos completada`);
   }
 
   async findByTipo(tipo: string, usuarioId: string): Promise<Fondo[]> {
@@ -172,64 +189,5 @@ export class FondosService {
         { new: true }
       )
       .exec();
-  }
-
-  /**
-   * Obtener estadísticas personalizadas para el dashboard
-   */
-  async getEstadisticasPersonalizadas(usuarioId: string): Promise<{
-    totalFondos: number;
-    fondosActivos: number;
-    fondosConMetas: number;
-    metaPromedioAhorro: number;
-    saldoTotalActual: number;
-    fondoMayorSaldo: { nombre: string; saldo: number } | null;
-    progresoPromedioMetas: number;
-  }> {
-    const fondos = await this.fondoModel
-      .find({ 
-        usuarioId: new Types.ObjectId(usuarioId)
-      })
-      .exec();
-
-    const fondosActivos = fondos.filter(f => f.activo);
-    const fondosConMetas = fondosActivos.filter(f => f.metaAhorro && f.metaAhorro > 0);
-    
-    const saldoTotal = fondosActivos.reduce((sum, f) => sum + f.saldoActual, 0);
-    const metaPromedio = fondosConMetas.length > 0 
-      ? fondosConMetas.reduce((sum, f) => sum + f.metaAhorro, 0) / fondosConMetas.length 
-      : 0;
-
-    // Encontrar fondo con mayor saldo
-    let fondoMayorSaldo = null;
-    if (fondosActivos.length > 0) {
-      const fondoMaximo = fondosActivos.reduce((prev, current) => 
-        prev.saldoActual > current.saldoActual ? prev : current
-      );
-      fondoMayorSaldo = {
-        nombre: fondoMaximo.nombre,
-        saldo: fondoMaximo.saldoActual
-      };
-    }
-
-    // Calcular progreso promedio de metas
-    let progresoPromedio = 0;
-    if (fondosConMetas.length > 0) {
-      const progresoTotal = fondosConMetas.reduce((sum, f) => {
-        const progreso = (f.saldoActual / f.metaAhorro) * 100;
-        return sum + Math.min(progreso, 100);
-      }, 0);
-      progresoPromedio = progresoTotal / fondosConMetas.length;
-    }
-
-    return {
-      totalFondos: fondos.length,
-      fondosActivos: fondosActivos.length,
-      fondosConMetas: fondosConMetas.length,
-      metaPromedioAhorro: metaPromedio,
-      saldoTotalActual: saldoTotal,
-      fondoMayorSaldo,
-      progresoPromedioMetas: Math.round(progresoPromedio * 100) / 100
-    };
   }
 }

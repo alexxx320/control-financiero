@@ -13,25 +13,47 @@ export class TransaccionesService {
   ) {}
 
   async create(createTransaccionDto: CreateTransaccionDto, usuarioId: string): Promise<Transaccion> {
+    console.log('💰 CREAR TRANSACCIÓN - Actualizando saldo del fondo');
+    console.log('📊 Datos de creación:', createTransaccionDto);
+    
     // Verificar que el fondo existe y pertenece al usuario
-    await this.fondosService.findOne(createTransaccionDto.fondoId, usuarioId);
+    const fondo = await this.fondosService.findOne(createTransaccionDto.fondoId, usuarioId);
+
+    // Verificar si el gasto excede el saldo disponible
+    if (createTransaccionDto.tipo === 'gasto' && fondo.saldoActual < createTransaccionDto.monto) {
+      console.warn(`⚠️ Gasto mayor al saldo disponible: Fondo "${fondo.nombre}" tiene ${fondo.saldoActual}, gasto solicitado: ${createTransaccionDto.monto}`);
+    }
+
+    // ACTUALIZAR EL SALDO DEL FONDO
+    await this.fondosService.actualizarSaldo(
+      createTransaccionDto.fondoId, 
+      createTransaccionDto.tipo, 
+      createTransaccionDto.monto, 
+      usuarioId
+    );
 
     const nuevaTransaccion = new this.transaccionModel({
       ...createTransaccionDto,
       usuarioId: new Types.ObjectId(usuarioId),
       fondoId: new Types.ObjectId(createTransaccionDto.fondoId),
-      fecha: new Date(),
+      fecha: createTransaccionDto.fecha || new Date(),
     });
 
-    return await nuevaTransaccion.save();
+    const transaccionGuardada = await nuevaTransaccion.save();
+    console.log('✅ Transacción creada y saldo actualizado');
+    
+    // Devolver la transacción con el fondo populado
+    return await this.transaccionModel
+      .findById(transaccionGuardada._id)
+      .populate('fondoId', 'nombre tipo')
+      .exec();
   }
 
   async findAll(usuarioId: string, filtros: FiltroTransaccionesDto = {}): Promise<{
     transacciones: Transaccion[];
     total: number;
-    pagina: number;
-    limite: number;
-    totalPaginas: number;
+    page: number;
+    totalPages: number;
   }> {
     const {
       tipo,
@@ -40,11 +62,15 @@ export class TransaccionesService {
       fechaFin,
       montoMin,
       montoMax,
-      pagina = 1,
-      limite = 10
+      page = 1,
+      limit = 10,
+      pagina,
+      limite
     } = filtros;
 
-    // Construir filtros de consulta
+    const pageNum = page || pagina || 1;
+    const limitNum = limit || limite || 10;
+
     const filtrosConsulta: any = {
       usuarioId: new Types.ObjectId(usuarioId)
     };
@@ -64,17 +90,19 @@ export class TransaccionesService {
       if (montoMax !== undefined) filtrosConsulta.monto.$lte = montoMax;
     }
 
-    // Calcular paginación
-    const skip = (pagina - 1) * limite;
+    const skip = (pageNum - 1) * limitNum;
 
-    // Ejecutar consultas
     const [transacciones, total] = await Promise.all([
       this.transaccionModel
         .find(filtrosConsulta)
-        .populate('fondoId', 'nombre tipo')
+        .populate({
+          path: 'fondoId',
+          select: 'nombre tipo descripcion',
+          strictPopulate: false
+        })
         .sort({ fecha: -1 })
         .skip(skip)
-        .limit(limite)
+        .limit(limitNum)
         .exec(),
       this.transaccionModel.countDocuments(filtrosConsulta),
     ]);
@@ -82,14 +110,12 @@ export class TransaccionesService {
     return {
       transacciones,
       total,
-      pagina,
-      limite,
-      totalPaginas: Math.ceil(total / limite),
+      page: pageNum,
+      totalPages: Math.ceil(total / limitNum),
     };
   }
 
   async findByFondo(fondoId: string, usuarioId: string, filtros: FiltroTransaccionesDto = {}): Promise<Transaccion[]> {
-    // Verificar que el fondo existe y pertenece al usuario
     await this.fondosService.findOne(fondoId, usuarioId);
 
     const filtrosConsulta: any = { 
@@ -97,7 +123,6 @@ export class TransaccionesService {
       usuarioId: new Types.ObjectId(usuarioId)
     };
 
-    // Aplicar filtros adicionales
     if (filtros.tipo) filtrosConsulta.tipo = filtros.tipo;
     if (filtros.categoria) filtrosConsulta.categoria = filtros.categoria;
     
@@ -130,27 +155,111 @@ export class TransaccionesService {
   }
 
   async update(id: string, updateTransaccionDto: UpdateTransaccionDto, usuarioId: string): Promise<Transaccion> {
-    // Verificar que la transacción existe y pertenece al usuario
-    await this.findOne(id, usuarioId);
+    console.log('🔄 EDITAR TRANSACCIÓN - Recalculando saldo del fondo');
+    console.log('📊 Datos de actualización:', updateTransaccionDto);
+    
+    // 1. Obtener la transacción original
+    const transaccionOriginal = await this.findOne(id, usuarioId);
+    
+    // Extraer el fondoId correctamente
+    const fondoOriginalId = typeof transaccionOriginal.fondoId === 'object' && transaccionOriginal.fondoId._id 
+      ? transaccionOriginal.fondoId._id.toString()
+      : transaccionOriginal.fondoId.toString();
+    
+    console.log('📋 Transacción original:', {
+      tipo: transaccionOriginal.tipo,
+      monto: transaccionOriginal.monto,
+      fondoId: fondoOriginalId
+    });
+    
+    // 2. REVERTIR el efecto de la transacción original
+    console.log('🔄 PASO 1: Revirtiendo efecto original...');
+    const tipoOriginalInverso = transaccionOriginal.tipo === 'ingreso' ? 'gasto' : 'ingreso';
+    await this.fondosService.actualizarSaldo(
+      fondoOriginalId,
+      tipoOriginalInverso,
+      transaccionOriginal.monto,
+      usuarioId
+    );
+    console.log('✅ Efecto original revertido');
+    
+    // 3. Determinar los nuevos valores
+    const nuevoTipo = updateTransaccionDto.tipo || transaccionOriginal.tipo;
+    const nuevoMonto = updateTransaccionDto.monto !== undefined ? updateTransaccionDto.monto : transaccionOriginal.monto;
+    const nuevoFondoId = updateTransaccionDto.fondoId || fondoOriginalId;
+    
+    console.log('📊 Nuevos valores a aplicar:', { nuevoTipo, nuevoMonto, nuevoFondoId });
+    
+    // 4. APLICAR el nuevo efecto
+    console.log('🔄 PASO 2: Aplicando nuevos valores...');
+    await this.fondosService.actualizarSaldo(
+      nuevoFondoId,
+      nuevoTipo,
+      nuevoMonto,
+      usuarioId
+    );
+    console.log('✅ Nuevos valores aplicados al saldo');
 
+    // 5. Preparar datos para actualización
+    const updateData: any = {};
+    if (updateTransaccionDto.descripcion !== undefined) updateData.descripcion = updateTransaccionDto.descripcion;
+    if (updateTransaccionDto.monto !== undefined) updateData.monto = updateTransaccionDto.monto;
+    if (updateTransaccionDto.tipo !== undefined) updateData.tipo = updateTransaccionDto.tipo;
+    if (updateTransaccionDto.categoria !== undefined) updateData.categoria = updateTransaccionDto.categoria;
+    if (updateTransaccionDto.notas !== undefined) updateData.notas = updateTransaccionDto.notas;
+    if (updateTransaccionDto.etiquetas !== undefined) updateData.etiquetas = updateTransaccionDto.etiquetas;
+    if (updateTransaccionDto.fondoId !== undefined) updateData.fondoId = new Types.ObjectId(updateTransaccionDto.fondoId);
+
+    // 6. Actualizar la transacción en la base de datos
     const transaccionActualizada = await this.transaccionModel
       .findOneAndUpdate(
         { _id: id, usuarioId: new Types.ObjectId(usuarioId) },
-        updateTransaccionDto, 
+        updateData, 
         { new: true }
       )
       .populate('fondoId', 'nombre tipo')
       .exec();
 
+    console.log('✅ Transacción editada y saldo recalculado');
     return transaccionActualizada;
   }
 
   async remove(id: string, usuarioId: string): Promise<void> {
+    console.log('🗑️ ELIMINAR TRANSACCIÓN - Revirtiendo saldo del fondo');
+    
+    // 1. Obtener la transacción antes de eliminarla
     const transaccion = await this.findOne(id, usuarioId);
+    
+    // Extraer el fondoId correctamente
+    const fondoId = typeof transaccion.fondoId === 'object' && transaccion.fondoId._id 
+      ? transaccion.fondoId._id.toString()
+      : transaccion.fondoId.toString();
+    
+    console.log('📋 Transacción a eliminar:', {
+      tipo: transaccion.tipo,
+      monto: transaccion.monto,
+      descripcion: transaccion.descripcion,
+      fondoId: fondoId
+    });
+    
+    // 2. REVERTIR el efecto en el saldo del fondo
+    console.log('🔄 Revirtiendo efecto en el saldo...');
+    const tipoInverso = transaccion.tipo === 'ingreso' ? 'gasto' : 'ingreso';
+    await this.fondosService.actualizarSaldo(
+      fondoId,
+      tipoInverso,
+      transaccion.monto,
+      usuarioId
+    );
+    console.log('✅ Efecto revertido en el saldo');
+    
+    // 3. Eliminar la transacción
     await this.transaccionModel.findOneAndDelete({
       _id: id,
       usuarioId: new Types.ObjectId(usuarioId)
     }).exec();
+    
+    console.log('✅ Transacción eliminada y saldo revertido');
   }
 
   async getEstadisticasPorCategoria(fondoId?: string): Promise<Array<{
