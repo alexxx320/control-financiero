@@ -17,6 +17,7 @@ import { takeUntil } from 'rxjs/operators';
 
 import { FondoService } from '../../core/services/fondo.service';
 import { Fondo, TipoFondo, CreateFondoDto, UpdateFondoDto } from '../../core/models/fondo.model';
+import { FondoDetalleModalComponent } from '../../shared/components/fondo-detalle-modal.component';
 import { NotificationService } from '../../core/services/notification.service';
 
 @Component({
@@ -162,8 +163,10 @@ import { NotificationService } from '../../core/services/notification.service';
               <p *ngIf="fondo.descripcion" class="descripcion">{{ fondo.descripcion }}</p>
               
               <div class="saldo-info">
-                <div class="saldo-label">Saldo Actual:</div>
-                <div class="saldo-valor">{{ fondo.saldoActual | currency:'COP':'symbol':'1.0-0' }}</div>
+                <div class="saldo-label">{{ fondo.saldoActual >= 0 ? 'Saldo Actual:' : 'Deuda Actual:' }}</div>
+                <div class="saldo-valor" [class]="fondo.saldoActual >= 0 ? 'saldo-positivo' : 'saldo-negativo'">
+                  {{ (fondo.saldoActual >= 0 ? fondo.saldoActual : -fondo.saldoActual) | currency:'COP':'symbol':'1.0-0' }}
+                </div>
               </div>
 
               <div class="meta-info" *ngIf="fondo.metaAhorro && fondo.metaAhorro > 0">
@@ -171,7 +174,7 @@ import { NotificationService } from '../../core/services/notification.service';
                 <div class="meta-valor">{{ fondo.metaAhorro | currency:'COP':'symbol':'1.0-0' }}</div>
               </div>
 
-              <div class="progreso-section" *ngIf="fondo.metaAhorro && fondo.metaAhorro > 0">
+              <div class="progreso-section" *ngIf="fondo.metaAhorro && fondo.metaAhorro > 0 && fondo.saldoActual > 0">
                 <div class="progreso-header">
                   <span>Progreso hacia la meta:</span>
                   <span class="progreso-porcentaje">{{ calcularProgresoMeta(fondo) }}%</span>
@@ -192,10 +195,6 @@ import { NotificationService } from '../../core/services/notification.service';
             <button mat-button color="primary" (click)="verDetalleFondo(fondo)">
               <mat-icon>visibility</mat-icon>
               Ver Detalle
-            </button>
-            <button mat-button color="accent" (click)="toggleEstadoFondo(fondo)">
-              <mat-icon>settings</mat-icon>
-              Estado
             </button>
           </mat-card-actions>
         </mat-card>
@@ -362,8 +361,15 @@ import { NotificationService } from '../../core/services/notification.service';
 
     .saldo-valor {
       font-weight: 600;
-      color: #2196f3;
       font-size: 1.1em;
+    }
+
+    .saldo-positivo {
+      color: #2196f3;
+    }
+
+    .saldo-negativo {
+      color: #f44336;
     }
 
     .meta-valor {
@@ -687,12 +693,17 @@ export class FondosComponent implements OnInit, OnDestroy {
       });
   }
 
-  toggleEstadoFondo(fondo: Fondo): void {
-    this.mostrarMensaje(`Estado del fondo "${fondo.nombre}" cambiado`);
-  }
-
   verDetalleFondo(fondo: Fondo): void {
-    this.mostrarMensaje(`Ver detalle del fondo "${fondo.nombre}"`);
+    console.log('🔍 Abriendo detalle del fondo:', fondo);
+    
+    this.dialog.open(FondoDetalleModalComponent, {
+      data: fondo,
+      width: '800px',
+      maxWidth: '90vw',
+      maxHeight: '90vh',
+      autoFocus: false,
+      restoreFocus: false
+    });
   }
 
   obtenerIconoTipo(tipo: TipoFondo): string {

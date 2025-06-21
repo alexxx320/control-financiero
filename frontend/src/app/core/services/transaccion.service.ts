@@ -248,8 +248,94 @@ export class TransaccionService {
   }
 
   /**
-   * Generar datos simulados para desarrollo
+   * Obtener transacciones de un fondo específico
    */
+  obtenerTransaccionesPorFondo(fondoId: string, limite: number = 10): Observable<Transaccion[]> {
+    let params = new HttpParams()
+      .set('limit', limite.toString())
+      .set('ordenarPor', 'fecha')
+      .set('orden', 'desc'); // Más recientes primero
+
+    return this.http.get<Transaccion[]>(`${this.apiUrl}/fondo/${fondoId}`, { params })
+      .pipe(
+        map(transacciones => {
+          // Transformar respuesta del backend
+          return transacciones.map((t: any) => ({
+            ...t,
+            fondoId: typeof t.fondoId === 'object' && t.fondoId._id ? t.fondoId._id : t.fondoId,
+            _fondoNombre: typeof t.fondoId === 'object' && t.fondoId.nombre ? t.fondoId.nombre : null
+          }));
+        }),
+        catchError(error => {
+          console.error('❌ Error al obtener transacciones del fondo:', error);
+          
+          // Fallback con datos simulados para el fondo específico
+          if (error.status === 0) {
+            console.log('📊 Usando datos simulados para el fondo:', fondoId);
+            return this.generarDatosSimuladosPorFondo(fondoId, limite);
+          }
+          
+          return of([]);
+        })
+      );
+  }
+
+  /**
+   * Generar datos simulados para un fondo específico
+   */
+  private generarDatosSimuladosPorFondo(fondoId: string, limite: number): Observable<Transaccion[]> {
+    const transaccionesSimuladas: Transaccion[] = [
+      {
+        _id: `trans_${fondoId}_1`,
+        fondoId: fondoId,
+        descripcion: 'Compras del supermercado',
+        monto: 150000,
+        tipo: 'gasto',
+        categoria: 'alimentacion',
+        fecha: new Date(),
+        notas: 'Compras semanales'
+      },
+      {
+        _id: `trans_${fondoId}_2`,
+        fondoId: fondoId,
+        descripcion: 'Depósito inicial',
+        monto: 500000,
+        tipo: 'ingreso',
+        categoria: 'salario',
+        fecha: new Date(Date.now() - 86400000), // Ayer
+        notas: 'Depósito inicial del fondo'
+      },
+      {
+        _id: `trans_${fondoId}_3`,
+        fondoId: fondoId,
+        descripcion: 'Transporte público',
+        monto: 25000,
+        tipo: 'gasto',
+        categoria: 'transporte',
+        fecha: new Date(Date.now() - 172800000), // Hace 2 días
+      },
+      {
+        _id: `trans_${fondoId}_4`,
+        fondoId: fondoId,
+        descripcion: 'Transferencia bancaria',
+        monto: 200000,
+        tipo: 'ingreso',
+        categoria: 'inversiones',
+        fecha: new Date(Date.now() - 259200000), // Hace 3 días
+      },
+      {
+        _id: `trans_${fondoId}_5`,
+        fondoId: fondoId,
+        descripcion: 'Almuerzo en restaurante',
+        monto: 35000,
+        tipo: 'gasto',
+        categoria: 'alimentacion',
+        fecha: new Date(Date.now() - 345600000), // Hace 4 días
+      }
+    ];
+
+    return of(transaccionesSimuladas.slice(0, limite));
+  }
   private generarDatosSimulados(filtros: FiltroTransacciones): Observable<ResponseTransacciones> {
     console.log('📊 Generando datos simulados de transacciones...');
     
