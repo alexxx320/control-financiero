@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -27,6 +28,7 @@ import { NotificationService } from '../../core/services/notification.service';
   standalone: true,
   imports: [
     CommonModule,
+    RouterModule,
     FormsModule,
     ReactiveFormsModule,
     MatCardModule,
@@ -66,13 +68,6 @@ import { NotificationService } from '../../core/services/notification.service';
               </mat-select>
             </mat-form-field>
 
-            <button mat-raised-button color="primary" 
-                    (click)="cargarDashboard()" 
-                    [disabled]="cargando">
-              <mat-icon>refresh</mat-icon>
-              {{ cargando ? 'Cargando...' : 'Actualizar' }}
-            </button>
-
             <button mat-stroked-button [matMenuTriggerFor]="exportMenu" [disabled]="cargando">
               <mat-icon>download</mat-icon>
               Exportar
@@ -104,7 +99,12 @@ import { NotificationService } from '../../core/services/notification.service';
         <!-- KPIs principales -->
         <mat-card class="kpis-card" *ngIf="dashboardData">
           <mat-card-header>
-            <mat-card-title>Indicadores Clave - {{ dashboardData.periodo }}</mat-card-title>
+            <mat-card-title>
+              <div class="kpi-header">
+                <span>Indicadores Clave - {{ dashboardData.periodo || dashboardData.reporteMensual?.periodo }}</span>
+                <mat-chip class="periodo-chip">{{ filtrosForm.get('periodo')?.value | titlecase }}</mat-chip>
+              </div>
+            </mat-card-title>
           </mat-card-header>
           <mat-card-content>
             <div class="kpis-grid">
@@ -147,77 +147,6 @@ import { NotificationService } from '../../core/services/notification.service';
                   <span class="kpi-value">{{ dashboardData.kpis.margenUtilidad | number:'1.1-1' }}%</span>
                 </div>
               </div>
-
-              <div class="kpi-item fondos">
-                <div class="kpi-icon">
-                  <mat-icon>account_balance</mat-icon>
-                </div>
-                <div class="kpi-content">
-                  <span class="kpi-label">Fondos Activos</span>
-                  <span class="kpi-value">{{ dashboardData.kpis.fondosActivos }}</span>
-                </div>
-              </div>
-
-              <div class="kpi-item transacciones">
-                <div class="kpi-icon">
-                  <mat-icon>receipt</mat-icon>
-                </div>
-                <div class="kpi-content">
-                  <span class="kpi-label">Transacciones/Día</span>
-                  <span class="kpi-value">{{ dashboardData.kpis.transaccionesPromedio | number:'1.1-1' }}</span>
-                </div>
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
-
-        <!-- Alertas importantes -->
-        <mat-card class="alertas-card" *ngIf="dashboardData?.alertas && dashboardData.alertas.length > 0">
-          <mat-card-header>
-            <mat-card-title>
-              <mat-icon class="alerta-icon">notifications_active</mat-icon>
-              Alertas Activas ({{ dashboardData.alertas.length }})
-            </mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="alertas-lista">
-              <div *ngFor="let alerta of dashboardData.alertas" class="alerta-item" [ngClass]="'alerta-' + alerta.tipo.toLowerCase()">
-                <mat-icon [style.color]="getColorAlerta(alerta.tipo)">{{ getIconoAlerta(alerta.tipo) }}</mat-icon>
-                <div class="alerta-content">
-                  <strong>{{ alerta.fondo }}</strong>
-                  <span>{{ alerta.mensaje }}</span>
-                </div>
-                <mat-chip [style.background-color]="getColorAlerta(alerta.tipo)" 
-                         [style.color]="'white'" 
-                         class="prioridad-chip">
-                  {{ alerta.prioridad }}
-                </mat-chip>
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
-
-        <!-- Performance de fondos -->
-        <mat-card class="fondos-performance-card" *ngIf="dashboardData?.fondosPerformance">
-          <mat-card-header>
-            <mat-card-title>Performance de Fondos</mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="fondos-grid">
-              <div *ngFor="let fondo of dashboardData.fondosPerformance" class="fondo-item" [ngClass]="'rendimiento-' + fondo.rendimiento">
-                <div class="fondo-header">
-                  <h4>{{ fondo.nombre }}</h4>
-                  <mat-chip [ngClass]="'chip-' + fondo.rendimiento">{{ fondo.rendimiento }}</mat-chip>
-                </div>
-                <div class="fondo-saldo">
-                  <span class="label">Saldo Actual:</span>
-                  <span class="value">{{ fondo.saldoActual | currency:'COP':'symbol':'1.0-0' }}</span>
-                </div>
-                <div class="fondo-progress">
-                  <span class="progress-label">Progreso de Meta: {{ fondo.progresoMeta | number:'1.0-0' }}%</span>
-                  <mat-progress-bar mode="determinate" [value]="fondo.progresoMeta"></mat-progress-bar>
-                </div>
-              </div>
             </div>
           </mat-card-content>
         </mat-card>
@@ -225,7 +154,10 @@ import { NotificationService } from '../../core/services/notification.service';
         <!-- Detalle de reportes por tabla -->
         <mat-card class="tabla-reportes-card" *ngIf="dashboardData?.reporteMensual">
           <mat-card-header>
-            <mat-card-title>Detalle por Fondos - {{ dashboardData.reporteMensual.periodo }}</mat-card-title>
+            <mat-card-title>
+              Detalle de Fondos
+              <span class="tabla-subtitle">({{ dashboardData.reporteMensual.resumen.transaccionesTotales }} transacciones)</span>
+            </mat-card-title>
           </mat-card-header>
           <mat-card-content>
             <div class="tabla-container">
@@ -269,6 +201,103 @@ import { NotificationService } from '../../core/services/notification.service';
           </mat-card-content>
         </mat-card>
 
+        <!-- Alertas importantes -->
+        <mat-card class="alertas-card" *ngIf="dashboardData?.alertas && dashboardData.alertas.length > 0">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon class="alerta-icon">notifications_active</mat-icon>
+              Alertas Activas ({{ dashboardData.alertas.length }})
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="alertas-lista">
+              <div *ngFor="let alerta of dashboardData.alertas" class="alerta-item" [ngClass]="'alerta-' + alerta.tipo.toLowerCase()">
+                <mat-icon [style.color]="getColorAlerta(alerta.tipo)">{{ getIconoAlerta(alerta.tipo) }}</mat-icon>
+                <div class="alerta-content">
+                  <strong>{{ alerta.fondo }}</strong>
+                  <span>{{ alerta.mensaje }}</span>
+                </div>
+                <mat-chip [style.background-color]="getColorAlerta(alerta.tipo)" 
+                         [style.color]="'white'" 
+                         class="prioridad-chip">
+                  {{ alerta.prioridad }}
+                </mat-chip>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Historial de Transacciones -->
+        <mat-card class="historial-card" *ngIf="dashboardData?.historialTransacciones && dashboardData.historialTransacciones.length > 0">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>history</mat-icon>
+              Historial de Transacciones
+              <span class="historial-subtitle">({{ dashboardData.historialTransacciones.length }} últimas)</span>
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="historial-container">
+              <table mat-table [dataSource]="dataSourceHistorial" class="historial-table">
+                <ng-container matColumnDef="fecha">
+                  <th mat-header-cell *matHeaderCellDef>Fecha</th>
+                  <td mat-cell *matCellDef="let transaccion">{{ transaccion.fecha | date:'dd/MM/yyyy' }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="descripcion">
+                  <th mat-header-cell *matHeaderCellDef>Descripción</th>
+                  <td mat-cell *matCellDef="let transaccion">
+                    <div class="transaccion-descripcion">
+                      <span class="descripcion-principal">{{ transaccion.descripcion }}</span>
+                      <span class="fondo-nombre" *ngIf="transaccion.fondo">{{ transaccion.fondo }}</span>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="categoria">
+                  <th mat-header-cell *matHeaderCellDef>Categoría</th>
+                  <td mat-cell *matCellDef="let transaccion">
+                    <mat-chip class="categoria-chip">{{ transaccion.categoria }}</mat-chip>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="tipo">
+                  <th mat-header-cell *matHeaderCellDef>Tipo</th>
+                  <td mat-cell *matCellDef="let transaccion">
+                    <mat-chip [ngClass]="{
+                      'tipo-ingreso': transaccion.tipo === 'ingreso',
+                      'tipo-gasto': transaccion.tipo === 'gasto'
+                    }">
+                      <mat-icon>{{ transaccion.tipo === 'ingreso' ? 'add' : 'remove' }}</mat-icon>
+                      {{ transaccion.tipo | titlecase }}
+                    </mat-chip>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="monto">
+                  <th mat-header-cell *matHeaderCellDef>Monto</th>
+                  <td mat-cell *matCellDef="let transaccion" [ngClass]="{
+                    'monto-ingreso': transaccion.tipo === 'ingreso',
+                    'monto-gasto': transaccion.tipo === 'gasto'
+                  }">
+                    {{ transaccion.tipo === 'ingreso' ? '+' : '-' }}{{ transaccion.monto | currency:'COP':'symbol':'1.0-0' }}
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="displayedColumnsHistorial"></tr>
+                <tr mat-row *matRowDef="let row; columns: displayedColumnsHistorial;"></tr>
+              </table>
+
+              <div class="historial-footer" *ngIf="dashboardData.historialTransacciones.length >= 50">
+                <p class="footer-text">
+                  <mat-icon>info</mat-icon>
+                  Mostrando las últimas 50 transacciones del período seleccionado.
+                </p>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
         <!-- Mensaje informativo si no hay datos -->
         <mat-card class="info-card" *ngIf="!dashboardData">
           <mat-card-content>
@@ -277,15 +306,39 @@ import { NotificationService } from '../../core/services/notification.service';
               <div>
                 <h3>No hay datos para mostrar</h3>
                 <p>No se encontraron datos financieros para el período seleccionado.</p>
-                <ul>
-                  <li>Verifica que tengas fondos creados</li>
-                  <li>Asegúrate de tener transacciones registradas</li>
-                  <li>Prueba seleccionando un período diferente</li>
-                </ul>
-                <button mat-raised-button color="primary" (click)="cargarDashboard()">
-                  <mat-icon>refresh</mat-icon>
-                  Intentar de nuevo
-                </button>
+                <div class="info-steps">
+                  <h4>Para comenzar a ver reportes:</h4>
+                  <ol>
+                    <li><strong>Crea al menos un fondo</strong> en la sección "Fondos"</li>
+                    <li><strong>Registra transacciones</strong> (ingresos o gastos) en tus fondos</li>
+                    <li><strong>Regresa aquí</strong> para ver tus reportes financieros</li>
+                  </ol>
+                </div>
+                <div class="info-actions">
+                  <button mat-stroked-button color="accent" [routerLink]="['/fondos']">
+                    <mat-icon>account_balance</mat-icon>
+                    Ir a Fondos
+                  </button>
+                </div>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+        
+        <!-- Mensaje cuando hay fondos pero no transacciones -->
+        <mat-card class="warning-card" *ngIf="dashboardData && dashboardData.reporteMensual && dashboardData.reporteMensual.resumen.transaccionesTotales === 0">
+          <mat-card-content>
+            <div class="warning-content">
+              <mat-icon class="warning-icon">warning</mat-icon>
+              <div>
+                <h3>Sin transacciones en {{ dashboardData.reporteMensual.periodo }}</h3>
+                <p>Tienes fondos activos, pero no hay transacciones registradas en el período seleccionado. Puedes registrar una nueva transacción o seleccionar un período diferente en el filtro de arriba.</p>
+                <div class="warning-actions">
+                  <button mat-raised-button color="primary" [routerLink]="['/transacciones']">
+                    <mat-icon>add</mat-icon>
+                    Registrar transacción
+                  </button>
+                </div>
               </div>
             </div>
           </mat-card-content>
@@ -372,11 +425,27 @@ import { NotificationService } from '../../core/services/notification.service';
       padding: 16px 24px;
     }
 
+    .kpi-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+
+    .periodo-chip {
+      background-color: rgba(255,255,255,0.2);
+      color: white;
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+
     .kpis-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
       padding: 24px;
+      max-width: 1000px;
+      margin: 0 auto;
     }
 
     .kpi-item {
@@ -477,99 +546,6 @@ import { NotificationService } from '../../core/services/notification.service';
       font-weight: 500;
     }
 
-    /* Fondos Performance */
-    .fondos-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 16px;
-    }
-
-    .fondo-item {
-      padding: 20px;
-      border-radius: 12px;
-      border: 2px solid #e0e0e0;
-      transition: border-color 0.3s ease;
-    }
-
-    .fondo-item.rendimiento-excelente {
-      border-color: #4caf50;
-      background: linear-gradient(135deg, #e8f5e8 0%, #f1f9f1 100%);
-    }
-
-    .fondo-item.rendimiento-bueno {
-      border-color: #2196f3;
-      background: linear-gradient(135deg, #e3f2fd 0%, #f0f8ff 100%);
-    }
-
-    .fondo-item.rendimiento-regular {
-      border-color: #ff9800;
-      background: linear-gradient(135deg, #fff3e0 0%, #faf6f0 100%);
-    }
-
-    .fondo-item.rendimiento-malo {
-      border-color: #f44336;
-      background: linear-gradient(135deg, #ffebee 0%, #fdf4f4 100%);
-    }
-
-    .fondo-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-
-    .fondo-header h4 {
-      margin: 0;
-      color: #333;
-    }
-
-    .chip-excelente {
-      background-color: #4caf50;
-      color: white;
-    }
-
-    .chip-bueno {
-      background-color: #2196f3;
-      color: white;
-    }
-
-    .chip-regular {
-      background-color: #ff9800;
-      color: white;
-    }
-
-    .chip-malo {
-      background-color: #f44336;
-      color: white;
-    }
-
-    .fondo-saldo {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 16px;
-    }
-
-    .fondo-saldo .label {
-      color: #666;
-      font-weight: 500;
-    }
-
-    .fondo-saldo .value {
-      font-weight: 600;
-      color: #333;
-    }
-
-    .fondo-progress {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .progress-label {
-      font-size: 0.9rem;
-      color: #666;
-    }
-
     /* Tabla */
     .tabla-container {
       overflow-x: auto;
@@ -597,6 +573,114 @@ import { NotificationService } from '../../core/services/notification.service';
     .fondos-table .negativo {
       color: #f44336;
       font-weight: 600;
+    }
+
+    .tabla-subtitle {
+      font-size: 0.9rem;
+      font-weight: 400;
+      color: #666;
+      margin-left: 8px;
+    }
+
+    /* Historial de Transacciones */
+    .historial-card {
+      border-left: 4px solid #2196f3;
+    }
+
+    .historial-card mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .historial-subtitle {
+      font-size: 0.9rem;
+      font-weight: 400;
+      color: #666;
+      margin-left: 8px;
+    }
+
+    .historial-container {
+      overflow-x: auto;
+    }
+
+    .historial-table {
+      width: 100%;
+    }
+
+    .transaccion-descripcion {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .descripcion-principal {
+      font-weight: 500;
+      color: #333;
+    }
+
+    .fondo-nombre {
+      font-size: 0.8rem;
+      color: #666;
+      font-style: italic;
+    }
+
+    .categoria-chip {
+      background-color: #e0e0e0;
+      color: #333;
+      font-size: 0.8rem;
+    }
+
+    .tipo-ingreso {
+      background-color: #4caf50;
+      color: white;
+    }
+
+    .tipo-gasto {
+      background-color: #f44336;
+      color: white;
+    }
+
+    .tipo-ingreso mat-icon,
+    .tipo-gasto mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      margin-right: 4px;
+    }
+
+    .monto-ingreso {
+      color: #4caf50;
+      font-weight: 600;
+    }
+
+    .monto-gasto {
+      color: #f44336;
+      font-weight: 600;
+    }
+
+    .historial-footer {
+      margin-top: 16px;
+      padding: 12px;
+      background-color: #f5f5f5;
+      border-radius: 8px;
+      border-left: 3px solid #2196f3;
+    }
+
+    .footer-text {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    .footer-text mat-icon {
+      color: #2196f3;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
     }
 
     /* Info Card */
@@ -627,9 +711,70 @@ import { NotificationService } from '../../core/services/notification.service';
       margin: 0 0 12px 0;
     }
 
-    .info-content ul {
-      margin: 0 0 16px 0;
+    .info-steps {
+      margin: 16px 0;
+      padding: 16px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      border-left: 3px solid #2196f3;
+    }
+
+    .info-steps h4 {
+      margin: 0 0 12px 0;
+      color: #333;
+      font-size: 1.1rem;
+    }
+
+    .info-steps ol {
+      margin: 0;
       padding-left: 20px;
+    }
+
+    .info-steps li {
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    .info-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* Warning Card */
+    .warning-card {
+      border-left: 4px solid #ff9800;
+      background: linear-gradient(135deg, #fff8e1 0%, #fffbf0 100%);
+    }
+
+    .warning-content {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .warning-icon {
+      color: #ff9800;
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+      margin-top: 4px;
+    }
+
+    .warning-content h3 {
+      margin: 0 0 8px 0;
+      color: #ff9800;
+    }
+
+    .warning-content p {
+      margin: 0 0 16px 0;
+      color: #666;
+    }
+
+    .warning-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
     }
 
     /* Responsive */
@@ -661,14 +806,21 @@ import { NotificationService } from '../../core/services/notification.service';
         grid-template-columns: 1fr;
       }
 
-      .fondos-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .info-content {
+      .info-content,
+      .warning-content {
         flex-direction: column;
         align-items: center;
         text-align: center;
+      }
+
+      .info-actions,
+      .warning-actions {
+        justify-content: center;
+      }
+
+      .info-steps {
+        text-align: left;
+        width: 100%;
       }
     }
   `]
@@ -684,7 +836,9 @@ export class ReportesComponent implements OnInit, OnDestroy {
 
   // Configuración de tablas
   dataSourceFondos = new MatTableDataSource<any>();
+  dataSourceHistorial = new MatTableDataSource<any>();
   displayedColumnsFondos: string[] = ['nombre', 'balanceInicial', 'ingresos', 'gastos', 'balanceFinal', 'transacciones'];
+  displayedColumnsHistorial: string[] = ['fecha', 'descripcion', 'categoria', 'tipo', 'monto'];
 
   constructor(
     private fb: FormBuilder,
@@ -694,6 +848,17 @@ export class ReportesComponent implements OnInit, OnDestroy {
     this.filtrosForm = this.fb.group({
       periodo: ['mes']
     });
+    
+    // Escuchar cambios en el formulario para recargar automáticamente
+    this.filtrosForm.get('periodo')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((nuevoPeriodo: string) => {
+        console.log(`🔄 Período cambiado a: ${nuevoPeriodo}`);
+        // Dar un pequeño delay para que se actualice la UI antes de cargar
+        setTimeout(() => {
+          this.cargarDashboard();
+        }, 100);
+      });
   }
 
   ngOnInit(): void {
@@ -711,26 +876,69 @@ export class ReportesComponent implements OnInit, OnDestroy {
     console.log(`📊 Cargando dashboard para período: ${periodo}`);
     
     this.cargando = true;
+    this.dashboardData = null; // Limpiar datos anteriores
     
     this.reportesService.obtenerDashboard(periodo)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (data: any) => {
-          this.dashboardData = data;
+          console.log('📊 Datos recibidos del dashboard:', data);
           
-          // Configurar datos de la tabla
-          if (data.reporteMensual?.fondos) {
-            this.dataSourceFondos.data = data.reporteMensual.fondos;
+          // Verificar si hay datos válidos
+          if (data && data.reporteMensual) {
+            this.dashboardData = data;
+            
+            // Configurar datos de la tabla
+            if (data.reporteMensual?.fondos && Array.isArray(data.reporteMensual.fondos)) {
+              this.dataSourceFondos.data = data.reporteMensual.fondos;
+              console.log(`📋 Tabla configurada con ${data.reporteMensual.fondos.length} fondos`);
+            } else {
+              this.dataSourceFondos.data = [];
+              console.log('📋 No hay fondos para mostrar en la tabla');
+            }
+            
+            // Configurar datos del historial
+            if (data.historialTransacciones && Array.isArray(data.historialTransacciones)) {
+              this.dataSourceHistorial.data = data.historialTransacciones;
+              console.log(`📈 Historial configurado con ${data.historialTransacciones.length} transacciones`);
+            } else {
+              this.dataSourceHistorial.data = [];
+              console.log('📈 No hay transacciones para mostrar en el historial');
+            }
+            
+            console.log('✅ Dashboard cargado exitosamente:', this.dashboardData);
+            
+            // Mostrar mensaje según el estado de los datos
+            if (data.reporteMensual.resumen.transaccionesTotales === 0) {
+              this.notificationService.info('Dashboard cargado - No hay transacciones en el período seleccionado');
+            } else {
+              this.notificationService.success(`Dashboard actualizado - ${data.reporteMensual.resumen.transaccionesTotales} transacciones encontradas`);
+            }
+          } else {
+            console.warn('⚠️ No se recibieron datos válidos del dashboard');
+            this.dashboardData = null;
+            this.dataSourceFondos.data = [];
+            this.notificationService.warning('No hay datos disponibles para mostrar');
           }
           
           this.cargando = false;
-          console.log('✅ Dashboard cargado exitosamente:', this.dashboardData);
-          this.notificationService.success('Reportes financieros actualizados');
         },
         error: (error: any) => {
           console.error('❌ Error al cargar dashboard:', error);
+          console.error('❌ Error details:', error.error);
           this.cargando = false;
-          this.notificationService.error('Error al cargar los reportes financieros');
+          this.dashboardData = null;
+          this.dataSourceFondos.data = [];
+          this.dataSourceHistorial.data = [];
+          
+          let errorMessage = 'Error al cargar los reportes financieros';
+          if (error.status === 401) {
+            errorMessage = 'Sesión expirada. Por favor, inicia sesión nuevamente';
+          } else if (error.status === 500) {
+            errorMessage = 'Error interno del servidor. Inténtalo más tarde';
+          }
+          
+          this.notificationService.error(errorMessage);
         }
       });
   }
@@ -784,5 +992,12 @@ export class ReportesComponent implements OnInit, OnDestroy {
 
   getIconoAlerta(tipo: string): string {
     return this.reportesService.getIconoAlerta(tipo);
+  }
+
+  // Método para verificar si hay datos significativos
+  tieneDatosSignificativos(): boolean {
+    return this.dashboardData && 
+           this.dashboardData.reporteMensual && 
+           (this.dashboardData.reporteMensual.resumen.transaccionesTotales > 0);
   }
 }

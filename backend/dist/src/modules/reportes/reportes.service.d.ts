@@ -33,5 +33,7 @@ export declare class ReportesService {
             } | null;
         };
     }>;
+    generarReportePorPeriodo(fechaInicio: Date, fechaFin: Date, nombrePeriodo: string, usuarioId: string): Promise<IReporteMensual>;
+    obtenerHistorialTransacciones(fechaInicio: Date, fechaFin: Date, usuarioId: string): Promise<any[]>;
     private calcularBalanceTotal;
 }

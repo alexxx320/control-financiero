@@ -31,15 +31,18 @@ let ReportesService = class ReportesService {
         }
         const fechaInicio = new Date(año, mes - 1, 1);
         const fechaFin = new Date(año, mes, 0, 23, 59, 59);
+        console.log(`📅 Rango de fechas: ${fechaInicio.toISOString()} - ${fechaFin.toISOString()}`);
         const fondos = await this.fondoModel.find({
             usuarioId: new mongoose_2.Types.ObjectId(usuarioId),
             activo: true
         }).exec();
+        console.log(`💰 Fondos encontrados: ${fondos.length}`);
         const reportesFondos = [];
         let totalIngresosMes = 0;
         let totalGastosMes = 0;
         let totalTransacciones = 0;
         for (const fondo of fondos) {
+            console.log(`📋 Procesando fondo: ${fondo.nombre} (ID: ${fondo._id})`);
             const transaccionesMes = await this.transaccionModel
                 .find({
                 fondoId: fondo._id,
@@ -47,27 +50,30 @@ let ReportesService = class ReportesService {
                 fecha: { $gte: fechaInicio, $lte: fechaFin }
             })
                 .exec();
+            console.log(`📊 Transacciones del mes para ${fondo.nombre}: ${transaccionesMes.length}`);
             const ingresosMes = transaccionesMes
                 .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.INGRESO)
                 .reduce((sum, t) => sum + t.monto, 0);
             const gastosMes = transaccionesMes
                 .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.GASTO)
                 .reduce((sum, t) => sum + t.monto, 0);
+            console.log(`💰 ${fondo.nombre} - Ingresos: ${ingresosMes}, Gastos: ${gastosMes}`);
             const todasTransacciones = await this.transaccionModel
                 .find({
                 fondoId: fondo._id,
                 usuarioId: new mongoose_2.Types.ObjectId(usuarioId)
             })
                 .exec();
+            console.log(`📈 Transacciones históricas para ${fondo.nombre}: ${todasTransacciones.length}`);
             const totalIngresosFondo = todasTransacciones
                 .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.INGRESO)
                 .reduce((sum, t) => sum + t.monto, 0);
             const totalGastosFondo = todasTransacciones
                 .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.GASTO)
                 .reduce((sum, t) => sum + t.monto, 0);
-            const balanceFinal = totalIngresosFondo - totalGastosFondo;
+            const balanceFinal = fondo.saldoActual;
             const balanceInicial = balanceFinal - (ingresosMes - gastosMes);
-            reportesFondos.push({
+            const reporteFondo = {
                 nombre: fondo.nombre,
                 balanceInicial,
                 ingresos: ingresosMes,
@@ -75,7 +81,9 @@ let ReportesService = class ReportesService {
                 balanceNeto: ingresosMes - gastosMes,
                 balanceFinal,
                 transacciones: transaccionesMes.length,
-            });
+            };
+            console.log(`📊 Reporte de fondo ${fondo.nombre}:`, reporteFondo);
+            reportesFondos.push(reporteFondo);
             totalIngresosMes += ingresosMes;
             totalGastosMes += gastosMes;
             totalTransacciones += transaccionesMes.length;
@@ -86,7 +94,10 @@ let ReportesService = class ReportesService {
             balanceNeto: totalIngresosMes - totalGastosMes,
             transaccionesTotales: totalTransacciones,
         };
-        console.log(`✅ Reporte mensual generado para usuario ${usuarioId}:`, resumen);
+        console.log(`✅ Reporte mensual generado para usuario ${usuarioId}:`, {
+            fondos: reportesFondos.length,
+            resumen
+        });
         const fecha = new Date(año, mes - 1, 1);
         const periodo = fecha.toLocaleDateString('es-ES', {
             month: 'long',
@@ -275,6 +286,128 @@ let ReportesService = class ReportesService {
                 } : null,
             },
         };
+    }
+    async generarReportePorPeriodo(fechaInicio, fechaFin, nombrePeriodo, usuarioId) {
+        console.log(`📊 Generando reporte para período personalizado: ${nombrePeriodo}`);
+        console.log(`📅 Rango: ${fechaInicio.toISOString()} - ${fechaFin.toISOString()}`);
+        const fondos = await this.fondoModel.find({
+            usuarioId: new mongoose_2.Types.ObjectId(usuarioId),
+            activo: true
+        }).exec();
+        console.log(`💰 Fondos encontrados: ${fondos.length}`);
+        const reportesFondos = [];
+        let totalIngresosPeriodo = 0;
+        let totalGastosPeriodo = 0;
+        let totalTransacciones = 0;
+        for (const fondo of fondos) {
+            console.log(`📋 Procesando fondo: ${fondo.nombre} (ID: ${fondo._id})`);
+            const transaccionesPeriodo = await this.transaccionModel
+                .find({
+                fondoId: fondo._id,
+                usuarioId: new mongoose_2.Types.ObjectId(usuarioId),
+                fecha: { $gte: fechaInicio, $lte: fechaFin }
+            })
+                .exec();
+            console.log(`📊 Transacciones del período para ${fondo.nombre}: ${transaccionesPeriodo.length}`);
+            const ingresosPeriodo = transaccionesPeriodo
+                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.INGRESO)
+                .reduce((sum, t) => sum + t.monto, 0);
+            const gastosPeriodo = transaccionesPeriodo
+                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.GASTO)
+                .reduce((sum, t) => sum + t.monto, 0);
+            console.log(`💰 ${fondo.nombre} - Ingresos: ${ingresosPeriodo}, Gastos: ${gastosPeriodo}`);
+            const todasTransaccionesAnteriores = await this.transaccionModel
+                .find({
+                fondoId: fondo._id,
+                usuarioId: new mongoose_2.Types.ObjectId(usuarioId),
+                fecha: { $lt: fechaInicio }
+            })
+                .exec();
+            const ingresosAnteriores = todasTransaccionesAnteriores
+                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.INGRESO)
+                .reduce((sum, t) => sum + t.monto, 0);
+            const gastosAnteriores = todasTransaccionesAnteriores
+                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.GASTO)
+                .reduce((sum, t) => sum + t.monto, 0);
+            const balanceInicial = ingresosAnteriores - gastosAnteriores;
+            const balanceFinal = balanceInicial + (ingresosPeriodo - gastosPeriodo);
+            const reporteFondo = {
+                nombre: fondo.nombre,
+                balanceInicial,
+                ingresos: ingresosPeriodo,
+                gastos: gastosPeriodo,
+                balanceNeto: ingresosPeriodo - gastosPeriodo,
+                balanceFinal,
+                transacciones: transaccionesPeriodo.length,
+            };
+            console.log(`📊 Reporte de fondo ${fondo.nombre}:`, reporteFondo);
+            reportesFondos.push(reporteFondo);
+            totalIngresosPeriodo += ingresosPeriodo;
+            totalGastosPeriodo += gastosPeriodo;
+            totalTransacciones += transaccionesPeriodo.length;
+        }
+        const resumen = {
+            totalIngresos: totalIngresosPeriodo,
+            totalGastos: totalGastosPeriodo,
+            balanceNeto: totalIngresosPeriodo - totalGastosPeriodo,
+            transaccionesTotales: totalTransacciones,
+        };
+        console.log(`✅ Reporte personalizado generado para período ${nombrePeriodo}:`, {
+            fondos: reportesFondos.length,
+            resumen
+        });
+        return {
+            periodo: nombrePeriodo,
+            mes: fechaInicio.getMonth() + 1,
+            año: fechaInicio.getFullYear(),
+            fondos: reportesFondos,
+            resumen,
+        };
+    }
+    async obtenerHistorialTransacciones(fechaInicio, fechaFin, usuarioId) {
+        console.log(`📈 [HISTORIAL] Obteniendo transacciones del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()}`);
+        console.log(`📈 [HISTORIAL] Usuario ID: ${usuarioId}`);
+        console.log(`📈 [HISTORIAL] Fechas ISO: ${fechaInicio.toISOString()} - ${fechaFin.toISOString()}`);
+        try {
+            const transacciones = await this.transaccionModel
+                .find({
+                usuarioId: new mongoose_2.Types.ObjectId(usuarioId),
+                fecha: { $gte: fechaInicio, $lte: fechaFin }
+            })
+                .populate({
+                path: 'fondoId',
+                select: 'nombre tipo',
+                strictPopulate: false
+            })
+                .sort({ fecha: -1 })
+                .limit(50)
+                .exec();
+            console.log(`📈 [HISTORIAL] Transacciones encontradas: ${transacciones.length}`);
+            if (transacciones.length > 0) {
+                console.log(`📈 [HISTORIAL] Primera transacción: ${transacciones[0].fecha}`);
+                console.log(`📈 [HISTORIAL] Última transacción: ${transacciones[transacciones.length - 1].fecha}`);
+            }
+            const historial = transacciones.map(transaccion => ({
+                id: transaccion._id,
+                fecha: transaccion.fecha,
+                descripcion: transaccion.descripcion,
+                monto: transaccion.monto,
+                tipo: transaccion.tipo,
+                categoria: transaccion.categoria,
+                fondo: transaccion.fondoId ?
+                    (typeof transaccion.fondoId === 'object' ?
+                        transaccion.fondoId.nombre : 'Fondo no encontrado') : 'Sin fondo',
+                etiquetas: transaccion.etiquetas || []
+            }));
+            console.log(`✅ [HISTORIAL] Historial procesado: ${historial.length} transacciones`);
+            console.log(`📊 [HISTORIAL] Ejemplo de transacción:`, historial[0] || 'Sin transacciones');
+            return historial;
+        }
+        catch (error) {
+            console.error(`❌ [HISTORIAL] Error al obtener historial:`, error);
+            console.error(`❌ [HISTORIAL] Parámetros:`, { fechaInicio, fechaFin, usuarioId });
+            throw error;
+        }
     }
     async calcularBalanceTotal(usuarioId) {
         const transacciones = await this.transaccionModel.find({

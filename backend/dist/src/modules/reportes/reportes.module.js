@@ -10,6 +10,7 @@ exports.ReportesModule = void 0;
 const common_1 = require("@nestjs/common");
 const mongoose_1 = require("@nestjs/mongoose");
 const reportes_service_1 = require("./reportes.service");
+const diagnostico_service_1 = require("./diagnostico.service");
 const dashboard_service_1 = require("./dashboard.service");
 const reportes_controller_1 = require("./reportes.controller");
 const dashboard_controller_1 = require("./dashboard.controller");
@@ -38,11 +39,13 @@ exports.ReportesModule = ReportesModule = __decorate([
         providers: [
             reportes_unificado_service_1.ReportesUnificadoService,
             reportes_service_1.ReportesService,
+            diagnostico_service_1.DiagnosticoService,
             dashboard_service_1.DashboardService
         ],
         exports: [
             reportes_unificado_service_1.ReportesUnificadoService,
             reportes_service_1.ReportesService,
+            diagnostico_service_1.DiagnosticoService,
             dashboard_service_1.DashboardService
         ],
     })

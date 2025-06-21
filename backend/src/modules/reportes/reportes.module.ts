@@ -1,6 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ReportesService } from './reportes.service';
+import { DiagnosticoService } from './diagnostico.service';
 import { DashboardService } from './dashboard.service';
 import { ReportesController } from './reportes.controller';
 import { DashboardController } from './dashboard.controller';
@@ -25,12 +26,14 @@ import { FondosModule } from '../fondos/fondos.module';
   ],
   providers: [
     ReportesUnificadoService, // ✅ Nuevo servicio unificado
-    ReportesService, 
+    ReportesService,
+    DiagnosticoService, // ✅ Nuevo servicio de diagnóstico
     DashboardService
   ],
   exports: [
     ReportesUnificadoService,
-    ReportesService, 
+    ReportesService,
+    DiagnosticoService, // ✅ Exportar servicio de diagnóstico
     DashboardService
   ],
 })
