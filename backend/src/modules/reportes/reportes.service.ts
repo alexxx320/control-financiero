@@ -14,7 +14,7 @@ import {
   IEstadisticas,
   CategoriaTransaccion
 } from '@/common/interfaces/financiero.interface';
-import moment from 'moment';
+// import * as moment from 'moment'; // Removido para evitar conflictos
 
 @Injectable()
 export class ReportesService {
@@ -104,8 +104,15 @@ export class ReportesService {
 
     console.log(`✅ Reporte mensual generado para usuario ${usuarioId}:`, resumen);
 
+    // Formatear período sin moment
+    const fecha = new Date(año, mes - 1, 1);
+    const periodo = fecha.toLocaleDateString('es-ES', { 
+      month: 'long', 
+      year: 'numeric' 
+    });
+
     return {
-      periodo: moment().month(mes - 1).year(año).format('MMMM YYYY'),
+      periodo: periodo.charAt(0).toUpperCase() + periodo.slice(1),
       mes,
       año,
       fondos: reportesFondos,
@@ -260,9 +267,12 @@ export class ReportesService {
       conteoCategoria[t.categoria] = (conteoCategoria[t.categoria] || 0) + 1;
     });
 
-    const categoriaFrecuente = Object.keys(conteoCategoria).reduce((a, b) =>
-      conteoCategoria[a] > conteoCategoria[b] ? a : b
-    ) as CategoriaTransaccion || CategoriaTransaccion.OTROS;
+    let categoriaFrecuente = CategoriaTransaccion.OTROS;
+    if (Object.keys(conteoCategoria).length > 0) {
+      categoriaFrecuente = Object.keys(conteoCategoria).reduce((a, b) =>
+        conteoCategoria[a] > conteoCategoria[b] ? a : b
+      ) as CategoriaTransaccion;
+    }
 
     // Calcular promedio de gasto mensual
     const fechaInicio = new Date();
@@ -311,9 +321,13 @@ export class ReportesService {
     for (let mes = 1; mes <= 12; mes++) {
       const reporteMes = await this.generarReporteMensual(mes, año, usuarioId);
       
+      // Formatear nombre del mes sin moment
+      const fechaMes = new Date(año, mes - 1, 1);
+      const nombreMes = fechaMes.toLocaleDateString('es-ES', { month: 'long' });
+      
       meses.push({
         mes,
-        nombreMes: moment().month(mes - 1).format('MMMM'),
+        nombreMes: nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1),
         ingresos: reporteMes.resumen.totalIngresos,
         gastos: reporteMes.resumen.totalGastos,
         balance: reporteMes.resumen.balanceNeto,

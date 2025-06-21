@@ -1,250 +1,191 @@
-# 🏦 Control Financiero Personal - Sistema Completo
+# 💰 Control Financiero
 
-Sistema de gestión financiera personal con **autenticación completa**, desarrollado con **NestJS** (backend) y **Angular 17** (frontend).
+Sistema de control financiero personal desarrollado con **Angular 17** + **NestJS** + **MongoDB**.
 
 ## 🚀 Inicio Rápido
 
-### Opción 1: Sistema Completo con Autenticación (Recomendado)
+### 1. **Instalación Completa**
 ```bash
-.\iniciar-con-auth.bat
+# Instalar todas las dependencias
+setup.bat
 ```
 
-### Opción 2: Modo Desarrollo (Sin Auth)
+### 2. **Iniciar Desarrollo**
 ```bash
-.\iniciar-modo-desarrollo.bat
+# Iniciar backend + frontend automáticamente  
+iniciar-dev.bat
 ```
 
-### Opción 3: Solo Prueba de Conexión
+### 3. **Acceder al Sistema**
+- **Frontend**: http://localhost:4200
+- **Backend**: http://localhost:3000
+- **Reportes**: http://localhost:4200/reportes
+
+## 📊 Funcionalidades
+
+### ✅ **Gestión de Fondos**
+- Crear y administrar múltiples fondos
+- Establecer metas de ahorro
+- Categorización por tipos
+
+### ✅ **Transacciones**
+- Registro de ingresos y gastos
+- Categorización automática
+- Historial completo
+
+### ✅ **Reportes Financieros**
+- Dashboard ejecutivo con KPIs
+- Alertas inteligentes
+- Performance de fondos
+- Exportación a PDF/Excel
+
+### ✅ **Autenticación**
+- Sistema de usuarios seguro
+- JWT tokens
+- Sesiones persistentes
+
+## 🛠️ Tecnologías
+
+### **Frontend**
+- Angular 17
+- Angular Material
+- TypeScript
+- SCSS
+
+### **Backend**
+- NestJS
+- MongoDB + Mongoose
+- JWT Authentication
+- TypeScript
+
+## 📁 Estructura del Proyecto
+
+```
+control-financiero/
+├── 📁 frontend/          # Aplicación Angular
+├── 📁 backend/           # API NestJS
+├── 📁 scripts/           # Scripts de automatización
+│   ├── instalacion/      # Scripts de instalación
+│   ├── desarrollo/       # Scripts de desarrollo
+│   └── correcciones/     # Scripts de correcciones
+├── 📁 tests/             # Tests de APIs
+├── 📁 docs/              # Documentación técnica
+├── setup.bat             # Instalación rápida
+├── iniciar-dev.bat       # Desarrollo rápido
+└── README.md             # Este archivo
+```
+
+## 🔧 Scripts Disponibles
+
+### **Uso Diario**
+- `setup.bat` - Instalar todo el proyecto
+- `iniciar-dev.bat` - Iniciar desarrollo
+
+### **Instalación Manual**
+- `scripts/instalacion/instalar-backend.bat`
+- `scripts/instalacion/instalar-frontend.bat`
+
+### **Correcciones** (si necesitas)
+- `scripts/correcciones/solucion-reportes-completa.bat`
+- `scripts/correcciones/diagnostico-avanzado.bat`
+
+### **Testing**
+- `tests/test-auth.js` - Prueba autenticación
+- `tests/test-crud.js` - Prueba operaciones CRUD
+
+## 🚨 Solución de Problemas
+
+### **Problema: Backend no inicia**
 ```bash
-.\limpiar-y-reiniciar.bat
-# Seleccionar opción 3
-```
-
-## 🔐 Sistema de Autenticación
-
-### Registro de Usuarios
-1. Ve a http://localhost:4200/register
-2. Completa el formulario:
-   - Nombre completo
-   - Email válido
-   - Contraseña (mínimo 6 caracteres)
-   - Confirmar contraseña
-
-### Inicio de Sesión
-1. Ve a http://localhost:4200/login
-2. Ingresa tus credenciales
-3. Serás redirigido al dashboard
-
-### Características de Seguridad
-- ✅ Contraseñas encriptadas con bcrypt
-- ✅ Tokens JWT con expiración
-- ✅ Guards de rutas protegidas
-- ✅ Interceptor de autenticación
-- ✅ Manejo de sesiones
-
-## 🌐 URLs del Sistema
-
-### Frontend
-- **Inicio**: http://localhost:4200
-- **Login**: http://localhost:4200/login
-- **Registro**: http://localhost:4200/register
-- **Dashboard**: http://localhost:4200/dashboard (requiere auth)
-- **Fondos**: http://localhost:4200/fondos (requiere auth)
-- **Transacciones**: http://localhost:4200/transacciones (requiere auth)
-- **Reportes**: http://localhost:4200/reportes (requiere auth)
-- **Test Conexión**: http://localhost:4200/test-connection
-
-### Backend API
-- **API Base**: http://localhost:3000/api
-- **Documentación**: http://localhost:3000/api/docs
-- **Health Check**: http://localhost:3000/api
-
-## 📱 Funcionalidades Implementadas
-
-### Sistema de Autenticación
-- ✅ **Registro de usuarios** con validación
-- ✅ **Login con JWT** 
-- ✅ **Logout y gestión de sesión**
-- ✅ **Guards de rutas** protegidas
-- ✅ **Interceptor de tokens**
-- ✅ **Manejo de errores** de autenticación
-
-### Gestión Financiera
-- ✅ **Dashboard** con resumen financiero
-- ✅ **Fondos** - Crear y gestionar fondos de ahorro
-- ✅ **Transacciones** - Registro de ingresos y gastos
-- ✅ **Reportes** - Análisis y estadísticas
-- ✅ **Filtros y búsquedas** avanzadas
-- ✅ **Paginación** de resultados
-
-### Características Técnicas
-- ✅ **Responsive Design** con Angular Material
-- ✅ **API REST** documentada con Swagger
-- ✅ **Base de datos MongoDB**
-- ✅ **Validación de datos** automática
-- ✅ **Manejo de errores** robusto
-- ✅ **Modo offline** con datos simulados
-
-## 🛠️ Requisitos del Sistema
-
-### Software Necesario
-- **Node.js** 18+ 
-- **MongoDB** 5+ (local o Atlas)
-- **Git** (opcional)
-
-### Puertos Utilizados
-- **4200**: Frontend Angular
-- **3000**: Backend NestJS
-- **27017**: MongoDB (default)
-
-## 🔧 Configuración
-
-### Variables de Entorno Backend (.env)
-```env
-PORT=3000
-NODE_ENV=development
-MONGODB_URI=mongodb://localhost:27017/control-financiero
-JWT_SECRET=mi-secreto-super-seguro-para-jwt-2024-control-financiero
-JWT_EXPIRES_IN=24h
-CORS_ORIGIN=http://localhost:4200
-BCRYPT_SALT_ROUNDS=12
-```
-
-### Configuración Frontend (environment.ts)
-```typescript
-export const environment = {
-  production: false,
-  apiUrl: 'http://localhost:3000/api'
-};
-```
-
-## 🐛 Solución de Problemas
-
-### Error: "Cannot connect to backend"
-```bash
-# Verificar que MongoDB esté corriendo
-mongod
-
-# Reiniciar el backend
 cd backend
+npm install
 npm run start:dev
 ```
 
-### Error: "mat-form-field must contain a MatFormFieldControl"
-- Es un warning de Angular Material
-- No afecta la funcionalidad
-- Se corregirá en próximas versiones
-
-### Error: "JWT Token expired"
-- Cierra sesión y vuelve a iniciar
-- Los tokens expiran en 24 horas
-
-### Sistema congelado o lento
+### **Problema: Frontend no compila**
 ```bash
-# Ejecutar limpieza completa
-.\limpiar-y-reiniciar.bat
+cd frontend
+npm install
+ng serve
 ```
 
-## 📊 Estructura del Proyecto
+### **Problema: Base de datos**
+- Verificar que MongoDB esté corriendo
+- Revisar conexión en `backend/.env`
 
+### **Problema: Reportes vacíos**
+1. Crear fondos en `/fondos`
+2. Agregar transacciones en `/transacciones`
+3. Volver a `/reportes`
+
+## 📚 Documentación Adicional
+
+- **Solución Reportes**: `docs/SOLUCION-REPORTES-FINANCIEROS.md`
+- **Correcciones**: `docs/CORRECCIONES.md`
+- **Dashboard**: `docs/DASHBOARD-DATOS-REALES.md`
+
+## 🎯 Flujo de Trabajo Recomendado
+
+1. **Primera vez**: Ejecutar `setup.bat`
+2. **Desarrollo**: Ejecutar `iniciar-dev.bat`
+3. **Crear datos de prueba**:
+   - Ir a `/fondos` y crear fondos
+   - Ir a `/transacciones` y agregar transacciones
+   - Ir a `/reportes` para ver análisis
+4. **Debugging**: Usar tests en `tests/`
+
+## 🔐 Configuración
+
+### **Variables de Entorno** (backend/.env)
+```env
+MONGODB_URI=mongodb://localhost:27017/control-financiero
+JWT_SECRET=tu_jwt_secret
+PORT=3000
 ```
-ControlFinanciero/
-├── backend/               # API NestJS
-│   ├── src/
-│   │   ├── modules/      # Módulos funcionales
-│   │   │   ├── auth/     # Autenticación
-│   │   │   ├── fondos/   # Gestión de fondos
-│   │   │   └── ...
-│   │   └── main.ts       # Entrada principal
-│   └── .env              # Variables de entorno
-│
-├── frontend/             # App Angular
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── core/     # Servicios y guards
-│   │   │   ├── features/ # Componentes
-│   │   │   └── shared/   # Componentes compartidos
-│   │   └── environments/ # Configuración
-│   └── proxy.conf.json   # Proxy para desarrollo
-│
-└── scripts/              # Scripts de utilidad
-    ├── iniciar-con-auth.bat
-    ├── diagnosticar-conexion.bat
-    └── ...
+
+### **Proxy Frontend** (frontend/proxy.conf.json)
+```json
+{
+  "/api/*": {
+    "target": "http://localhost:3000",
+    "secure": true,
+    "changeOrigin": true
+  }
+}
 ```
-
-## 🚦 Flujo de Usuario
-
-1. **Registro** → Usuario crea cuenta
-2. **Login** → Sistema genera JWT token
-3. **Dashboard** → Vista principal con resumen
-4. **Fondos** → Crear fondos de ahorro/inversión
-5. **Transacciones** → Registrar movimientos
-6. **Reportes** → Ver análisis y estadísticas
-
-## 📈 Próximas Funcionalidades
-
-- [ ] Recuperación de contraseña
-- [ ] Perfil de usuario editable
-- [ ] Exportación a Excel/PDF
-- [ ] Gráficos interactivos
-- [ ] Notificaciones push
-- [ ] Modo oscuro
-- [ ] PWA (Progressive Web App)
 
 ## 🤝 Contribuir
 
 1. Fork el proyecto
-2. Crea tu rama (`git checkout -b feature/NuevaCaracteristica`)
-3. Commit cambios (`git commit -m 'Agregar característica'`)
-4. Push a la rama (`git push origin feature/NuevaCaracteristica`)
-5. Abre un Pull Request
+2. Crear rama feature (`git checkout -b feature/nueva-funcionalidad`)
+3. Commit cambios (`git commit -m 'Agregar nueva funcionalidad'`)
+4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
+5. Abrir Pull Request
 
-## 📝 Comandos Útiles
+## 📄 Licencia
 
-### Backend
-```bash
-cd backend
-npm run start:dev    # Desarrollo
-npm run build        # Producción
-npm run test         # Tests
-```
-
-### Frontend
-```bash
-cd frontend
-npm start            # Desarrollo
-npm run build        # Producción
-npm test             # Tests
-```
-
-### Base de Datos
-```bash
-mongosh                          # Cliente MongoDB
-use control-financiero           # Seleccionar BD
-db.usuarios.find()              # Ver usuarios
-db.fondos.find()                # Ver fondos
-db.transacciones.find()         # Ver transacciones
-```
-
-## 🎯 Estado del Proyecto
-
-**Versión**: 1.0.0  
-**Estado**: ✅ **Funcional con Autenticación Completa**  
-**Última actualización**: Diciembre 2024
-
-### Características Completadas
-- ✅ Sistema de autenticación JWT
-- ✅ Registro y login de usuarios
-- ✅ CRUD completo de fondos
-- ✅ CRUD completo de transacciones
-- ✅ Dashboard con estadísticas
-- ✅ Reportes básicos
-- ✅ Diseño responsive
-- ✅ Documentación API Swagger
+Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
 
 ---
 
-**¡El sistema está listo para usar!** 🎉
+## 💡 Tips de Uso
 
-Ejecuta `.\iniciar-con-auth.bat` para comenzar con el sistema completo de autenticación.
+### **Desarrollo Eficiente**
+- Usar `iniciar-dev.bat` para desarrollo diario
+- Los servidores se reinician automáticamente
+- Hot reload activado en frontend
+
+### **Testing Rápido**
+- `node tests/test-auth.js` - Probar login
+- `node tests/test-crud.js` - Probar APIs
+
+### **Estructura de Datos**
+- Un usuario puede tener múltiples fondos
+- Cada fondo puede tener múltiples transacciones
+- Las transacciones se categorizan automáticamente
+
+---
+
+**¡Listo para usar! 🎉**
+
+Ejecuta `iniciar-dev.bat` y comienza a controlar tus finanzas.

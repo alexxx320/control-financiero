@@ -13,6 +13,9 @@ import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatGridListModule } from '@angular/material/grid-list';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatMenuModule } from '@angular/material/menu';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -37,18 +40,21 @@ import { NotificationService } from '../../core/services/notification.service';
     MatTableModule,
     MatProgressSpinnerModule,
     MatExpansionModule,
-    MatChipsModule
+    MatChipsModule,
+    MatGridListModule,
+    MatProgressBarModule,
+    MatMenuModule
   ],
   template: `
     <div class="reportes-container">
-      <h2>Reportes Financieros</h2>
-      
-      <!-- Filtros básicos -->
-      <mat-card class="filtros-card mb-2">
-        <mat-card-header>
-          <mat-card-title>Filtros de Reporte</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
+      <!-- Header con título y controles -->
+      <div class="header-section">
+        <div class="title-section">
+          <h1><mat-icon>assessment</mat-icon> Reportes Financieros</h1>
+          <p>Panel completo de análisis y reportes financieros</p>
+        </div>
+        
+        <div class="controls-section">
           <form [formGroup]="filtrosForm" class="filtros-form">
             <mat-form-field appearance="outline">
               <mat-label>Período</mat-label>
@@ -61,69 +67,126 @@ import { NotificationService } from '../../core/services/notification.service';
             </mat-form-field>
 
             <button mat-raised-button color="primary" 
-                    (click)="generarReporte()" 
+                    (click)="cargarDashboard()" 
                     [disabled]="cargando">
-              <mat-icon>assessment</mat-icon>
-              {{ cargando ? 'Generando...' : 'Generar Reporte' }}
+              <mat-icon>refresh</mat-icon>
+              {{ cargando ? 'Cargando...' : 'Actualizar' }}
             </button>
 
-            <button mat-stroked-button 
-                    (click)="cargarAlertas()" 
-                    [disabled]="cargando">
-              <mat-icon>notifications</mat-icon>
-              Alertas
+            <button mat-stroked-button [matMenuTriggerFor]="exportMenu" [disabled]="cargando">
+              <mat-icon>download</mat-icon>
+              Exportar
             </button>
+            
+            <mat-menu #exportMenu="matMenu">
+              <button mat-menu-item (click)="exportarPDF()">
+                <mat-icon>picture_as_pdf</mat-icon>
+                <span>Exportar PDF</span>
+              </button>
+              <button mat-menu-item (click)="exportarExcel()">
+                <mat-icon>table_chart</mat-icon>
+                <span>Exportar Excel</span>
+              </button>
+            </mat-menu>
           </form>
-        </mat-card-content>
-      </mat-card>
+        </div>
+      </div>
 
       <!-- Loading -->
       <div *ngIf="cargando" class="loading-container">
         <mat-spinner [diameter]="50"></mat-spinner>
-        <p>Generando reporte...</p>
+        <p>Generando reportes financieros...</p>
       </div>
 
       <!-- Contenido principal -->
-      <div *ngIf="!cargando">
-        <!-- Resumen rápido -->
-        <mat-card class="resumen-card" *ngIf="reporteMensual">
+      <div *ngIf="!cargando" class="main-content">
+        
+        <!-- KPIs principales -->
+        <mat-card class="kpis-card" *ngIf="dashboardData">
           <mat-card-header>
-            <mat-card-title>Resumen del Período - {{ reporteMensual.periodo }}</mat-card-title>
+            <mat-card-title>Indicadores Clave - {{ dashboardData.periodo }}</mat-card-title>
           </mat-card-header>
           <mat-card-content>
-            <div class="resumen-stats">
-              <div class="stat-item">
-                <span class="stat-label">Total Ingresos:</span>
-                <span class="stat-value ingresos">{{ reporteMensual.resumen.totalIngresos | currency:'COP':'symbol':'1.0-0' }}</span>
+            <div class="kpis-grid">
+              <div class="kpi-item ingresos">
+                <div class="kpi-icon">
+                  <mat-icon>trending_up</mat-icon>
+                </div>
+                <div class="kpi-content">
+                  <span class="kpi-label">Total Ingresos</span>
+                  <span class="kpi-value">{{ dashboardData.kpis.totalIngresos | currency:'COP':'symbol':'1.0-0' }}</span>
+                </div>
               </div>
-              <div class="stat-item">
-                <span class="stat-label">Total Gastos:</span>
-                <span class="stat-value gastos">{{ reporteMensual.resumen.totalGastos | currency:'COP':'symbol':'1.0-0' }}</span>
+              
+              <div class="kpi-item gastos">
+                <div class="kpi-icon">
+                  <mat-icon>trending_down</mat-icon>
+                </div>
+                <div class="kpi-content">
+                  <span class="kpi-label">Total Gastos</span>
+                  <span class="kpi-value">{{ dashboardData.kpis.totalGastos | currency:'COP':'symbol':'1.0-0' }}</span>
+                </div>
               </div>
-              <div class="stat-item">
-                <span class="stat-label">Balance Neto:</span>
-                <span class="stat-value" [ngClass]="{'positivo': reporteMensual.resumen.balanceNeto >= 0, 'negativo': reporteMensual.resumen.balanceNeto < 0}">
-                  {{ reporteMensual.resumen.balanceNeto | currency:'COP':'symbol':'1.0-0' }}
-                </span>
+              
+              <div class="kpi-item utilidad" [ngClass]="{'positivo': dashboardData.kpis.utilidadNeta >= 0, 'negativo': dashboardData.kpis.utilidadNeta < 0}">
+                <div class="kpi-icon">
+                  <mat-icon>{{ dashboardData.kpis.utilidadNeta >= 0 ? 'show_chart' : 'money_off' }}</mat-icon>
+                </div>
+                <div class="kpi-content">
+                  <span class="kpi-label">Utilidad Neta</span>
+                  <span class="kpi-value">{{ dashboardData.kpis.utilidadNeta | currency:'COP':'symbol':'1.0-0' }}</span>
+                </div>
               </div>
-              <div class="stat-item">
-                <span class="stat-label">Total Transacciones:</span>
-                <span class="stat-value">{{ reporteMensual.resumen.transaccionesTotales }}</span>
+              
+              <div class="kpi-item margen">
+                <div class="kpi-icon">
+                  <mat-icon>percent</mat-icon>
+                </div>
+                <div class="kpi-content">
+                  <span class="kpi-label">Margen Utilidad</span>
+                  <span class="kpi-value">{{ dashboardData.kpis.margenUtilidad | number:'1.1-1' }}%</span>
+                </div>
+              </div>
+
+              <div class="kpi-item fondos">
+                <div class="kpi-icon">
+                  <mat-icon>account_balance</mat-icon>
+                </div>
+                <div class="kpi-content">
+                  <span class="kpi-label">Fondos Activos</span>
+                  <span class="kpi-value">{{ dashboardData.kpis.fondosActivos }}</span>
+                </div>
+              </div>
+
+              <div class="kpi-item transacciones">
+                <div class="kpi-icon">
+                  <mat-icon>receipt</mat-icon>
+                </div>
+                <div class="kpi-content">
+                  <span class="kpi-label">Transacciones/Día</span>
+                  <span class="kpi-value">{{ dashboardData.kpis.transaccionesPromedio | number:'1.1-1' }}</span>
+                </div>
               </div>
             </div>
           </mat-card-content>
         </mat-card>
 
-        <!-- Alertas rápidas -->
-        <mat-card class="alertas-resumen" *ngIf="alertas.length > 0">
+        <!-- Alertas importantes -->
+        <mat-card class="alertas-card" *ngIf="dashboardData?.alertas && dashboardData.alertas.length > 0">
           <mat-card-header>
-            <mat-card-title>Alertas Activas ({{ alertas.length }})</mat-card-title>
+            <mat-card-title>
+              <mat-icon class="alerta-icon">notifications_active</mat-icon>
+              Alertas Activas ({{ dashboardData.alertas.length }})
+            </mat-card-title>
           </mat-card-header>
           <mat-card-content>
             <div class="alertas-lista">
-              <div *ngFor="let alerta of alertas.slice(0, 3)" class="alerta-item">
+              <div *ngFor="let alerta of dashboardData.alertas" class="alerta-item" [ngClass]="'alerta-' + alerta.tipo.toLowerCase()">
                 <mat-icon [style.color]="getColorAlerta(alerta.tipo)">{{ getIconoAlerta(alerta.tipo) }}</mat-icon>
-                <span class="alerta-texto">{{ alerta.fondo }}: {{ alerta.mensaje }}</span>
+                <div class="alerta-content">
+                  <strong>{{ alerta.fondo }}</strong>
+                  <span>{{ alerta.mensaje }}</span>
+                </div>
                 <mat-chip [style.background-color]="getColorAlerta(alerta.tipo)" 
                          [style.color]="'white'" 
                          class="prioridad-chip">
@@ -134,15 +197,95 @@ import { NotificationService } from '../../core/services/notification.service';
           </mat-card-content>
         </mat-card>
 
+        <!-- Performance de fondos -->
+        <mat-card class="fondos-performance-card" *ngIf="dashboardData?.fondosPerformance">
+          <mat-card-header>
+            <mat-card-title>Performance de Fondos</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="fondos-grid">
+              <div *ngFor="let fondo of dashboardData.fondosPerformance" class="fondo-item" [ngClass]="'rendimiento-' + fondo.rendimiento">
+                <div class="fondo-header">
+                  <h4>{{ fondo.nombre }}</h4>
+                  <mat-chip [ngClass]="'chip-' + fondo.rendimiento">{{ fondo.rendimiento }}</mat-chip>
+                </div>
+                <div class="fondo-saldo">
+                  <span class="label">Saldo Actual:</span>
+                  <span class="value">{{ fondo.saldoActual | currency:'COP':'symbol':'1.0-0' }}</span>
+                </div>
+                <div class="fondo-progress">
+                  <span class="progress-label">Progreso de Meta: {{ fondo.progresoMeta | number:'1.0-0' }}%</span>
+                  <mat-progress-bar mode="determinate" [value]="fondo.progresoMeta"></mat-progress-bar>
+                </div>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Detalle de reportes por tabla -->
+        <mat-card class="tabla-reportes-card" *ngIf="dashboardData?.reporteMensual">
+          <mat-card-header>
+            <mat-card-title>Detalle por Fondos - {{ dashboardData.reporteMensual.periodo }}</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="tabla-container">
+              <table mat-table [dataSource]="dataSourceFondos" class="fondos-table">
+                <ng-container matColumnDef="nombre">
+                  <th mat-header-cell *matHeaderCellDef>Fondo</th>
+                  <td mat-cell *matCellDef="let fondo">{{ fondo.nombre }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="balanceInicial">
+                  <th mat-header-cell *matHeaderCellDef>Balance Inicial</th>
+                  <td mat-cell *matCellDef="let fondo">{{ fondo.balanceInicial | currency:'COP':'symbol':'1.0-0' }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="ingresos">
+                  <th mat-header-cell *matHeaderCellDef>Ingresos</th>
+                  <td mat-cell *matCellDef="let fondo" class="ingresos">{{ fondo.ingresos | currency:'COP':'symbol':'1.0-0' }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="gastos">
+                  <th mat-header-cell *matHeaderCellDef>Gastos</th>
+                  <td mat-cell *matCellDef="let fondo" class="gastos">{{ fondo.gastos | currency:'COP':'symbol':'1.0-0' }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="balanceFinal">
+                  <th mat-header-cell *matHeaderCellDef>Balance Final</th>
+                  <td mat-cell *matCellDef="let fondo" [ngClass]="{'positivo': fondo.balanceFinal >= 0, 'negativo': fondo.balanceFinal < 0}">
+                    {{ fondo.balanceFinal | currency:'COP':'symbol':'1.0-0' }}
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="transacciones">
+                  <th mat-header-cell *matHeaderCellDef>Transacciones</th>
+                  <td mat-cell *matCellDef="let fondo">{{ fondo.transacciones }}</td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="displayedColumnsFondos"></tr>
+                <tr mat-row *matRowDef="let row; columns: displayedColumnsFondos;"></tr>
+              </table>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
         <!-- Mensaje informativo si no hay datos -->
-        <mat-card class="info-card" *ngIf="!reporteMensual || reporteMensual.fondos.length === 0">
+        <mat-card class="info-card" *ngIf="!dashboardData">
           <mat-card-content>
             <div class="info-content">
               <mat-icon class="info-icon">info</mat-icon>
               <div>
                 <h3>No hay datos para mostrar</h3>
-                <p>No se encontraron transacciones para el período seleccionado.</p>
-                <p>Prueba seleccionando un período diferente o crea algunas transacciones primero.</p>
+                <p>No se encontraron datos financieros para el período seleccionado.</p>
+                <ul>
+                  <li>Verifica que tengas fondos creados</li>
+                  <li>Asegúrate de tener transacciones registradas</li>
+                  <li>Prueba seleccionando un período diferente</li>
+                </ul>
+                <button mat-raised-button color="primary" (click)="cargarDashboard()">
+                  <mat-icon>refresh</mat-icon>
+                  Intentar de nuevo
+                </button>
               </div>
             </div>
           </mat-card-content>
@@ -152,63 +295,311 @@ import { NotificationService } from '../../core/services/notification.service';
   `,
   styles: [`
     .reportes-container {
-      max-width: 1200px;
+      max-width: 1400px;
       margin: 0 auto;
       padding: 20px;
+      background-color: #f5f5f5;
+    }
+
+    .header-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .title-section h1 {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #1976d2;
+      font-size: 2rem;
+    }
+
+    .title-section p {
+      margin: 8px 0 0 0;
+      color: #666;
+      font-size: 1rem;
     }
 
     .filtros-form {
       display: flex;
       gap: 16px;
       align-items: center;
-      flex-wrap: wrap;
     }
 
     .filtros-form mat-form-field {
       min-width: 180px;
     }
 
-    .resumen-stats {
+    .loading-container {
       display: flex;
       flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 200px;
+      background: white;
+      border-radius: 12px;
+      margin-bottom: 24px;
+    }
+
+    .loading-container p {
+      margin-top: 16px;
+      color: #666;
+    }
+
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* KPIs Grid */
+    .kpis-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .kpis-card mat-card-header {
+      background: rgba(255,255,255,0.1);
+      padding: 16px 24px;
+    }
+
+    .kpis-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      padding: 24px;
+    }
+
+    .kpi-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: rgba(255,255,255,0.1);
+      padding: 20px;
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      transition: transform 0.2s ease;
+    }
+
+    .kpi-item:hover {
+      transform: translateY(-4px);
+      background: rgba(255,255,255,0.15);
+    }
+
+    .kpi-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.2);
+    }
+
+    .kpi-icon mat-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+    }
+
+    .kpi-content {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .kpi-label {
+      font-size: 0.9rem;
+      opacity: 0.9;
+      margin-bottom: 4px;
+    }
+
+    .kpi-value {
+      font-size: 1.4rem;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    /* Alertas */
+    .alertas-card {
+      border-left: 4px solid #ff9800;
+    }
+
+    .alerta-icon {
+      color: #ff9800;
+      margin-right: 8px;
+    }
+
+    .alertas-lista {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .alerta-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 8px;
+      background-color: rgba(0,0,0,0.02);
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .alerta-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .alerta-content strong {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .alerta-content span {
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    .prioridad-chip {
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    /* Fondos Performance */
+    .fondos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
       gap: 16px;
     }
 
-    .stat-item {
+    .fondo-item {
+      padding: 20px;
+      border-radius: 12px;
+      border: 2px solid #e0e0e0;
+      transition: border-color 0.3s ease;
+    }
+
+    .fondo-item.rendimiento-excelente {
+      border-color: #4caf50;
+      background: linear-gradient(135deg, #e8f5e8 0%, #f1f9f1 100%);
+    }
+
+    .fondo-item.rendimiento-bueno {
+      border-color: #2196f3;
+      background: linear-gradient(135deg, #e3f2fd 0%, #f0f8ff 100%);
+    }
+
+    .fondo-item.rendimiento-regular {
+      border-color: #ff9800;
+      background: linear-gradient(135deg, #fff3e0 0%, #faf6f0 100%);
+    }
+
+    .fondo-item.rendimiento-malo {
+      border-color: #f44336;
+      background: linear-gradient(135deg, #ffebee 0%, #fdf4f4 100%);
+    }
+
+    .fondo-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px;
-      background-color: rgba(0,0,0,0.05);
-      border-radius: 8px;
+      margin-bottom: 16px;
     }
 
-    .stat-label {
+    .fondo-header h4 {
+      margin: 0;
+      color: #333;
+    }
+
+    .chip-excelente {
+      background-color: #4caf50;
+      color: white;
+    }
+
+    .chip-bueno {
+      background-color: #2196f3;
+      color: white;
+    }
+
+    .chip-regular {
+      background-color: #ff9800;
+      color: white;
+    }
+
+    .chip-malo {
+      background-color: #f44336;
+      color: white;
+    }
+
+    .fondo-saldo {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .fondo-saldo .label {
+      color: #666;
       font-weight: 500;
-      color: rgba(0,0,0,0.7);
     }
 
-    .stat-value {
+    .fondo-saldo .value {
       font-weight: 600;
-      font-size: 1.1em;
+      color: #333;
     }
 
-    .stat-value.ingresos {
+    .fondo-progress {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .progress-label {
+      font-size: 0.9rem;
+      color: #666;
+    }
+
+    /* Tabla */
+    .tabla-container {
+      overflow-x: auto;
+    }
+
+    .fondos-table {
+      width: 100%;
+    }
+
+    .fondos-table .ingresos {
       color: #4caf50;
+      font-weight: 500;
     }
 
-    .stat-value.gastos {
+    .fondos-table .gastos {
       color: #f44336;
+      font-weight: 500;
     }
 
-    .stat-value.positivo {
+    .fondos-table .positivo {
       color: #4caf50;
+      font-weight: 600;
     }
 
-    .stat-value.negativo {
+    .fondos-table .negativo {
       color: #f44336;
+      font-weight: 600;
     }
 
+    /* Info Card */
     .info-card {
       border-left: 4px solid #2196f3;
     }
@@ -237,13 +628,19 @@ import { NotificationService } from '../../core/services/notification.service';
     }
 
     .info-content ul {
-      margin: 0;
+      margin: 0 0 16px 0;
       padding-left: 20px;
     }
 
+    /* Responsive */
     @media (max-width: 768px) {
       .reportes-container {
         padding: 16px;
+      }
+
+      .header-section {
+        flex-direction: column;
+        gap: 16px;
       }
 
       .filtros-form {
@@ -253,6 +650,19 @@ import { NotificationService } from '../../core/services/notification.service';
 
       .filtros-form mat-form-field {
         min-width: auto;
+      }
+
+      .kpis-grid {
+        grid-template-columns: 1fr;
+        padding: 16px;
+      }
+
+      .charts-section {
+        grid-template-columns: 1fr;
+      }
+
+      .fondos-grid {
+        grid-template-columns: 1fr;
       }
 
       .info-content {
@@ -269,17 +679,12 @@ export class ReportesComponent implements OnInit, OnDestroy {
   filtrosForm: FormGroup;
   cargando = false;
   
-  // Datos reales
-  reporteMensual: ReporteMensual | null = null;
-  reporteAnual: ReporteAnual | null = null;
-  alertas: Alerta[] = [];
-  estadisticas: EstadisticasGenerales | null = null;
+  // Datos del dashboard
+  dashboardData: any = null;
 
   // Configuración de tablas
   dataSourceFondos = new MatTableDataSource<any>();
-  dataSourceMeses = new MatTableDataSource<any>();
   displayedColumnsFondos: string[] = ['nombre', 'balanceInicial', 'ingresos', 'gastos', 'balanceFinal', 'transacciones'];
-  displayedColumnsMeses: string[] = ['mes', 'ingresos', 'gastos', 'balance', 'transacciones'];
 
   constructor(
     private fb: FormBuilder,
@@ -292,9 +697,8 @@ export class ReportesComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    console.log('🚀 Iniciando componente de reportes...');
-    this.generarReporte();
-    this.cargarEstadisticas();
+    console.log('🚀 Iniciando componente de reportes financieros...');
+    this.cargarDashboard();
   }
 
   ngOnDestroy(): void {
@@ -302,78 +706,73 @@ export class ReportesComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  generarReporte(): void {
+  cargarDashboard(): void {
     const periodo = this.filtrosForm.get('periodo')?.value;
-    console.log(`📈 Generando reporte para período: ${periodo}`);
+    console.log(`📊 Cargando dashboard para período: ${periodo}`);
     
     this.cargando = true;
     
-    this.reportesService.generarReporteRapido(periodo)
+    this.reportesService.obtenerDashboard(periodo)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (reporte: ReporteMensual | ReporteAnual) => {
-          if ('mes' in reporte) {
-            // Es un reporte mensual
-            this.reporteMensual = reporte;
-            this.dataSourceFondos.data = reporte.fondos;
-            console.log('✅ Reporte mensual cargado:', this.reporteMensual);
-          } else {
-            // Es un reporte anual
-            this.reporteAnual = reporte;
-            this.dataSourceMeses.data = reporte.meses;
-            console.log('✅ Reporte anual cargado:', this.reporteAnual);
+        next: (data: any) => {
+          this.dashboardData = data;
+          
+          // Configurar datos de la tabla
+          if (data.reporteMensual?.fondos) {
+            this.dataSourceFondos.data = data.reporteMensual.fondos;
           }
           
           this.cargando = false;
-          this.notificationService.success('Reporte generado exitosamente');
+          console.log('✅ Dashboard cargado exitosamente:', this.dashboardData);
+          this.notificationService.success('Reportes financieros actualizados');
         },
         error: (error: any) => {
-          console.error('❌ Error al generar reporte:', error);
+          console.error('❌ Error al cargar dashboard:', error);
           this.cargando = false;
-          this.notificationService.error('Error al generar el reporte');
+          this.notificationService.error('Error al cargar los reportes financieros');
         }
       });
   }
 
-  cargarAlertas(): void {
-    console.log('🚨 Cargando alertas financieras...');
-    
-    this.cargando = true;
-    
-    this.reportesService.obtenerAlertas()
+  exportarPDF(): void {
+    console.log('📄 Exportando reporte a PDF...');
+    this.reportesService.exportarPDF({ periodo: this.filtrosForm.get('periodo')?.value })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (alertas: Alerta[]) => {
-          this.alertas = alertas;
-          this.cargando = false;
-          console.log('✅ Alertas cargadas:', this.alertas);
-          
-          if (alertas.length === 0) {
-            this.notificationService.success('No hay alertas activas');
-          } else {
-            this.notificationService.info(`${alertas.length} alerta(s) encontrada(s)`);
-          }
+        next: (blob: Blob) => {
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `reporte-financiero-${new Date().toISOString().split('T')[0]}.pdf`;
+          link.click();
+          window.URL.revokeObjectURL(url);
+          this.notificationService.success('Reporte PDF descargado exitosamente');
         },
         error: (error: any) => {
-          console.error('❌ Error al cargar alertas:', error);
-          this.cargando = false;
-          this.notificationService.error('Error al cargar alertas');
+          console.error('❌ Error al exportar PDF:', error);
+          this.notificationService.error('Error al generar el PDF');
         }
       });
   }
 
-  cargarEstadisticas(): void {
-    console.log('📈 Cargando estadísticas generales...');
-    
-    this.reportesService.obtenerEstadisticasGenerales()
+  exportarExcel(): void {
+    console.log('📊 Exportando reporte a Excel...');
+    this.reportesService.exportarExcel({ periodo: this.filtrosForm.get('periodo')?.value })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (estadisticas: EstadisticasGenerales) => {
-          this.estadisticas = estadisticas;
-          console.log('✅ Estadísticas cargadas:', this.estadisticas);
+        next: (blob: Blob) => {
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `reporte-financiero-${new Date().toISOString().split('T')[0]}.xlsx`;
+          link.click();
+          window.URL.revokeObjectURL(url);
+          this.notificationService.success('Reporte Excel descargado exitosamente');
         },
         error: (error: any) => {
-          console.error('❌ Error al cargar estadísticas:', error);
+          console.error('❌ Error al exportar Excel:', error);
+          this.notificationService.error('Error al generar el Excel');
         }
       });
   }

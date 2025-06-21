@@ -5,6 +5,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatDividerModule } from '@angular/material/divider';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -17,7 +18,8 @@ import { AuthService } from '../../../core/services/auth.service';
     MatToolbarModule,
     MatButtonModule,
     MatIconModule,
-    MatMenuModule
+    MatMenuModule,
+    MatDividerModule
   ],
   template: `
     <mat-toolbar color="primary" class="navbar">
@@ -46,6 +48,10 @@ import { AuthService } from '../../../core/services/auth.service';
             <button mat-button routerLink="/reportes" routerLinkActive="active">
               <mat-icon>assessment</mat-icon>
               Reportes
+            </button>
+            <button mat-button routerLink="/reportes-ejecutivos" routerLinkActive="active">
+              <mat-icon>trending_up</mat-icon>
+              Dashboard Ejecutivo
             </button>
             
             <button mat-icon-button [matMenuTriggerFor]="userMenu">

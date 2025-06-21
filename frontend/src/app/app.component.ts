@@ -76,7 +76,7 @@ import { AuthService } from './core/services/auth.service';
                routerLinkActive="active-link"
                (click)="closeDrawerOnMobile()">
               <mat-icon matListItemIcon>assessment</mat-icon>
-              <span matListItemTitle>Reportes</span>
+              <span matListItemTitle>Reportes Financieros</span>
             </a>
 
             <mat-divider></mat-divider>

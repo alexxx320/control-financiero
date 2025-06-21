@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
@@ -75,6 +75,46 @@ export class ReportesService {
   private apiUrl = `${environment.apiUrl}/reportes`;
 
   constructor(private http: HttpClient) {}
+
+  /**
+   * Obtener dashboard completo con todos los datos
+   */
+  obtenerDashboard(periodo: string = 'mes'): Observable<any> {
+    console.log(`📊 Obteniendo dashboard completo para período: ${periodo}`);
+    
+    const params = new HttpParams().set('periodo', periodo);
+
+    return this.http.get<any>(`${this.apiUrl}/dashboard`, { params })
+      .pipe(
+        map(dashboard => {
+          console.log('✅ Dashboard obtenido exitosamente:', dashboard);
+          return dashboard;
+        }),
+        catchError(error => {
+          console.error('❌ Error al obtener dashboard:', error);
+          
+          // Retornar estructura vacía para evitar errores en el frontend
+          const dashboardVacio = {
+            kpis: {
+              totalIngresos: 0,
+              totalGastos: 0,
+              utilidadNeta: 0,
+              margenUtilidad: 0,
+              fondosActivos: 0,
+              transaccionesPromedio: 0
+            },
+            alertas: [],
+            fondosPerformance: [],
+            reporteMensual: null,
+            reporteAnual: null,
+            estadisticas: null,
+            periodo: periodo
+          };
+          
+          return of(dashboardVacio);
+        })
+      );
+  }
 
   /**
    * Generar reporte mensual
@@ -196,6 +236,79 @@ export class ReportesService {
   }
 
   /**
+   * Obtener datos para gráficos
+   */
+  obtenerDatosGraficos(periodo: string = 'mes', tipo: string = 'tendencia'): Observable<any> {
+    console.log(`📈 Obteniendo datos de gráficos: ${tipo} - ${periodo}`);
+    
+    const params = new HttpParams()
+      .set('periodo', periodo)
+      .set('tipo', tipo);
+
+    return this.http.get<any>(`${this.apiUrl}/graficos`, { params })
+      .pipe(
+        map(datos => {
+          console.log('✅ Datos de gráficos obtenidos:', datos);
+          return datos;
+        }),
+        catchError(error => {
+          console.error('❌ Error al obtener datos de gráficos:', error);
+          return of({ message: 'Error al cargar datos de gráficos' });
+        })
+      );
+  }
+
+  /**
+   * Exportar reporte a PDF
+   */
+  exportarPDF(data: any): Observable<Blob> {
+    console.log('📄 Exportando reporte a PDF...');
+    
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json'
+    });
+
+    return this.http.post(`${this.apiUrl}/exportar/pdf`, data, {
+      headers,
+      responseType: 'blob'
+    }).pipe(
+      map(blob => {
+        console.log('✅ PDF generado exitosamente');
+        return blob;
+      }),
+      catchError(error => {
+        console.error('❌ Error al exportar PDF:', error);
+        throw error;
+      })
+    );
+  }
+
+  /**
+   * Exportar reporte a Excel
+   */
+  exportarExcel(data: any): Observable<Blob> {
+    console.log('📊 Exportando reporte a Excel...');
+    
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json'
+    });
+
+    return this.http.post(`${this.apiUrl}/exportar/excel`, data, {
+      headers,
+      responseType: 'blob'
+    }).pipe(
+      map(blob => {
+        console.log('✅ Excel generado exitosamente');
+        return blob;
+      }),
+      catchError(error => {
+        console.error('❌ Error al exportar Excel:', error);
+        throw error;
+      })
+    );
+  }
+
+  /**
    * Generar reporte por período personalizado
    */
   generarReportePorPeriodo(fechaInicio: string, fechaFin: string): Observable<any> {
@@ -230,6 +343,25 @@ export class ReportesService {
       default:
         return this.generarReporteMensual(mesActual, añoActual);
     }
+  }
+
+  /**
+   * Test de conectividad del servicio
+   */
+  testConectividad(): Observable<any> {
+    console.log('🔧 Probando conectividad del servicio de reportes...');
+    
+    return this.http.get<any>(`${this.apiUrl}/test`)
+      .pipe(
+        map(response => {
+          console.log('✅ Servicio de reportes funcionando:', response);
+          return response;
+        }),
+        catchError(error => {
+          console.error('❌ Error de conectividad:', error);
+          return of({ error: 'No se pudo conectar con el servicio de reportes' });
+        })
+      );
   }
 
   /**

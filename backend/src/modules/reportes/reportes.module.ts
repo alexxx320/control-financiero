@@ -4,6 +4,8 @@ import { ReportesService } from './reportes.service';
 import { DashboardService } from './dashboard.service';
 import { ReportesController } from './reportes.controller';
 import { DashboardController } from './dashboard.controller';
+import { ReportesUnificadoController } from './reportes-unificado.controller';
+import { ReportesUnificadoService } from './reportes-unificado.service';
 import { Fondo, FondoSchema } from '../fondos/schemas/fondo.schema';
 import { Transaccion, TransaccionSchema } from '../transacciones/schemas/transaccion.schema';
 import { FondosModule } from '../fondos/fondos.module';
@@ -14,14 +16,22 @@ import { FondosModule } from '../fondos/fondos.module';
       { name: Fondo.name, schema: FondoSchema },
       { name: Transaccion.name, schema: TransaccionSchema },
     ]),
-    // Importar FondosModule para usar FondosService
     forwardRef(() => FondosModule),
   ],
   controllers: [
-    ReportesController,
-    DashboardController, // Nuevo controlador para el dashboard
+    ReportesUnificadoController, // ✅ Nuevo controlador unificado
+    ReportesController, 
+    DashboardController,
   ],
-  providers: [ReportesService, DashboardService],
-  exports: [ReportesService, DashboardService],
+  providers: [
+    ReportesUnificadoService, // ✅ Nuevo servicio unificado
+    ReportesService, 
+    DashboardService
+  ],
+  exports: [
+    ReportesUnificadoService,
+    ReportesService, 
+    DashboardService
+  ],
 })
 export class ReportesModule {}
