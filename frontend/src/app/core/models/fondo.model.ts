@@ -3,27 +3,28 @@ export interface Fondo {
   nombre: string;
   descripcion?: string;
   tipo: TipoFondo;
-  saldoActual: number; // Saldo actual del fondo (billetera)
-  metaAhorro?: number; // Meta opcional de ahorro
+  saldoActual: number; // Saldo actual del fondo
+  metaAhorro?: number; // Meta de ahorro (solo para fondos tipo 'ahorro')
   fechaCreacion?: Date;
   activo?: boolean;
 }
 
-export type TipoFondo = 'ahorro' | 'inversion' | 'emergencia' | 'gastos' | 'personal';
+// 🔧 MODIFICADO: Solo dos tipos de fondo
+export type TipoFondo = 'registro' | 'ahorro';
 
 export interface CreateFondoDto {
   nombre: string;
   descripcion?: string;
   tipo: TipoFondo;
-  saldoActual?: number; // Saldo inicial (puede ser 0)
-  metaAhorro?: number; // Meta opcional
+  saldoActual?: number; // Saldo inicial
+  metaAhorro?: number; // Meta (solo para fondos de ahorro)
 }
 
 export interface UpdateFondoDto {
   nombre?: string;
   descripcion?: string;
   tipo?: TipoFondo;
-  metaAhorro?: number;
+  metaAhorro?: number; // Meta (solo para fondos de ahorro)
   activo?: boolean;
   // saldoActual no se actualiza directamente, solo via transacciones
 }

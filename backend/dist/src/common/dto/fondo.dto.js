@@ -19,7 +19,7 @@ exports.CreateFondoDto = CreateFondoDto;
 __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Nombre del fondo',
-        example: 'Fondo de Emergencia'
+        example: 'Mi Fondo de Ahorro'
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
@@ -28,7 +28,7 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
         description: 'Descripción del fondo',
-        example: 'Fondo para emergencias médicas y gastos inesperados'
+        example: 'Fondo para ahorrar para vacaciones'
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
@@ -38,14 +38,17 @@ __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Tipo de fondo',
         enum: financiero_interface_1.TipoFondo,
-        example: financiero_interface_1.TipoFondo.EMERGENCIA
+        example: financiero_interface_1.TipoFondo.AHORRO,
+        enumName: 'TipoFondo'
     }),
-    (0, class_validator_1.IsEnum)(financiero_interface_1.TipoFondo),
+    (0, class_validator_1.IsEnum)(financiero_interface_1.TipoFondo, {
+        message: 'El tipo debe ser "registro" o "ahorro"'
+    }),
     __metadata("design:type", String)
 ], CreateFondoDto.prototype, "tipo", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
-        description: 'Saldo inicial del fondo (billetera)',
+        description: 'Saldo inicial del fondo',
         example: 0,
         minimum: 0,
         default: 0
@@ -57,13 +60,20 @@ __decorate([
 ], CreateFondoDto.prototype, "saldoActual", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
-        description: 'Meta de ahorro para este fondo (opcional)',
-        example: 10000,
-        minimum: 0
+        description: 'Meta de ahorro (obligatoria para fondos tipo "ahorro")',
+        example: 100000,
+        minimum: 1
     }),
-    (0, class_validator_1.IsNumber)(),
-    (0, class_validator_1.Min)(0),
-    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.ValidateIf)(o => o.tipo === financiero_interface_1.TipoFondo.AHORRO),
+    (0, class_validator_1.IsNumber)({}, {
+        message: 'La meta debe ser un número válido para fondos de ahorro'
+    }),
+    (0, class_validator_1.Min)(1, {
+        message: 'La meta debe ser mayor a 0 para fondos de ahorro'
+    }),
+    (0, class_validator_1.IsNotEmpty)({
+        message: 'La meta de ahorro es obligatoria para fondos de ahorro'
+    }),
     __metadata("design:type", Number)
 ], CreateFondoDto.prototype, "metaAhorro", void 0);
 class UpdateFondoDto {
@@ -72,7 +82,7 @@ exports.UpdateFondoDto = UpdateFondoDto;
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
         description: 'Nombre del fondo',
-        example: 'Fondo de Emergencia Actualizado'
+        example: 'Mi Fondo Actualizado'
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
@@ -91,18 +101,27 @@ __decorate([
         description: 'Tipo de fondo',
         enum: financiero_interface_1.TipoFondo
     }),
-    (0, class_validator_1.IsEnum)(financiero_interface_1.TipoFondo),
+    (0, class_validator_1.IsEnum)(financiero_interface_1.TipoFondo, {
+        message: 'El tipo debe ser "registro" o "ahorro"'
+    }),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], UpdateFondoDto.prototype, "tipo", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
-        description: 'Meta de ahorro para este fondo',
-        minimum: 0
+        description: 'Meta de ahorro (obligatoria para fondos tipo "ahorro")',
+        minimum: 1
     }),
-    (0, class_validator_1.IsNumber)(),
-    (0, class_validator_1.Min)(0),
-    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.ValidateIf)(o => o.tipo === financiero_interface_1.TipoFondo.AHORRO || !o.tipo),
+    (0, class_validator_1.IsNumber)({}, {
+        message: 'La meta debe ser un número válido'
+    }),
+    (0, class_validator_1.Min)(1, {
+        message: 'La meta debe ser mayor a 0 para fondos de ahorro'
+    }),
+    (0, class_validator_1.IsNotEmpty)({
+        message: 'La meta de ahorro es obligatoria para fondos de ahorro'
+    }),
     __metadata("design:type", Number)
 ], UpdateFondoDto.prototype, "metaAhorro", void 0);
 __decorate([

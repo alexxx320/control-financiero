@@ -23,7 +23,7 @@ export class Fondo {
   @Prop({ 
     required: true, 
     enum: Object.values(TipoFondo),
-    default: TipoFondo.PERSONAL 
+    default: TipoFondo.REGISTRO  // 🔧 CAMBIADO: Registro como default
   })
   tipo: TipoFondo;
 

@@ -13,6 +13,8 @@ export class FondosService {
   ) {}
 
   async create(createFondoDto: CreateFondoDto, usuarioId: string): Promise<Fondo> {
+    console.log(`🏦 [FONDOS] Creando fondo para usuario ${usuarioId}:`, createFondoDto);
+    
     // Verificar que no exista un fondo con el mismo nombre para este usuario
     const fondoExistente = await this.fondoModel.findOne({ 
       nombre: createFondoDto.nombre,
@@ -23,16 +25,43 @@ export class FondosService {
       throw new BadRequestException(`Ya existe un fondo con el nombre "${createFondoDto.nombre}"`);
     }
 
+    // 🔧 VALIDACIÓN ESTRICTA: Manejo de meta según tipo de fondo
+    let metaAhorro = 0;
+    
+    if (createFondoDto.tipo === 'ahorro') {
+      // Para fondos de ahorro, meta es OBLIGATORIA y debe ser > 0
+      if (!createFondoDto.metaAhorro || createFondoDto.metaAhorro <= 0) {
+        throw new BadRequestException('La meta de ahorro es obligatoria y debe ser mayor a 0 para fondos de ahorro');
+      }
+      metaAhorro = createFondoDto.metaAhorro;
+      console.log(`🎯 [FONDOS] Fondo de ahorro con meta obligatoria: ${metaAhorro}`);
+    } else if (createFondoDto.tipo === 'registro') {
+      // Para fondos de registro, PROHIBIR cualquier meta
+      metaAhorro = 0;
+      if (createFondoDto.metaAhorro && createFondoDto.metaAhorro > 0) {
+        throw new BadRequestException('Los fondos de registro no pueden tener meta de ahorro');
+      }
+      console.log(`📝 [FONDOS] Fondo de registro sin meta (prohibida)`);
+    }
+
     const nuevoFondo = new this.fondoModel({
       ...createFondoDto,
       usuarioId: new Types.ObjectId(usuarioId),
-      saldoActual: createFondoDto.saldoActual || 0, // Default 0 si no se especifica
-      metaAhorro: createFondoDto.metaAhorro || 0,
+      saldoActual: createFondoDto.saldoActual || 0,
+      metaAhorro,  // Meta calculada según tipo
       fechaCreacion: new Date(),
       activo: true,
     });
 
-    return await nuevoFondo.save();
+    const fondoGuardado = await nuevoFondo.save();
+    console.log(`✅ [FONDOS] Fondo creado exitosamente:`, {
+      id: fondoGuardado._id,
+      nombre: fondoGuardado.nombre,
+      tipo: fondoGuardado.tipo,
+      meta: fondoGuardado.metaAhorro
+    });
+    
+    return fondoGuardado;
   }
 
   async findAll(usuarioId: string): Promise<Fondo[]> {
@@ -59,6 +88,8 @@ export class FondosService {
   }
 
   async update(id: string, updateFondoDto: UpdateFondoDto, usuarioId: string): Promise<Fondo> {
+    console.log(`🔄 [FONDOS] Actualizando fondo ${id}:`, updateFondoDto);
+    
     // Verificar que el fondo existe y pertenece al usuario
     const fondoExistente = await this.findOne(id, usuarioId);
 
@@ -75,13 +106,44 @@ export class FondosService {
       }
     }
 
+    // 🔧 VALIDACIÓN ESTRICTA: Manejo de meta según tipo de fondo
+    const datosActualizacion: any = { ...updateFondoDto };
+    
+    // Determinar el tipo final (el que se va a actualizar o el existente)
+    const tipoFinal = updateFondoDto.tipo || fondoExistente.tipo;
+    
+    if (tipoFinal === 'registro') {
+      // Para fondos de registro, PROHIBIR cualquier meta
+      datosActualizacion.metaAhorro = 0;
+      if (updateFondoDto.metaAhorro && updateFondoDto.metaAhorro > 0) {
+        throw new BadRequestException('Los fondos de registro no pueden tener meta de ahorro');
+      }
+      console.log(`📝 [FONDOS] Actualizando a fondo de registro (meta prohibida)`);
+    } else if (tipoFinal === 'ahorro') {
+      // Para fondos de ahorro, meta es OBLIGATORIA si se está proporcionando
+      if (updateFondoDto.metaAhorro !== undefined) {
+        if (updateFondoDto.metaAhorro <= 0) {
+          throw new BadRequestException('La meta de ahorro debe ser mayor a 0 para fondos de ahorro');
+        }
+        datosActualizacion.metaAhorro = updateFondoDto.metaAhorro;
+      }
+      console.log(`🎯 [FONDOS] Actualizando fondo de ahorro con meta: ${datosActualizacion.metaAhorro}`);
+    }
+
     const fondoActualizado = await this.fondoModel
       .findOneAndUpdate(
         { _id: id, usuarioId: new Types.ObjectId(usuarioId) },
-        updateFondoDto, 
+        datosActualizacion, 
         { new: true }
       )
       .exec();
+
+    console.log(`✅ [FONDOS] Fondo actualizado exitosamente:`, {
+      id: fondoActualizado._id,
+      nombre: fondoActualizado.nombre,
+      tipo: fondoActualizado.tipo,
+      meta: fondoActualizado.metaAhorro
+    });
 
     return fondoActualizado;
   }

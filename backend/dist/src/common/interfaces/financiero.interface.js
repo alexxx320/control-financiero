@@ -25,11 +25,8 @@ var CategoriaTransaccion;
 })(CategoriaTransaccion || (exports.CategoriaTransaccion = CategoriaTransaccion = {}));
 var TipoFondo;
 (function (TipoFondo) {
+    TipoFondo["REGISTRO"] = "registro";
     TipoFondo["AHORRO"] = "ahorro";
-    TipoFondo["INVERSION"] = "inversion";
-    TipoFondo["EMERGENCIA"] = "emergencia";
-    TipoFondo["GASTOS"] = "gastos";
-    TipoFondo["PERSONAL"] = "personal";
 })(TipoFondo || (exports.TipoFondo = TipoFondo = {}));
 var TipoAlerta;
 (function (TipoAlerta) {

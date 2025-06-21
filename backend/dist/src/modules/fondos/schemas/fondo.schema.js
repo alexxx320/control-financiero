@@ -37,7 +37,7 @@ __decorate([
     (0, mongoose_1.Prop)({
         required: true,
         enum: Object.values(financiero_interface_1.TipoFondo),
-        default: financiero_interface_1.TipoFondo.PERSONAL
+        default: financiero_interface_1.TipoFondo.REGISTRO
     }),
     __metadata("design:type", String)
 ], Fondo.prototype, "tipo", void 0);

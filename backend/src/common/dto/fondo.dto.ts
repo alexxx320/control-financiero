@@ -1,11 +1,11 @@
-import { IsString, IsNotEmpty, IsNumber, IsOptional, IsEnum, Min } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, IsOptional, IsEnum, Min, ValidateIf } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { TipoFondo } from '../interfaces/financiero.interface';
 
 export class CreateFondoDto {
   @ApiProperty({
     description: 'Nombre del fondo',
-    example: 'Fondo de Emergencia'
+    example: 'Mi Fondo de Ahorro'
   })
   @IsString()
   @IsNotEmpty()
@@ -13,7 +13,7 @@ export class CreateFondoDto {
 
   @ApiPropertyOptional({
     description: 'Descripción del fondo',
-    example: 'Fondo para emergencias médicas y gastos inesperados'
+    example: 'Fondo para ahorrar para vacaciones'
   })
   @IsString()
   @IsOptional()
@@ -22,13 +22,16 @@ export class CreateFondoDto {
   @ApiProperty({
     description: 'Tipo de fondo',
     enum: TipoFondo,
-    example: TipoFondo.EMERGENCIA
+    example: TipoFondo.AHORRO,
+    enumName: 'TipoFondo'
   })
-  @IsEnum(TipoFondo)
+  @IsEnum(TipoFondo, {
+    message: 'El tipo debe ser "registro" o "ahorro"'
+  })
   tipo: TipoFondo;
 
   @ApiPropertyOptional({
-    description: 'Saldo inicial del fondo (billetera)',
+    description: 'Saldo inicial del fondo',
     example: 0,
     minimum: 0,
     default: 0
@@ -39,20 +42,27 @@ export class CreateFondoDto {
   saldoActual?: number;
 
   @ApiPropertyOptional({
-    description: 'Meta de ahorro para este fondo (opcional)',
-    example: 10000,
-    minimum: 0
+    description: 'Meta de ahorro (obligatoria para fondos tipo "ahorro")',
+    example: 100000,
+    minimum: 1
   })
-  @IsNumber()
-  @Min(0)
-  @IsOptional()
+  @ValidateIf(o => o.tipo === TipoFondo.AHORRO)
+  @IsNumber({}, {
+    message: 'La meta debe ser un número válido para fondos de ahorro'
+  })
+  @Min(1, {
+    message: 'La meta debe ser mayor a 0 para fondos de ahorro'
+  })
+  @IsNotEmpty({
+    message: 'La meta de ahorro es obligatoria para fondos de ahorro'
+  })
   metaAhorro?: number;
 }
 
 export class UpdateFondoDto {
   @ApiPropertyOptional({
     description: 'Nombre del fondo',
-    example: 'Fondo de Emergencia Actualizado'
+    example: 'Mi Fondo Actualizado'
   })
   @IsString()
   @IsOptional()
@@ -69,17 +79,26 @@ export class UpdateFondoDto {
     description: 'Tipo de fondo',
     enum: TipoFondo
   })
-  @IsEnum(TipoFondo)
+  @IsEnum(TipoFondo, {
+    message: 'El tipo debe ser "registro" o "ahorro"'
+  })
   @IsOptional()
   tipo?: TipoFondo;
 
   @ApiPropertyOptional({
-    description: 'Meta de ahorro para este fondo',
-    minimum: 0
+    description: 'Meta de ahorro (obligatoria para fondos tipo "ahorro")',
+    minimum: 1
   })
-  @IsNumber()
-  @Min(0)
-  @IsOptional()
+  @ValidateIf(o => o.tipo === TipoFondo.AHORRO || !o.tipo)
+  @IsNumber({}, {
+    message: 'La meta debe ser un número válido'
+  })
+  @Min(1, {
+    message: 'La meta debe ser mayor a 0 para fondos de ahorro'
+  })
+  @IsNotEmpty({
+    message: 'La meta de ahorro es obligatoria para fondos de ahorro'
+  })
   metaAhorro?: number;
 
   @ApiPropertyOptional({

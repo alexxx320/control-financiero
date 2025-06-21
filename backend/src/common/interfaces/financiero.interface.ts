@@ -20,12 +20,10 @@ export enum CategoriaTransaccion {
   REGALOS = 'regalos',
 }
 
+// 🔧 MODIFICADO: Solo dos tipos de fondo
 export enum TipoFondo {
-  AHORRO = 'ahorro',
-  INVERSION = 'inversion',
-  EMERGENCIA = 'emergencia',
-  GASTOS = 'gastos',
-  PERSONAL = 'personal',
+  REGISTRO = 'registro',  // Para registrar transacciones sin meta
+  AHORRO = 'ahorro'       // Para ahorros con meta opcional
 }
 
 export enum TipoAlerta {

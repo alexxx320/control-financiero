@@ -197,7 +197,8 @@ export class FondoService {
       );
   }
 
+  // 🔧 MODIFICADO: Solo dos tipos de fondo
   obtenerTiposFondo(): TipoFondo[] {
-    return ['ahorro', 'inversion', 'emergencia', 'gastos', 'personal'];
+    return ['registro', 'ahorro'];
   }
 }

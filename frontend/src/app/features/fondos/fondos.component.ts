@@ -77,9 +77,12 @@ import { NotificationService } from '../../core/services/notification.service';
             <div class="form-row">
               <mat-form-field appearance="outline" class="half-width">
                 <mat-label>Tipo de Fondo</mat-label>
-                <mat-select formControlName="tipo">
-                  <mat-option *ngFor="let tipo of tiposFondo" [value]="tipo">
-                    {{ tipo | titlecase }}
+                <mat-select formControlName="tipo" (selectionChange)="onTipoChange($event.value)">
+                  <mat-option value="registro">
+                    📝 Registro
+                  </mat-option>
+                  <mat-option value="ahorro">
+                    💰 Ahorro
                   </mat-option>
                 </mat-select>
                 <mat-error *ngIf="fondoForm.get('tipo')?.hasError('required')">
@@ -104,18 +107,24 @@ import { NotificationService } from '../../core/services/notification.service';
               </mat-form-field>
             </div>
 
-            <div class="form-row">
+            <!-- 🔧 CAMPO META CONDICIONAL Y OBLIGATORIO -->
+            <div class="form-row" *ngIf="tipoSeleccionado === 'ahorro'">
               <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Meta de Ahorro (Opcional)</mat-label>
+                <mat-label>Meta de Ahorro *</mat-label>
                 <input matInput type="number" formControlName="metaAhorro" 
-                       placeholder="0" min="0" step="0.01">
+                       placeholder="Ingresa tu meta (ej: 1000000)" min="1" step="1000" required>
                 <span matTextPrefix>$</span>
-                <mat-hint>Define una meta opcional para este fondo</mat-hint>
+                <mat-hint><strong>Obligatorio:</strong> Define tu meta de ahorro para este fondo</mat-hint>
+                <mat-error *ngIf="fondoForm.get('metaAhorro')?.hasError('required')">
+                  La meta de ahorro es obligatoria para fondos de ahorro
+                </mat-error>
                 <mat-error *ngIf="fondoForm.get('metaAhorro')?.hasError('min')">
-                  La meta debe ser mayor o igual a 0
+                  La meta debe ser mayor a $0 (mínimo $1)
                 </mat-error>
               </mat-form-field>
             </div>
+
+
 
             <div class="form-actions">
               <button mat-button type="button" (click)="cancelarEdicion()">
@@ -201,8 +210,32 @@ import { NotificationService } from '../../core/services/notification.service';
             </div>
           </mat-card-content>
         </mat-card>
-      </div>
-    </div>
+    <!-- 🔧 INFORMACIÓN DE TIPOS DE FONDO -->
+    <mat-card class="info-card mb-2">
+      <mat-card-content>
+        <div class="tipos-info">
+          <h3><mat-icon>info</mat-icon> Tipos de Fondos Disponibles</h3>
+          <div class="tipos-grid">
+            <div class="tipo-item registro">
+              <mat-icon>assignment</mat-icon>
+              <div class="tipo-content">
+                <h4>📝 Registro</h4>
+                <p>Para llevar control de ingresos y gastos sin metas específicas</p>
+                <small>• Sin meta de ahorro • Control de movimientos</small>
+              </div>
+            </div>
+            <div class="tipo-item ahorro">
+              <mat-icon>savings</mat-icon>
+              <div class="tipo-content">
+                <h4>💰 Ahorro</h4>
+                <p>Para ahorrar dinero con metas específicas</p>
+                <small>• Con meta de ahorro • Seguimiento de progreso</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
   `,
   styles: [`
     .fondos-container {
@@ -254,6 +287,8 @@ import { NotificationService } from '../../core/services/notification.service';
       justify-content: flex-end;
       margin-top: 20px;
     }
+
+
 
     .fondos-grid {
       display: grid;
@@ -438,6 +473,7 @@ export class FondosComponent implements OnInit, OnDestroy {
   mostrarFormulario = false;
   fondoEditando: Fondo | null = null;
   guardando = false;
+  tipoSeleccionado: TipoFondo = 'registro'; // 🔧 AGREGADO
 
   constructor(
     private fb: FormBuilder,
@@ -449,7 +485,7 @@ export class FondosComponent implements OnInit, OnDestroy {
     this.fondoForm = this.fb.group({
       nombre: ['', [Validators.required, Validators.minLength(3)]],
       descripcion: [''],
-      tipo: ['', Validators.required],
+      tipo: ['registro', Validators.required], // 🔧 Default: registro
       saldoActual: [0, [Validators.required, Validators.min(0)]],
       metaAhorro: [0, [Validators.min(0)]]
     });
@@ -458,6 +494,11 @@ export class FondosComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.cargarTiposFondo();
     this.cargarFondos();
+    
+    // 🔧 Escuchar cambios en el tipo para manejar validación de meta
+    this.fondoForm.get('tipo')?.valueChanges.subscribe(tipo => {
+      this.onTipoChange(tipo);
+    });
   }
 
   ngOnDestroy(): void {
@@ -503,14 +544,23 @@ export class FondosComponent implements OnInit, OnDestroy {
   abrirDialogoFondo(): void {
     this.mostrarFormulario = true;
     this.fondoEditando = null;
-    this.fondoForm.reset();
+    this.fondoForm.reset({
+      tipo: 'registro',  // Default: registro
+      saldoActual: 0,
+      metaAhorro: 0
+    });
+    this.tipoSeleccionado = 'registro';
+    
     // Habilitar el campo saldoActual al crear
     this.fondoForm.get('saldoActual')?.enable();
+    this.onTipoChange('registro'); // Aplicar validaciones iniciales
   }
 
   editarFondo(fondo: Fondo): void {
     this.mostrarFormulario = true;
     this.fondoEditando = fondo;
+    this.tipoSeleccionado = fondo.tipo;
+    
     this.fondoForm.patchValue({
       nombre: fondo.nombre,
       descripcion: fondo.descripcion || '',
@@ -521,6 +571,9 @@ export class FondosComponent implements OnInit, OnDestroy {
     
     // Deshabilitar el campo saldoActual al editar
     this.fondoForm.get('saldoActual')?.disable();
+    
+    // Aplicar validaciones según el tipo
+    this.onTipoChange(fondo.tipo);
   }
 
   guardarFondo(): void {
@@ -537,7 +590,8 @@ export class FondosComponent implements OnInit, OnDestroy {
         nombre: fondoData.nombre,
         descripcion: fondoData.descripcion,
         tipo: fondoData.tipo,
-        metaAhorro: fondoData.metaAhorro || 0
+        // 🔧 Meta solo para fondos de ahorro
+        metaAhorro: fondoData.tipo === 'ahorro' ? (fondoData.metaAhorro || 0) : 0
       };
 
       this.fondoService.actualizarFondo(this.fondoEditando._id!, updateData)
@@ -561,7 +615,8 @@ export class FondosComponent implements OnInit, OnDestroy {
         descripcion: fondoData.descripcion,
         tipo: fondoData.tipo,
         saldoActual: fondoData.saldoActual || 0,
-        metaAhorro: fondoData.metaAhorro || 0
+        // 🔧 Meta solo para fondos de ahorro
+        metaAhorro: fondoData.tipo === 'ahorro' ? (fondoData.metaAhorro || 0) : 0
       };
 
       this.fondoService.crearFondo(createData)
@@ -569,7 +624,9 @@ export class FondosComponent implements OnInit, OnDestroy {
         .subscribe({
           next: (nuevoFondo) => {
             console.log('✅ Fondo creado:', nuevoFondo);
-            this.notificationService.success('Fondo creado exitosamente');
+            this.notificationService.success(
+              `Fondo "${nuevoFondo.nombre}" creado exitosamente como tipo "${nuevoFondo.tipo}"`
+            );
             this.cancelarEdicion();
             this.guardando = false;
           },
@@ -596,6 +653,7 @@ export class FondosComponent implements OnInit, OnDestroy {
     this.mostrarFormulario = false;
     this.fondoEditando = null;
     this.fondoForm.reset();
+    this.tipoSeleccionado = 'registro';
   }
 
   eliminarFondo(fondo: Fondo): void {
@@ -638,14 +696,59 @@ export class FondosComponent implements OnInit, OnDestroy {
   }
 
   obtenerIconoTipo(tipo: TipoFondo): string {
-    const iconos = {
-      'ahorro': 'savings',
-      'inversion': 'trending_up',
-      'emergencia': 'warning',
-      'gastos': 'shopping_cart',
-      'personal': 'person'
+    const iconos: Record<TipoFondo, string> = {
+      'registro': 'assignment',
+      'ahorro': 'savings'
     };
     return iconos[tipo] || 'account_balance_wallet';
+  }
+
+  // 🔧 NUEVO MÉTODO: Nombres descriptivos para tipos
+  obtenerNombreTipo(tipo: TipoFondo): string {
+    const nombres: Record<TipoFondo, string> = {
+      'registro': 'Control de Movimientos',
+      'ahorro': 'Fondo de Ahorro'
+    };
+    return nombres[tipo] || tipo;
+  }
+
+  // 🔧 MÉTODO MEJORADO: Manejo estricto de cambio de tipo
+  onTipoChange(tipo: TipoFondo): void {
+    console.log('🔄 Tipo de fondo cambiado a:', tipo);
+    this.tipoSeleccionado = tipo;
+    
+    const metaControl = this.fondoForm.get('metaAhorro');
+    
+    if (tipo === 'registro') {
+      // Para fondos de registro: BLOQUEAR completamente el campo
+      metaControl?.setValue(0);
+      metaControl?.disable(); // 🔧 DESHABILITADO completamente
+      metaControl?.clearValidators();
+      console.log('📝 Fondo de registro: Campo meta BLOQUEADO');
+    } else if (tipo === 'ahorro') {
+      // Para fondos de ahorro: OBLIGATORIO y habilitado
+      metaControl?.enable(); // 🔧 HABILITADO
+      metaControl?.setValidators([
+        Validators.required, // 🔧 OBLIGATORIO
+        Validators.min(1)    // 🔧 DEBE SER > 0
+      ]);
+      
+      // Si está vacío o es 0, limpiar para mostrar placeholder
+      if (!metaControl?.value || metaControl?.value <= 0) {
+        metaControl?.setValue(null);
+      }
+      
+      console.log('💰 Fondo de ahorro: Campo meta OBLIGATORIO');
+    }
+    
+    metaControl?.updateValueAndValidity();
+  }
+
+  // 🔧 NUEVO MÉTODO: Clase CSS según progreso
+  obtenerClaseProgreso(progreso: number): string {
+    if (progreso >= 80) return 'progreso-alto';
+    if (progreso >= 50) return 'progreso-medio';
+    return 'progreso-bajo';
   }
 
   calcularProgresoMeta(fondo: Fondo): number {

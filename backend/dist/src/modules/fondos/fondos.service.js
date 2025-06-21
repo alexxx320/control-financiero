@@ -24,6 +24,7 @@ let FondosService = class FondosService {
         this.transaccionModel = transaccionModel;
     }
     async create(createFondoDto, usuarioId) {
+        console.log(`🏦 [FONDOS] Creando fondo para usuario ${usuarioId}:`, createFondoDto);
         const fondoExistente = await this.fondoModel.findOne({
             nombre: createFondoDto.nombre,
             usuarioId: new mongoose_2.Types.ObjectId(usuarioId)
@@ -31,15 +32,37 @@ let FondosService = class FondosService {
         if (fondoExistente) {
             throw new common_1.BadRequestException(`Ya existe un fondo con el nombre "${createFondoDto.nombre}"`);
         }
+        let metaAhorro = 0;
+        if (createFondoDto.tipo === 'ahorro') {
+            if (!createFondoDto.metaAhorro || createFondoDto.metaAhorro <= 0) {
+                throw new common_1.BadRequestException('La meta de ahorro es obligatoria y debe ser mayor a 0 para fondos de ahorro');
+            }
+            metaAhorro = createFondoDto.metaAhorro;
+            console.log(`🎯 [FONDOS] Fondo de ahorro con meta obligatoria: ${metaAhorro}`);
+        }
+        else if (createFondoDto.tipo === 'registro') {
+            metaAhorro = 0;
+            if (createFondoDto.metaAhorro && createFondoDto.metaAhorro > 0) {
+                throw new common_1.BadRequestException('Los fondos de registro no pueden tener meta de ahorro');
+            }
+            console.log(`📝 [FONDOS] Fondo de registro sin meta (prohibida)`);
+        }
         const nuevoFondo = new this.fondoModel({
             ...createFondoDto,
             usuarioId: new mongoose_2.Types.ObjectId(usuarioId),
             saldoActual: createFondoDto.saldoActual || 0,
-            metaAhorro: createFondoDto.metaAhorro || 0,
+            metaAhorro,
             fechaCreacion: new Date(),
             activo: true,
         });
-        return await nuevoFondo.save();
+        const fondoGuardado = await nuevoFondo.save();
+        console.log(`✅ [FONDOS] Fondo creado exitosamente:`, {
+            id: fondoGuardado._id,
+            nombre: fondoGuardado.nombre,
+            tipo: fondoGuardado.tipo,
+            meta: fondoGuardado.metaAhorro
+        });
+        return fondoGuardado;
     }
     async findAll(usuarioId) {
         return await this.fondoModel
@@ -61,6 +84,7 @@ let FondosService = class FondosService {
         return fondo;
     }
     async update(id, updateFondoDto, usuarioId) {
+        console.log(`🔄 [FONDOS] Actualizando fondo ${id}:`, updateFondoDto);
         const fondoExistente = await this.findOne(id, usuarioId);
         if (updateFondoDto.nombre && updateFondoDto.nombre !== fondoExistente.nombre) {
             const nombreDuplicado = await this.fondoModel.findOne({
@@ -72,9 +96,33 @@ let FondosService = class FondosService {
                 throw new common_1.BadRequestException(`Ya existe un fondo con el nombre "${updateFondoDto.nombre}"`);
             }
         }
+        const datosActualizacion = { ...updateFondoDto };
+        const tipoFinal = updateFondoDto.tipo || fondoExistente.tipo;
+        if (tipoFinal === 'registro') {
+            datosActualizacion.metaAhorro = 0;
+            if (updateFondoDto.metaAhorro && updateFondoDto.metaAhorro > 0) {
+                throw new common_1.BadRequestException('Los fondos de registro no pueden tener meta de ahorro');
+            }
+            console.log(`📝 [FONDOS] Actualizando a fondo de registro (meta prohibida)`);
+        }
+        else if (tipoFinal === 'ahorro') {
+            if (updateFondoDto.metaAhorro !== undefined) {
+                if (updateFondoDto.metaAhorro <= 0) {
+                    throw new common_1.BadRequestException('La meta de ahorro debe ser mayor a 0 para fondos de ahorro');
+                }
+                datosActualizacion.metaAhorro = updateFondoDto.metaAhorro;
+            }
+            console.log(`🎯 [FONDOS] Actualizando fondo de ahorro con meta: ${datosActualizacion.metaAhorro}`);
+        }
         const fondoActualizado = await this.fondoModel
-            .findOneAndUpdate({ _id: id, usuarioId: new mongoose_2.Types.ObjectId(usuarioId) }, updateFondoDto, { new: true })
+            .findOneAndUpdate({ _id: id, usuarioId: new mongoose_2.Types.ObjectId(usuarioId) }, datosActualizacion, { new: true })
             .exec();
+        console.log(`✅ [FONDOS] Fondo actualizado exitosamente:`, {
+            id: fondoActualizado._id,
+            nombre: fondoActualizado.nombre,
+            tipo: fondoActualizado.tipo,
+            meta: fondoActualizado.metaAhorro
+        });
         return fondoActualizado;
     }
     async remove(id, usuarioId) {
