@@ -188,7 +188,7 @@ import { Fondo } from '../../core/models/fondo.model';
       <mat-card class="fondos-card">
         <mat-card-header>
           <mat-card-title>
-            Progreso de Fondos
+            Progreso Ahorros
             <button mat-icon-button (click)="refrescarFondos()" [disabled]="cargando">
               <mat-icon>refresh</mat-icon>
             </button>
@@ -208,16 +208,16 @@ import { Fondo } from '../../core/models/fondo.model';
             </button>
           </div>
           
-          <div *ngIf="!cargando && !error && fondos.length === 0" class="empty-state">
+          <div *ngIf="!cargando && !error && obtenerFondosAhorro().length === 0" class="empty-state">
             <mat-icon>savings_off</mat-icon>
-            <p>No hay fondos disponibles</p>
+            <p>No hay fondos de ahorro disponibles</p>
             <button mat-raised-button color="primary" routerLink="/fondos">
-              Crear Primer Fondo
+              Crear Primer Fondo de Ahorro
             </button>
           </div>
           
-          <div *ngIf="!cargando && !error && fondos.length > 0" class="fondos-list">
-            <div *ngFor="let fondo of fondos; trackBy: trackByFondo" class="fondo-item">
+          <div *ngIf="!cargando && !error && obtenerFondosAhorro().length > 0" class="fondos-list">
+            <div *ngFor="let fondo of obtenerFondosAhorro(); trackBy: trackByFondo" class="fondo-item">
               <div class="fondo-info">
                 <h4>{{ fondo.nombre }}</h4>
                 <p>{{ fondo.tipo | titlecase }}</p>
@@ -875,6 +875,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
       return 'Sin datos';
     }
     return this.formatearMoneda(this.estadisticas.mayorIngreso);
+  }
+
+  obtenerFondosAhorro(): Fondo[] {
+    if (!this.fondos || this.fondos.length === 0) {
+      return [];
+    }
+    
+    // Filtrar solo fondos de tipo 'ahorro' (excluir fondos de tipo 'registro')
+    return this.fondos.filter(fondo => fondo.tipo === 'ahorro');
   }
 
   private actualizarPeriodoActual(): void {
