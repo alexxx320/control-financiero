@@ -20,6 +20,7 @@ export interface TransaccionDialogData {
   transaccion?: Transaccion;
   fondos: Fondo[];
   categorias: CategoriaTransaccion[];
+  fondoPreseleccionado?: string; // 🆕 NUEVO: Para preseleccionar un fondo
 }
 
 @Component({
@@ -53,11 +54,17 @@ export interface TransaccionDialogData {
             <mat-select formControlName="fondoId">
               <mat-option *ngFor="let fondo of data.fondos" [value]="fondo._id">
                 {{ fondo.nombre }} ({{ fondo.tipo | titlecase }})
+                <!-- 🆕 MOSTRAR SALDO ACTUAL DEL FONDO -->
+                <span class="fondo-saldo"> - Saldo: {{ fondo.saldoActual | currency:'COP':'symbol':'1.0-0' }}</span>
               </mat-option>
             </mat-select>
             <mat-error *ngIf="transaccionForm.get('fondoId')?.hasError('required')">
               Selecciona un fondo
             </mat-error>
+            <!-- 🆕 MOSTRAR AVISO SI ES DESDE UN FONDO ESPECÍFICO -->
+            <mat-hint *ngIf="data.fondoPreseleccionado">
+              Creando transacción para: {{ obtenerNombreFondoPreseleccionado() }}
+            </mat-hint>
           </mat-form-field>
         </div>
 
@@ -167,6 +174,12 @@ export interface TransaccionDialogData {
       color: #f44336;
     }
 
+    .fondo-saldo {
+      font-size: 0.8em;
+      color: rgba(0,0,0,0.6);
+      font-style: italic;
+    }
+
     mat-dialog-content {
       max-height: 70vh;
       overflow-y: auto;
@@ -223,6 +236,12 @@ export class TransaccionDialogComponent implements OnInit {
 
       // Filtrar categorías según el tipo
       this.onTipoChange();
+    } else if (this.data.fondoPreseleccionado) {
+      // 🆕 NUEVO: Si hay un fondo preseleccionado, configurarlo
+      this.transaccionForm.patchValue({
+        fondoId: this.data.fondoPreseleccionado
+      });
+      console.log('💰 Fondo preseleccionado:', this.data.fondoPreseleccionado);
     }
   }
 
@@ -244,6 +263,13 @@ export class TransaccionDialogComponent implements OnInit {
 
   formatearCategoria(categoria: string): string {
     return CategoriaUtils.formatearCategoria(categoria);
+  }
+
+  // 🆕 NUEVO: Obtener nombre del fondo preseleccionado
+  obtenerNombreFondoPreseleccionado(): string {
+    if (!this.data.fondoPreseleccionado) return '';
+    const fondo = this.data.fondos.find(f => f._id === this.data.fondoPreseleccionado);
+    return fondo ? fondo.nombre : 'Fondo no encontrado';
   }
 
   onSave(): void {

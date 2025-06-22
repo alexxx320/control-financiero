@@ -12,6 +12,7 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatGridListModule } from '@angular/material/grid-list';
+import { MatTooltipModule } from '@angular/material/tooltip'; // 🆕 NUEVO
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -19,6 +20,11 @@ import { FondoService } from '../../core/services/fondo.service';
 import { Fondo, TipoFondo, CreateFondoDto, UpdateFondoDto } from '../../core/models/fondo.model';
 import { FondoDetalleModalComponent } from '../../shared/components/fondo-detalle-modal.component';
 import { NotificationService } from '../../core/services/notification.service';
+
+// 🆕 NUEVO: Importaciones para crear transacciones desde fondos
+import { TransaccionDialogComponent } from '../transacciones/transaccion-dialog.component';
+import { TransaccionService } from '../../core/services/transaccion.service';
+import { CategoriaTransaccion } from '../../core/models/transaccion.model';
 
 @Component({
   selector: 'app-fondos',
@@ -37,7 +43,8 @@ import { NotificationService } from '../../core/services/notification.service';
     MatSnackBarModule,
     MatProgressBarModule,
     MatChipsModule,
-    MatGridListModule
+    MatGridListModule,
+    MatTooltipModule // 🆕 NUEVO
   ],
   template: `
     <div class="fondos-container">
@@ -158,7 +165,7 @@ import { NotificationService } from '../../core/services/notification.service';
             </div>
           </mat-card-header>
           
-          <mat-card-content>
+          <mat-card-content class="fondo-content">
             <div class="fondo-info">
               <p *ngIf="fondo.descripcion" class="descripcion">{{ fondo.descripcion }}</p>
               
@@ -191,10 +198,17 @@ import { NotificationService } from '../../core/services/notification.service';
             </div>
           </mat-card-content>
 
-          <mat-card-actions>
+          <!-- 🆕 BOTONES MOVIDOS AL FINAL DE LA TARJETA -->
+          <mat-card-actions class="card-actions-bottom">
             <button mat-button color="primary" (click)="verDetalleFondo(fondo)">
               <mat-icon>visibility</mat-icon>
               Ver Detalle
+            </button>
+            <!-- 🆕 Botón circular compacto para crear transacción -->
+            <button mat-fab color="accent" (click)="crearTransaccionEnFondo(fondo)" 
+                    class="btn-add-transaction"
+                    matTooltip="Nueva transacción">
+              <mat-icon>add</mat-icon>
             </button>
           </mat-card-actions>
         </mat-card>
@@ -293,16 +307,31 @@ import { NotificationService } from '../../core/services/notification.service';
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
       gap: 20px;
+      align-items: stretch; /* 🆕 Asegurar que todas las tarjetas tengan la misma altura */
     }
 
     .fondo-card {
       transition: all 0.3s ease;
       border-left: 4px solid #2196f3;
+      display: flex;
+      flex-direction: column;
+      height: 100%; /* 🆕 Altura completa para consistencia */
     }
 
     .fondo-card:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    /* 🆕 NUEVO: Hacer que el contenido se expanda para empujar botones abajo */
+    .fondo-card .fondo-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .fondo-card .fondo-info {
+      flex: 1;
     }
 
     .fondo-card mat-card-header {
@@ -406,6 +435,41 @@ import { NotificationService } from '../../core/services/notification.service';
       margin-top: 16px;
     }
 
+    /* 🆕 NUEVO: Estilos para botones al final de la tarjeta */
+    .fondo-card .card-actions-bottom {
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      margin-top: auto; /* 🆕 Empuja los botones hacia abajo */
+      border-top: 1px solid rgba(0,0,0,0.05);
+      background-color: rgba(0,0,0,0.02);
+    }
+
+    .fondo-card .card-actions-bottom .btn-add-transaction {
+      width: 40px;
+      height: 40px;
+      min-height: 40px;
+      transform: scale(0.8);
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .fondo-card .card-actions-bottom .btn-add-transaction:hover {
+      transform: scale(0.9);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .fondo-card .card-actions-bottom button mat-icon {
+      margin-right: 4px;
+    }
+
+    .fondo-card .card-actions-bottom .btn-add-transaction mat-icon {
+      margin-right: 0;
+      font-size: 20px;
+    }
+
     .nuevo-fondo-card {
       border: 2px dashed #ccc;
       cursor: pointer;
@@ -467,6 +531,19 @@ import { NotificationService } from '../../core/services/notification.service';
         right: auto;
         margin-top: 8px;
       }
+
+      /* 🆕 NUEVO: Ajustes para botones al final en móvil */
+      .fondo-card .card-actions-bottom {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+      }
+
+      .fondo-card .card-actions-bottom .btn-add-transaction {
+        transform: scale(0.75);
+      }
     }
   `]
 })
@@ -480,13 +557,18 @@ export class FondosComponent implements OnInit, OnDestroy {
   fondoEditando: Fondo | null = null;
   guardando = false;
   tipoSeleccionado: TipoFondo = 'registro'; // 🔧 AGREGADO
+  
+  // 🆕 NUEVO: Variables para transacciones
+  categorias: CategoriaTransaccion[] = [];
 
   constructor(
     private fb: FormBuilder,
     private fondoService: FondoService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    // 🆕 NUEVO: Servicio de transacciones
+    private transaccionService: TransaccionService
   ) {
     this.fondoForm = this.fb.group({
       nombre: ['', [Validators.required, Validators.minLength(3)]],
@@ -500,6 +582,9 @@ export class FondosComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.cargarTiposFondo();
     this.cargarFondos();
+    
+    // 🆕 NUEVO: Cargar categorías para transacciones
+    this.categorias = this.transaccionService.obtenerCategorias();
     
     // 🔧 Escuchar cambios en el tipo para manejar validación de meta
     this.fondoForm.get('tipo')?.valueChanges.subscribe(tipo => {
@@ -704,6 +789,65 @@ export class FondosComponent implements OnInit, OnDestroy {
       autoFocus: false,
       restoreFocus: false
     });
+  }
+
+  // 🆕 NUEVO: Método para crear transacción directamente en un fondo
+  crearTransaccionEnFondo(fondo: Fondo): void {
+    console.log('💰 Creando transacción para el fondo:', fondo.nombre);
+    
+    const dialogRef = this.dialog.open(TransaccionDialogComponent, {
+      width: '600px',
+      maxWidth: '90vw',
+      data: {
+        transaccion: undefined, // Nueva transacción
+        fondos: [fondo], // Solo el fondo seleccionado
+        categorias: this.categorias,
+        fondoPreseleccionado: fondo._id // Para preseleccionar el fondo
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result && result.action === 'save') {
+        console.log('💾 Guardando nueva transacción para el fondo:', fondo.nombre);
+        this.crearNuevaTransaccion(result.data);
+      }
+    });
+  }
+
+  // 🆕 NUEVO: Método para procesar la creación de transacciones
+  private crearNuevaTransaccion(data: any): void {
+    console.log('💾 Datos de la nueva transacción:', data);
+    
+    // Verificar saldo insuficiente antes de enviar al backend
+    if (data.tipo === 'gasto') {
+      const fondo = this.fondos.find(f => f._id === data.fondoId);
+      if (fondo && fondo.saldoActual < data.monto) {
+        this.notificationService.warning(
+          `Advertencia: El gasto de ${data.monto.toLocaleString()} excede el saldo disponible de ${fondo.saldoActual.toLocaleString()}. El fondo quedará en saldo negativo.`
+        );
+      }
+    }
+    
+    this.transaccionService.crearTransaccion(data)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (transaccion) => {
+          console.log('✅ Transacción creada exitosamente:', transaccion);
+          this.notificationService.success(
+            `Transacción "${transaccion.descripcion}" creada exitosamente en el fondo`
+          );
+          // Recargar fondos para actualizar saldos
+          this.cargarFondos();
+        },
+        error: (error) => {
+          console.error('❌ Error al crear transacción:', error);
+          let mensaje = 'Error al crear la transacción';
+          if (error.message) {
+            mensaje = error.message;
+          }
+          this.notificationService.error(mensaje);
+        }
+      });
   }
 
   obtenerIconoTipo(tipo: TipoFondo): string {
