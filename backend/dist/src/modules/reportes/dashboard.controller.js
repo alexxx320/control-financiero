@@ -29,7 +29,7 @@ let DashboardController = class DashboardController {
         try {
             const [resumenFinanciero, estadisticas, fondos] = await Promise.all([
                 this.dashboardService.obtenerResumenFinanciero(usuarioId, fechaInicio, fechaFin),
-                this.dashboardService.obtenerEstadisticas(usuarioId),
+                this.dashboardService.obtenerEstadisticas(usuarioId, fechaInicio, fechaFin),
                 this.fondosService.findAll(usuarioId)
             ]);
             const fechaActual = new Date();
@@ -69,8 +69,8 @@ let DashboardController = class DashboardController {
     async obtenerResumenFinanciero(fechaInicio, fechaFin, usuarioId) {
         return await this.dashboardService.obtenerResumenFinanciero(usuarioId, fechaInicio, fechaFin);
     }
-    async obtenerEstadisticas(usuarioId) {
-        return await this.dashboardService.obtenerEstadisticas(usuarioId);
+    async obtenerEstadisticas(fechaInicio, fechaFin, usuarioId) {
+        return await this.dashboardService.obtenerEstadisticas(usuarioId, fechaInicio, fechaFin);
     }
     async obtenerAlertasDashboard(usuarioId) {
         console.log('🚨 DashboardController - Obteniendo alertas para usuario:', usuarioId);
@@ -258,13 +258,17 @@ __decorate([
 __decorate([
     (0, common_1.Get)('estadisticas'),
     (0, swagger_1.ApiOperation)({ summary: 'Obtener solo las estadísticas del dashboard' }),
+    (0, swagger_1.ApiQuery)({ name: 'fechaInicio', required: false, description: 'Fecha de inicio (YYYY-MM-DD)' }),
+    (0, swagger_1.ApiQuery)({ name: 'fechaFin', required: false, description: 'Fecha de fin (YYYY-MM-DD)' }),
     (0, swagger_1.ApiResponse)({
         status: 200,
         description: 'Estadísticas obtenidas exitosamente'
     }),
-    __param(0, (0, get_user_decorator_1.GetUser)('userId')),
+    __param(0, (0, common_1.Query)('fechaInicio')),
+    __param(1, (0, common_1.Query)('fechaFin')),
+    __param(2, (0, get_user_decorator_1.GetUser)('userId')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, String, String]),
     __metadata("design:returntype", Promise)
 ], DashboardController.prototype, "obtenerEstadisticas", null);
 __decorate([

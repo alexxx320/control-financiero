@@ -71,7 +71,7 @@ export class DashboardService {
     return resultado;
   }
 
-  async obtenerEstadisticas(usuarioId: string) {
+  async obtenerEstadisticas(usuarioId: string, fechaInicio?: string, fechaFin?: string) {
     console.log('📈 DashboardService - Obteniendo estadísticas para usuario:', usuarioId);
     
     // Obtener fondos del usuario
@@ -81,46 +81,57 @@ export class DashboardService {
 
     const fondosActivos = fondos.filter(f => f.activo);
 
-    // Obtener transacciones del usuario
-    const transacciones = await this.transaccionModel
-      .find({ usuarioId: new Types.ObjectId(usuarioId) })
+    // Construir filtros de fecha base
+    const filtroBase = { usuarioId: new Types.ObjectId(usuarioId) };
+    
+    // Obtener todas las transacciones del usuario para estadísticas generales
+    const todasLasTransacciones = await this.transaccionModel
+      .find(filtroBase)
       .exec();
 
-    // Calcular transacciones de hoy
+    // Construir filtros de fecha para el período específico
+    const filtroFecha: any = { ...filtroBase };
+    if (fechaInicio || fechaFin) {
+      filtroFecha.fecha = {};
+      if (fechaInicio) filtroFecha.fecha.$gte = new Date(fechaInicio);
+      if (fechaFin) filtroFecha.fecha.$lte = new Date(fechaFin);
+    }
+
+    // Obtener transacciones filtradas por el período seleccionado
+    const transaccionesFiltradas = await this.transaccionModel
+      .find(filtroFecha)
+      .exec();
+
+    // Calcular transacciones de hoy (siempre fijo)
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
     const mañana = new Date(hoy);
     mañana.setDate(mañana.getDate() + 1);
 
-    const transaccionesHoy = transacciones.filter(t => 
+    const transaccionesHoy = todasLasTransacciones.filter(t => 
       t.fecha >= hoy && t.fecha < mañana
     ).length;
 
-    // Calcular transacciones de este mes
-    const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-    const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0, 23, 59, 59);
+    // Para transaccionesMes, usar las transacciones filtradas del período seleccionado
+    const transaccionesMes = transaccionesFiltradas.length;
 
-    const transaccionesMes = transacciones.filter(t => 
-      t.fecha >= inicioMes && t.fecha <= finMes
-    ).length;
-
-    // Calcular mayor gasto del usuario
-    const gastos = transacciones.filter(t => t.tipo === 'gasto');
-    const mayorGasto = gastos.length > 0 
-      ? Math.max(...gastos.map(t => t.monto))
+    // Calcular mayor gasto del período filtrado
+    const gastosFiltrados = transaccionesFiltradas.filter(t => t.tipo === 'gasto');
+    const mayorGasto = gastosFiltrados.length > 0 
+      ? Math.max(...gastosFiltrados.map(t => t.monto))
       : 0;
 
-    // Calcular mayor ingreso del usuario
-    const ingresos = transacciones.filter(t => t.tipo === 'ingreso');
-    const mayorIngreso = ingresos.length > 0 
-      ? Math.max(...ingresos.map(t => t.monto))
+    // Calcular mayor ingreso del período filtrado
+    const ingresosFiltrados = transaccionesFiltradas.filter(t => t.tipo === 'ingreso');
+    const mayorIngreso = ingresosFiltrados.length > 0 
+      ? Math.max(...ingresosFiltrados.map(t => t.monto))
       : 0;
 
     const resultado = {
       totalFondos: fondos.length,
       fondosActivos: fondosActivos.length,
       transaccionesHoy,
-      transaccionesMes,
+      transaccionesMes, // Ahora contiene las transacciones del período filtrado
       mayorGasto,
       mayorIngreso
     };

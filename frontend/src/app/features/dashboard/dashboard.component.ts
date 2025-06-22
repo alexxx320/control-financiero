@@ -9,10 +9,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
-import { FormsModule, FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Subject, forkJoin } from 'rxjs';
 import { takeUntil, finalize, catchError } from 'rxjs/operators';
 
@@ -38,11 +35,7 @@ import { Fondo } from '../../core/models/fondo.model';
     MatSelectModule,
     MatFormFieldModule,
     MatInputModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    MatSnackBarModule,
-    FormsModule,
-    ReactiveFormsModule
+    MatSnackBarModule
   ],
   template: `
     <div class="dashboard-container">
@@ -61,35 +54,25 @@ import { Fondo } from '../../core/models/fondo.model';
         </mat-card>
       </div>
 
-      <!-- Filtros -->
-      <mat-card class="filtros-card mb-2">
-        <mat-card-header>
-          <mat-card-title>Filtros</mat-card-title>
-        </mat-card-header>
+      <!-- Filtro de Período -->
+      <mat-card class="filtro-periodo-card">
         <mat-card-content>
-          <form [formGroup]="filtrosForm" class="filtros-form">
-            <mat-form-field appearance="outline">
-              <mat-label>Fecha Inicio</mat-label>
-              <input matInput [matDatepicker]="fechaInicioPicker" formControlName="fechaInicio">
-              <mat-datepicker-toggle matIconSuffix [for]="fechaInicioPicker"></mat-datepicker-toggle>
-              <mat-datepicker #fechaInicioPicker></mat-datepicker>
+          <div class="filtro-periodo">
+            <span class="filtro-label">Período:</span>
+            <mat-form-field appearance="outline" class="filtro-select">
+              <mat-select 
+                [(value)]="filtroSeleccionado" 
+                (selectionChange)="cambiarFiltro($event.value)"
+                [disabled]="cargando">
+                <mat-option 
+                  *ngFor="let opcion of opcionesFiltro" 
+                  [value]="opcion.valor">
+                  {{ opcion.etiqueta }}
+                </mat-option>
+              </mat-select>
             </mat-form-field>
-            
-            <mat-form-field appearance="outline">
-              <mat-label>Fecha Fin</mat-label>
-              <input matInput [matDatepicker]="fechaFinPicker" formControlName="fechaFin">
-              <mat-datepicker-toggle matIconSuffix [for]="fechaFinPicker"></mat-datepicker-toggle>
-              <mat-datepicker #fechaFinPicker></mat-datepicker>
-            </mat-form-field>
-            
-            <button mat-raised-button color="primary" (click)="aplicarFiltros()" [disabled]="cargando">
-              {{ cargando ? 'Aplicando...' : 'Aplicar Filtros' }}
-            </button>
-
-            <button mat-stroked-button (click)="limpiarFiltros()" [disabled]="cargando">
-              Limpiar
-            </button>
-          </form>
+            <span class="periodo-descripcion">{{ obtenerDescripcionPeriodo() }}</span>
+          </div>
         </mat-card-content>
       </mat-card>
 
@@ -104,7 +87,7 @@ import { Fondo } from '../../core/models/fondo.model';
               <div class="stat-info">
                 <h3>{{ formatearMoneda(resumenFinanciero?.totalIngresos || 0) }}</h3>
                 <p>Total Ingresos</p>
-                <small *ngIf="periodoActual">{{ periodoActual }}</small>
+                <small>{{ obtenerDescripcionPeriodo() }}</small>
               </div>
             </div>
           </mat-card-content>
@@ -119,7 +102,7 @@ import { Fondo } from '../../core/models/fondo.model';
               <div class="stat-info">
                 <h3>{{ formatearMoneda(resumenFinanciero?.totalGastos || 0) }}</h3>
                 <p>Total Gastos</p>
-                <small *ngIf="periodoActual">{{ periodoActual }}</small>
+                <small>{{ obtenerDescripcionPeriodo() }}</small>
               </div>
             </div>
           </mat-card-content>
@@ -162,9 +145,9 @@ import { Fondo } from '../../core/models/fondo.model';
                 <mat-icon>receipt</mat-icon>
               </div>
               <div class="stat-info">
-                <h3>{{ estadisticas?.transaccionesMes || 0 }}</h3>
+                <h3>{{ obtenerNumeroTransacciones() }}</h3>
                 <p>Transacciones</p>
-                <small>Este mes</small>
+                <small>{{ obtenerDescripcionPeriodo() }}</small>
               </div>
             </div>
           </mat-card-content>
@@ -177,9 +160,24 @@ import { Fondo } from '../../core/models/fondo.model';
                 <mat-icon>money_off</mat-icon>
               </div>
               <div class="stat-info">
-                <h3>{{ formatearMoneda(estadisticas?.mayorGasto || 0) }}</h3>
+                <h3>{{ obtenerMayorGasto() }}</h3>
                 <p>Mayor Gasto</p>
-                <small>Promedio mensual</small>
+                <small>Transacción individual</small>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="stat-card mayor-ingreso">
+          <mat-card-content>
+            <div class="stat-content">
+              <div class="stat-icon">
+                <mat-icon>attach_money</mat-icon>
+              </div>
+              <div class="stat-info">
+                <h3>{{ obtenerMayorIngreso() }}</h3>
+                <p>Mayor Ingreso</p>
+                <small>Transacción individual</small>
               </div>
             </div>
           </mat-card-content>
@@ -299,19 +297,35 @@ import { Fondo } from '../../core/models/fondo.model';
       color: #856404;
     }
 
-    .filtros-card {
+    .filtro-periodo-card {
       margin-bottom: 20px;
     }
 
-    .filtros-form {
+    .filtro-periodo {
       display: flex;
-      gap: 16px;
       align-items: center;
+      gap: 16px;
       flex-wrap: wrap;
     }
 
-    .filtros-form mat-form-field {
-      min-width: 200px;
+    .filtro-label {
+      font-weight: 500;
+      color: rgba(0, 0, 0, 0.7);
+      white-space: nowrap;
+    }
+
+    .filtro-select {
+      min-width: 150px;
+    }
+
+    .filtro-select .mat-mdc-form-field {
+      margin-bottom: 0;
+    }
+
+    .periodo-descripcion {
+      color: rgba(0, 0, 0, 0.6);
+      font-size: 0.9em;
+      font-style: italic;
     }
 
     .estadisticas-grid {
@@ -338,6 +352,7 @@ import { Fondo } from '../../core/models/fondo.model';
     .stat-card.fondos { border-left-color: #2196f3; }
     .stat-card.transacciones { border-left-color: #ff9800; }
     .stat-card.mayor-gasto { border-left-color: #9c27b0; }
+    .stat-card.mayor-ingreso { border-left-color: #4caf50; }
 
     .stat-content {
       display: flex;
@@ -535,20 +550,22 @@ import { Fondo } from '../../core/models/fondo.model';
     }
 
     @media (max-width: 768px) {
-      .dashboard-container {
-        padding: 16px;
-      }
+    .dashboard-container {
+    padding: 16px;
+    }
 
-      .filtros-form {
-        flex-direction: column;
-        align-items: stretch;
-      }
+    .filtro-periodo {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
 
-      .filtros-form mat-form-field {
-        min-width: auto;
-      }
+    .filtro-select {
+      width: 100%;
+      min-width: auto;
+    }
 
-      .estadisticas-grid {
+    .estadisticas-grid {
         grid-template-columns: 1fr;
       }
 
@@ -581,7 +598,6 @@ import { Fondo } from '../../core/models/fondo.model';
 export class DashboardComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   
-  filtrosForm: FormGroup;
   resumenFinanciero: ResumenFinanciero | null = null;
   estadisticas: EstadisticasDashboard | null = null;
   fondos: Fondo[] = [];
@@ -589,23 +605,23 @@ export class DashboardComponent implements OnInit, OnDestroy {
   error: string | null = null;
   backendConectado = true;
   periodoActual = '';
+  filtroSeleccionado: 'dia' | 'semana' | 'mes' | 'todas' = 'mes';
+  
+  opcionesFiltro = [
+    { valor: 'dia', etiqueta: 'Hoy' },
+    { valor: 'semana', etiqueta: 'Esta semana' },
+    { valor: 'mes', etiqueta: 'Este mes' },
+    { valor: 'todas', etiqueta: 'Todas' }
+  ];
 
   constructor(
-    private fb: FormBuilder,
     private dashboardService: DashboardService,
     private fondoService: FondoService,
     private transaccionService: TransaccionService,
     private authService: AuthService,
     private notificationService: NotificationService
   ) {
-    this.filtrosForm = this.fb.group({
-      fechaInicio: [null],
-      fechaFin: [null]
-    });
-
-    // Establecer período actual
-    const fechaActual = new Date();
-    this.periodoActual = `${fechaActual.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}`;
+    this.actualizarPeriodoActual();
   }
 
   ngOnInit(): void {
@@ -657,14 +673,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     this.cargando = true;
     this.error = null;
-    console.log('📊 Cargando datos del dashboard...');
+    console.log('📊 Cargando datos del dashboard con filtro:', this.filtroSeleccionado);
     
-    const filtros = this.obtenerFiltros();
+    const filtrosFecha = this.obtenerFiltrosFecha();
     
     // Cargar todos los datos en paralelo
     const cargarDatos$ = forkJoin({
-      resumen: this.dashboardService.obtenerResumenFinanciero(filtros.fechaInicio, filtros.fechaFin),
-      estadisticas: this.dashboardService.obtenerEstadisticas(),
+      resumen: this.dashboardService.obtenerResumenFinanciero(filtrosFecha.fechaInicio, filtrosFecha.fechaFin),
+      estadisticas: this.dashboardService.obtenerEstadisticas(filtrosFecha.fechaInicio, filtrosFecha.fechaFin),
       fondos: this.fondoService.obtenerFondos()
     });
 
@@ -694,21 +710,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       });
   }
 
-  private obtenerFiltros(): { fechaInicio?: string, fechaFin?: string } {
-    const formValues = this.filtrosForm.value;
-    const filtros: any = {};
-    
-    if (formValues.fechaInicio) {
-      filtros.fechaInicio = formValues.fechaInicio.toISOString().split('T')[0];
-    }
-    
-    if (formValues.fechaFin) {
-      filtros.fechaFin = formValues.fechaFin.toISOString().split('T')[0];
-    }
-    
-    return filtros;
-  }
-
   private mostrarEstadoSinDatos(): void {
     this.resumenFinanciero = {
       totalIngresos: 0,
@@ -729,24 +730,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     };
 
     this.fondos = [];
-  }
-
-  aplicarFiltros(): void {
-    const filtros = this.obtenerFiltros();
-    console.log('🔍 Aplicando filtros:', filtros);
-    
-    if (this.backendConectado) {
-      this.cargarDatos();
-    } else {
-      this.notificationService.mostrarAdvertencia('No se puede aplicar filtros sin conexión al servidor');
-    }
-  }
-
-  limpiarFiltros(): void {
-    this.filtrosForm.reset();
-    if (this.backendConectado) {
-      this.cargarDatos();
-    }
   }
 
   refrescarFondos(): void {
@@ -775,6 +758,127 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   reintentar(): void {
     this.verificarConectividadYCargar();
+  }
+
+  cambiarFiltro(nuevoFiltro: 'dia' | 'semana' | 'mes' | 'todas'): void {
+    this.filtroSeleccionado = nuevoFiltro;
+    this.actualizarPeriodoActual();
+    this.cargarDatos();
+  }
+
+  obtenerFiltrosFecha(): { fechaInicio?: string, fechaFin?: string } {
+    const hoy = new Date();
+    
+    switch (this.filtroSeleccionado) {
+      case 'dia':
+        const inicioDia = new Date(hoy);
+        inicioDia.setHours(0, 0, 0, 0);
+        const finDia = new Date(hoy);
+        finDia.setHours(23, 59, 59, 999);
+        return {
+          fechaInicio: inicioDia.toISOString().split('T')[0],
+          fechaFin: finDia.toISOString().split('T')[0]
+        };
+        
+      case 'semana':
+        const inicioSemana = new Date(hoy);
+        const diaActual = hoy.getDay();
+        const diasHastaLunes = diaActual === 0 ? 6 : diaActual - 1;
+        inicioSemana.setDate(hoy.getDate() - diasHastaLunes);
+        inicioSemana.setHours(0, 0, 0, 0);
+        
+        const finSemana = new Date(inicioSemana);
+        finSemana.setDate(inicioSemana.getDate() + 6);
+        finSemana.setHours(23, 59, 59, 999);
+        
+        return {
+          fechaInicio: inicioSemana.toISOString().split('T')[0],
+          fechaFin: finSemana.toISOString().split('T')[0]
+        };
+        
+      case 'mes':
+        const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+        const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0, 23, 59, 59, 999);
+        return {
+          fechaInicio: inicioMes.toISOString().split('T')[0],
+          fechaFin: finMes.toISOString().split('T')[0]
+        };
+        
+      case 'todas':
+      default:
+        return {};
+    }
+  }
+
+  obtenerDescripcionPeriodo(): string {
+    const hoy = new Date();
+    
+    switch (this.filtroSeleccionado) {
+      case 'dia':
+        return hoy.toLocaleDateString('es-ES', { 
+          weekday: 'long', 
+          day: 'numeric', 
+          month: 'long', 
+          year: 'numeric' 
+        });
+        
+      case 'semana':
+        const inicioSemana = new Date(hoy);
+        const diaActual = hoy.getDay();
+        const diasHastaLunes = diaActual === 0 ? 6 : diaActual - 1;
+        inicioSemana.setDate(hoy.getDate() - diasHastaLunes);
+        
+        const finSemana = new Date(inicioSemana);
+        finSemana.setDate(inicioSemana.getDate() + 6);
+        
+        return `${inicioSemana.getDate()} - ${finSemana.getDate()} ${finSemana.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}`;
+        
+      case 'mes':
+        return hoy.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+        
+      case 'todas':
+        return 'Desde el inicio';
+        
+      default:
+        return '';
+    }
+  }
+
+  obtenerNumeroTransacciones(): number {
+    if (!this.estadisticas) return 0;
+    
+    switch (this.filtroSeleccionado) {
+      case 'dia':
+        return this.estadisticas.transaccionesHoy || 0;
+        
+      case 'semana':
+      case 'mes':
+      case 'todas':
+        // Para todos estos casos, usar transaccionesMes que ahora contiene
+        // las transacciones filtradas según el período seleccionado
+        return this.estadisticas.transaccionesMes || 0;
+        
+      default:
+        return 0;
+    }
+  }
+
+  obtenerMayorGasto(): string {
+    if (!this.estadisticas || !this.estadisticas.mayorGasto || this.estadisticas.mayorGasto <= 0) {
+      return 'Sin datos';
+    }
+    return this.formatearMoneda(this.estadisticas.mayorGasto);
+  }
+
+  obtenerMayorIngreso(): string {
+    if (!this.estadisticas || !this.estadisticas.mayorIngreso || this.estadisticas.mayorIngreso <= 0) {
+      return 'Sin datos';
+    }
+    return this.formatearMoneda(this.estadisticas.mayorIngreso);
+  }
+
+  private actualizarPeriodoActual(): void {
+    this.periodoActual = this.obtenerDescripcionPeriodo();
   }
 
   calcularProgreso(fondo: Fondo): number {

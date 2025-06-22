@@ -67,30 +67,40 @@ let DashboardService = class DashboardService {
         console.log('✅ DashboardService - Resumen financiero calculado:', resultado);
         return resultado;
     }
-    async obtenerEstadisticas(usuarioId) {
+    async obtenerEstadisticas(usuarioId, fechaInicio, fechaFin) {
         console.log('📈 DashboardService - Obteniendo estadísticas para usuario:', usuarioId);
         const fondos = await this.fondoModel
             .find({ usuarioId: new mongoose_2.Types.ObjectId(usuarioId) })
             .exec();
         const fondosActivos = fondos.filter(f => f.activo);
-        const transacciones = await this.transaccionModel
-            .find({ usuarioId: new mongoose_2.Types.ObjectId(usuarioId) })
+        const filtroBase = { usuarioId: new mongoose_2.Types.ObjectId(usuarioId) };
+        const todasLasTransacciones = await this.transaccionModel
+            .find(filtroBase)
+            .exec();
+        const filtroFecha = { ...filtroBase };
+        if (fechaInicio || fechaFin) {
+            filtroFecha.fecha = {};
+            if (fechaInicio)
+                filtroFecha.fecha.$gte = new Date(fechaInicio);
+            if (fechaFin)
+                filtroFecha.fecha.$lte = new Date(fechaFin);
+        }
+        const transaccionesFiltradas = await this.transaccionModel
+            .find(filtroFecha)
             .exec();
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
         const mañana = new Date(hoy);
         mañana.setDate(mañana.getDate() + 1);
-        const transaccionesHoy = transacciones.filter(t => t.fecha >= hoy && t.fecha < mañana).length;
-        const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-        const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0, 23, 59, 59);
-        const transaccionesMes = transacciones.filter(t => t.fecha >= inicioMes && t.fecha <= finMes).length;
-        const gastos = transacciones.filter(t => t.tipo === 'gasto');
-        const mayorGasto = gastos.length > 0
-            ? Math.max(...gastos.map(t => t.monto))
+        const transaccionesHoy = todasLasTransacciones.filter(t => t.fecha >= hoy && t.fecha < mañana).length;
+        const transaccionesMes = transaccionesFiltradas.length;
+        const gastosFiltrados = transaccionesFiltradas.filter(t => t.tipo === 'gasto');
+        const mayorGasto = gastosFiltrados.length > 0
+            ? Math.max(...gastosFiltrados.map(t => t.monto))
             : 0;
-        const ingresos = transacciones.filter(t => t.tipo === 'ingreso');
-        const mayorIngreso = ingresos.length > 0
-            ? Math.max(...ingresos.map(t => t.monto))
+        const ingresosFiltrados = transaccionesFiltradas.filter(t => t.tipo === 'ingreso');
+        const mayorIngreso = ingresosFiltrados.length > 0
+            ? Math.max(...ingresosFiltrados.map(t => t.monto))
             : 0;
         const resultado = {
             totalFondos: fondos.length,

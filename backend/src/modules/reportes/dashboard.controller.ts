@@ -34,7 +34,7 @@ export class DashboardController {
       // Obtener datos del dashboard en paralelo
       const [resumenFinanciero, estadisticas, fondos] = await Promise.all([
         this.dashboardService.obtenerResumenFinanciero(usuarioId, fechaInicio, fechaFin),
-        this.dashboardService.obtenerEstadisticas(usuarioId),
+        this.dashboardService.obtenerEstadisticas(usuarioId, fechaInicio, fechaFin),
         this.fondosService.findAll(usuarioId)
       ]);
 
@@ -110,12 +110,18 @@ export class DashboardController {
 
   @Get('estadisticas')
   @ApiOperation({ summary: 'Obtener solo las estadísticas del dashboard' })
+  @ApiQuery({ name: 'fechaInicio', required: false, description: 'Fecha de inicio (YYYY-MM-DD)' })
+  @ApiQuery({ name: 'fechaFin', required: false, description: 'Fecha de fin (YYYY-MM-DD)' })
   @ApiResponse({ 
     status: 200, 
     description: 'Estadísticas obtenidas exitosamente' 
   })
-  async obtenerEstadisticas(@GetUser('userId') usuarioId: string) {
-    return await this.dashboardService.obtenerEstadisticas(usuarioId);
+  async obtenerEstadisticas(
+    @Query('fechaInicio') fechaInicio?: string,
+    @Query('fechaFin') fechaFin?: string,
+    @GetUser('userId') usuarioId?: string
+  ) {
+    return await this.dashboardService.obtenerEstadisticas(usuarioId, fechaInicio, fechaFin);
   }
   @Get('alertas')
   @ApiOperation({ summary: 'Obtener alertas personalizadas para el dashboard' })

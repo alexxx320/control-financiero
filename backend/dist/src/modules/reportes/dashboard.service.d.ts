@@ -13,7 +13,7 @@ export declare class DashboardService {
         transaccionesPorCategoria: any[];
         tendenciaMensual: any[];
     }>;
-    obtenerEstadisticas(usuarioId: string): Promise<{
+    obtenerEstadisticas(usuarioId: string, fechaInicio?: string, fechaFin?: string): Promise<{
         totalFondos: number;
         fondosActivos: number;
         transaccionesHoy: number;

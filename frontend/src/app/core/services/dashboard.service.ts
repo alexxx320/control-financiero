@@ -46,10 +46,17 @@ export class DashboardService {
       );
   }
 
-  obtenerEstadisticas(): Observable<EstadisticasDashboard> {
+  obtenerEstadisticas(
+    fechaInicio?: string,
+    fechaFin?: string
+  ): Observable<EstadisticasDashboard> {
     console.log('📊 Dashboard Service - Obteniendo estadísticas...');
     
-    return this.http.get<EstadisticasDashboard>(`${this.apiUrl}/dashboard/estadisticas`)
+    let params = new HttpParams();
+    if (fechaInicio) params = params.set('fechaInicio', fechaInicio);
+    if (fechaFin) params = params.set('fechaFin', fechaFin);
+    
+    return this.http.get<EstadisticasDashboard>(`${this.apiUrl}/dashboard/estadisticas`, { params })
       .pipe(
         map(estadisticas => {
           console.log('✅ Estadísticas del backend (filtradas por usuario):', estadisticas);
