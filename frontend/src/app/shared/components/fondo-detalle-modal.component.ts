@@ -15,6 +15,7 @@ import { Fondo } from '../../core/models/fondo.model';
 import { Transaccion, TipoTransaccion } from '../../core/models/transaccion.model';
 import { TransaccionService } from '../../core/services/transaccion.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { CategoriaUtils } from '../utils/categoria.utils';
 
 @Component({
   selector: 'app-fondo-detalle-modal',
@@ -614,46 +615,21 @@ export class FondoDetalleModalComponent implements OnInit, OnDestroy {
     if (tipo === 'ingreso') {
       const iconosIngresos: { [key: string]: string } = {
         'salario': 'attach_money',
-        'freelance': 'work',
-        'inversiones': 'trending_up',
-        'regalos': 'card_giftcard'
+        'regalo': 'card_giftcard',
+        'otros': 'trending_up'
       };
       return iconosIngresos[categoria] || 'add_circle';
     } else {
       const iconosGastos: { [key: string]: string } = {
-        'alimentacion': 'restaurant',
-        'transporte': 'directions_car',
-        'entretenimiento': 'movie',
-        'salud': 'local_hospital',
-        'educacion': 'school',
-        'hogar': 'home',
-        'ropa': 'checkroom',
-        'tecnologia': 'computer',
-        'viajes': 'flight',
-        'otros': 'category'
+        'necesario': 'shopping_cart',
+        'no_necesario': 'shopping_bag'
       };
       return iconosGastos[categoria] || 'remove_circle';
     }
   }
 
   formatearCategoria(categoria: string): string {
-    const nombres: { [key: string]: string } = {
-      'alimentacion': 'Alimentación',
-      'transporte': 'Transporte',
-      'entretenimiento': 'Entretenimiento',
-      'salud': 'Salud',
-      'educacion': 'Educación',
-      'hogar': 'Hogar',
-      'ropa': 'Ropa',
-      'tecnologia': 'Tecnología',
-      'viajes': 'Viajes',
-      'otros': 'Otros',
-      'salario': 'Salario',
-      'freelance': 'Freelance',
-      'inversiones': 'Inversiones',
-      'regalos': 'Regalos'
-    };
-    return nombres[categoria] || categoria;
+    return CategoriaUtils.formatearCategoria(categoria);
   }
 
   trackByTransaccion(index: number, transaccion: Transaccion): string {

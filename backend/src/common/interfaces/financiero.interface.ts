@@ -4,20 +4,13 @@ export enum TipoTransaccion {
 }
 
 export enum CategoriaTransaccion {
-  ALIMENTACION = 'alimentacion',
-  TRANSPORTE = 'transporte',
-  ENTRETENIMIENTO = 'entretenimiento',
-  SALUD = 'salud',
-  EDUCACION = 'educacion',
-  HOGAR = 'hogar',
-  ROPA = 'ropa',
-  TECNOLOGIA = 'tecnologia',
-  VIAJES = 'viajes',
-  OTROS = 'otros',
+  // Categorías de gastos
+  NECESARIO = 'necesario',
+  NO_NECESARIO = 'no_necesario',
+  // Categorías de ingresos
   SALARIO = 'salario',
-  FREELANCE = 'freelance',
-  INVERSIONES = 'inversiones',
-  REGALOS = 'regalos',
+  REGALO = 'regalo',
+  OTROS = 'otros',
 }
 
 // 🔧 MODIFICADO: Solo dos tipos de fondo

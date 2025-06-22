@@ -45,7 +45,10 @@ let TransaccionesService = class TransaccionesService {
             .exec();
     }
     async findAll(usuarioId, filtros = {}) {
-        const { tipo, categoria, fechaInicio, fechaFin, montoMin, montoMax, page = 1, limit = 10, pagina, limite } = filtros;
+        const { tipo, categoria, fondoId, fechaInicio, fechaFin, montoMin, montoMax, page = 1, limit = 10, pagina, limite } = filtros;
+        console.log('🔍 Backend - Filtros recibidos:', {
+            tipo, categoria, fondoId, fechaInicio, fechaFin, page, limit
+        });
         const pageNum = page || pagina || 1;
         const limitNum = limit || limite || 10;
         const filtrosConsulta = {
@@ -55,6 +58,10 @@ let TransaccionesService = class TransaccionesService {
             filtrosConsulta.tipo = tipo;
         if (categoria)
             filtrosConsulta.categoria = categoria;
+        if (fondoId) {
+            filtrosConsulta.fondoId = new mongoose_2.Types.ObjectId(fondoId);
+            console.log('🏦 Backend - Aplicando filtro por fondo:', fondoId);
+        }
         if (fechaInicio || fechaFin) {
             filtrosConsulta.fecha = {};
             if (fechaInicio)
@@ -69,6 +76,7 @@ let TransaccionesService = class TransaccionesService {
             if (montoMax !== undefined)
                 filtrosConsulta.monto.$lte = montoMax;
         }
+        console.log('🔍 Backend - Query MongoDB construida:', filtrosConsulta);
         const skip = (pageNum - 1) * limitNum;
         const [transacciones, total] = await Promise.all([
             this.transaccionModel
@@ -84,6 +92,7 @@ let TransaccionesService = class TransaccionesService {
                 .exec(),
             this.transaccionModel.countDocuments(filtrosConsulta),
         ]);
+        console.log(`✅ Backend - Encontradas ${transacciones.length} transacciones de ${total} totales`);
         return {
             transacciones,
             total,

@@ -58,7 +58,7 @@ __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Categoría de la transacción',
         enum: financiero_interface_1.CategoriaTransaccion,
-        example: financiero_interface_1.CategoriaTransaccion.ALIMENTACION
+        example: financiero_interface_1.CategoriaTransaccion.NECESARIO
     }),
     (0, class_validator_1.IsEnum)(financiero_interface_1.CategoriaTransaccion),
     __metadata("design:type", String)
@@ -167,6 +167,15 @@ __decorate([
 class FiltroTransaccionesDto {
 }
 exports.FiltroTransaccionesDto = FiltroTransaccionesDto;
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        description: 'ID del fondo para filtrar transacciones',
+        example: '507f1f77bcf86cd799439011'
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], FiltroTransaccionesDto.prototype, "fondoId", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
         description: 'Tipo de transacción a filtrar',

@@ -58,6 +58,7 @@ export class TransaccionesService {
     const {
       tipo,
       categoria,
+      fondoId, // 🔍 Agregado filtro por fondo
       fechaInicio,
       fechaFin,
       montoMin,
@@ -68,6 +69,10 @@ export class TransaccionesService {
       limite
     } = filtros;
 
+    console.log('🔍 Backend - Filtros recibidos:', {
+      tipo, categoria, fondoId, fechaInicio, fechaFin, page, limit
+    });
+
     const pageNum = page || pagina || 1;
     const limitNum = limit || limite || 10;
 
@@ -77,6 +82,12 @@ export class TransaccionesService {
 
     if (tipo) filtrosConsulta.tipo = tipo;
     if (categoria) filtrosConsulta.categoria = categoria;
+    
+    // 🏦 FILTRO POR FONDO
+    if (fondoId) {
+      filtrosConsulta.fondoId = new Types.ObjectId(fondoId);
+      console.log('🏦 Backend - Aplicando filtro por fondo:', fondoId);
+    }
     
     if (fechaInicio || fechaFin) {
       filtrosConsulta.fecha = {};
@@ -89,6 +100,8 @@ export class TransaccionesService {
       if (montoMin !== undefined) filtrosConsulta.monto.$gte = montoMin;
       if (montoMax !== undefined) filtrosConsulta.monto.$lte = montoMax;
     }
+
+    console.log('🔍 Backend - Query MongoDB construida:', filtrosConsulta);
 
     const skip = (pageNum - 1) * limitNum;
 
@@ -106,6 +119,8 @@ export class TransaccionesService {
         .exec(),
       this.transaccionModel.countDocuments(filtrosConsulta),
     ]);
+
+    console.log(`✅ Backend - Encontradas ${transacciones.length} transacciones de ${total} totales`);
 
     return {
       transacciones,

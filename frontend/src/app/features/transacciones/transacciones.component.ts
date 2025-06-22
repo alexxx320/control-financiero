@@ -25,6 +25,7 @@ import { FondoService } from '../../core/services/fondo.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { Transaccion, TipoTransaccion, CategoriaTransaccion } from '../../core/models/transaccion.model';
 import { Fondo } from '../../core/models/fondo.model';
+import { CategoriaUtils } from '../../shared/utils/categoria.utils';
 import { TransaccionDialogComponent } from './transaccion-dialog.component';
 
 @Component({
@@ -93,8 +94,8 @@ import { TransaccionDialogComponent } from './transaccion-dialog.component';
               <mat-label>Categoría</mat-label>
               <mat-select formControlName="categoria">
                 <mat-option value="">Todas</mat-option>
-                <mat-option *ngFor="let categoria of categorias" [value]="categoria">
-                  {{ categoria | titlecase }}
+                <mat-option *ngFor="let categoria of obtenerCategoriasFiltradas()" [value]="categoria">
+                  {{ formatearCategoria(categoria) }}
                 </mat-option>
               </mat-select>
             </mat-form-field>
@@ -107,6 +108,12 @@ import { TransaccionDialogComponent } from './transaccion-dialog.component';
               <button mat-button (click)="limpiarFiltros()">
                 <mat-icon>clear</mat-icon>
                 Limpiar
+              </button>
+              
+              <!-- Botón de debug -->
+              <button mat-stroked-button color="warn" (click)="debugFiltros()" *ngIf="false">
+                <mat-icon>bug_report</mat-icon>
+                Debug
               </button>
             </div>
           </form>
@@ -160,7 +167,7 @@ import { TransaccionDialogComponent } from './transaccion-dialog.component';
                 <td mat-cell *matCellDef="let transaccion"> 
                   <span class="categoria-chip" 
                         [ngClass]="transaccion.tipo === 'ingreso' ? 'ingreso-chip' : 'gasto-chip'">
-                    {{ transaccion.categoria | titlecase }}
+                    {{ formatearCategoria(transaccion.categoria) }}
                   </span>
                 </td>
               </ng-container>
@@ -372,6 +379,48 @@ export class TransaccionesComponent implements OnInit, OnDestroy, AfterViewInit 
       .subscribe(() => {
         this.aplicarFiltros();
       });
+      
+    // Cuando cambie el tipo, limpiar la categoría y actualizar opciones
+    this.filtrosForm.get('tipo')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.filtrosForm.get('categoria')?.setValue('');
+      });
+      
+    // Cuando cambie el fondo, aplicar filtro automáticamente
+    this.filtrosForm.get('fondoId')?.valueChanges
+      .pipe(
+        debounceTime(100),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((fondoId) => {
+        console.log('🏦 Fondo seleccionado cambiado a:', fondoId);
+        this.aplicarFiltros();
+      });
+      
+    // Cuando cambie la categoría, aplicar filtro automáticamente
+    this.filtrosForm.get('categoria')?.valueChanges
+      .pipe(
+        debounceTime(100),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((categoria) => {
+        console.log('🏷️ Categoría seleccionada cambiada a:', categoria);
+        this.aplicarFiltros();
+      });
+      
+    // Cuando cambie el tipo, aplicar filtro automáticamente
+    this.filtrosForm.get('tipo')?.valueChanges
+      .pipe(
+        debounceTime(100),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((tipo) => {
+        console.log('📋 Tipo seleccionado cambiado a:', tipo);
+        // Limpiar categoría si ya había una seleccionada
+        this.filtrosForm.get('categoria')?.setValue('', { emitEvent: false });
+        this.aplicarFiltros();
+      });
   }
 
   cargarDatosIniciales(): void {
@@ -464,9 +513,14 @@ export class TransaccionesComponent implements OnInit, OnDestroy, AfterViewInit 
     
     // Solo agregar filtros que tengan valor
     if (formValues.busqueda) filtros.busqueda = formValues.busqueda;
-    if (formValues.fondoId) filtros.fondoId = formValues.fondoId;
+    if (formValues.fondoId) {
+      filtros.fondoId = formValues.fondoId;
+      console.log('🔍 Filtro por fondo aplicado:', formValues.fondoId);
+    }
     if (formValues.tipo) filtros.tipo = formValues.tipo;
     if (formValues.categoria) filtros.categoria = formValues.categoria;
+    
+    console.log('📋 Filtros construidos:', filtros);
     
     this.filtrosAplicados = Object.keys(filtros).length > 2; // más que page y limit
     return filtros;
@@ -616,6 +670,42 @@ export class TransaccionesComponent implements OnInit, OnDestroy, AfterViewInit 
     return fondo ? fondo.nombre : `ID: ${transaccion.fondoId.substring(0, 8)}...`;
   }
   
+  formatearCategoria(categoria: string): string {
+    return CategoriaUtils.formatearCategoria(categoria);
+  }
+
+  obtenerCategoriasFiltradas(): CategoriaTransaccion[] {
+    const tipoSeleccionado = this.filtrosForm.get('tipo')?.value;
+    if (tipoSeleccionado) {
+      return this.transaccionService.obtenerCategoriasPorTipo(tipoSeleccionado);
+    }
+    return this.categorias;
+  }
+
+  debugFiltros(): void {
+    console.log('🔍 === DEBUG FILTROS ===');
+    console.log('📋 Valores del formulario:', this.filtrosForm.value);
+    console.log('🏦 Fondos disponibles:', this.fondos.map(f => ({ id: f._id, nombre: f.nombre })));
+    console.log('🏷️ Categorías disponibles:', this.categorias);
+    
+    const filtros = this.construirFiltros();
+    console.log('🔧 Filtros construidos:', filtros);
+    
+    console.log('🎯 Filtros aplicados:', this.filtrosAplicados);
+    console.log('📊 Total transacciones:', this.totalTransacciones);
+    console.log('📄 Transacciones actuales:', this.transacciones.length);
+    
+    if (this.transacciones.length > 0) {
+      console.log('🔍 Primeras 3 transacciones:', this.transacciones.slice(0, 3).map(t => ({
+        desc: t.descripcion,
+        fondoId: t.fondoId,
+        tipo: t.tipo,
+        categoria: t.categoria
+      })));
+    }
+    console.log('🔍 === FIN DEBUG ===');
+  }
+
   private cargarFondosSincrono(): void {
     // Intentar cargar desde cache primero
     const cache = localStorage.getItem('fondos_cache');

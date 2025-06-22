@@ -40,7 +40,7 @@ export class CreateTransaccionDto {
   @ApiProperty({
     description: 'Categoría de la transacción',
     enum: CategoriaTransaccion,
-    example: CategoriaTransaccion.ALIMENTACION
+    example: CategoriaTransaccion.NECESARIO
   })
   @IsEnum(CategoriaTransaccion)
   categoria: CategoriaTransaccion;
@@ -136,6 +136,14 @@ export class UpdateTransaccionDto {
 }
 
 export class FiltroTransaccionesDto {
+  @ApiPropertyOptional({
+    description: 'ID del fondo para filtrar transacciones',
+    example: '507f1f77bcf86cd799439011'
+  })
+  @IsString()
+  @IsOptional()
+  fondoId?: string;
+
   @ApiPropertyOptional({
     description: 'Tipo de transacción a filtrar',
     enum: TipoTransaccion

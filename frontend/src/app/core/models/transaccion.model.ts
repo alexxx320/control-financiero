@@ -1,22 +1,13 @@
 export type TipoTransaccion = 'ingreso' | 'gasto';
 
 export type CategoriaTransaccion = 
-  // Categorías de gastos (según backend)
-  | 'alimentacion'
-  | 'transporte' 
-  | 'entretenimiento'
-  | 'salud'
-  | 'educacion'
-  | 'hogar'
-  | 'ropa'
-  | 'tecnologia'
-  | 'viajes'
-  | 'otros'
-  // Categorías de ingresos (según backend)
+  // Categorías de gastos
+  | 'necesario'
+  | 'no_necesario'
+  // Categorías de ingresos
   | 'salario'
-  | 'freelance'
-  | 'inversiones'
-  | 'regalos';
+  | 'regalo'
+  | 'otros';
 
 export interface Transaccion {
   _id?: string;

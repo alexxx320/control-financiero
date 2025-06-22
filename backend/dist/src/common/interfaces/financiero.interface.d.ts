@@ -3,20 +3,11 @@ export declare enum TipoTransaccion {
     GASTO = "gasto"
 }
 export declare enum CategoriaTransaccion {
-    ALIMENTACION = "alimentacion",
-    TRANSPORTE = "transporte",
-    ENTRETENIMIENTO = "entretenimiento",
-    SALUD = "salud",
-    EDUCACION = "educacion",
-    HOGAR = "hogar",
-    ROPA = "ropa",
-    TECNOLOGIA = "tecnologia",
-    VIAJES = "viajes",
-    OTROS = "otros",
+    NECESARIO = "necesario",
+    NO_NECESARIO = "no_necesario",
     SALARIO = "salario",
-    FREELANCE = "freelance",
-    INVERSIONES = "inversiones",
-    REGALOS = "regalos"
+    REGALO = "regalo",
+    OTROS = "otros"
 }
 export declare enum TipoFondo {
     REGISTRO = "registro",

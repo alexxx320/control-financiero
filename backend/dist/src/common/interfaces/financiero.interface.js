@@ -8,20 +8,11 @@ var TipoTransaccion;
 })(TipoTransaccion || (exports.TipoTransaccion = TipoTransaccion = {}));
 var CategoriaTransaccion;
 (function (CategoriaTransaccion) {
-    CategoriaTransaccion["ALIMENTACION"] = "alimentacion";
-    CategoriaTransaccion["TRANSPORTE"] = "transporte";
-    CategoriaTransaccion["ENTRETENIMIENTO"] = "entretenimiento";
-    CategoriaTransaccion["SALUD"] = "salud";
-    CategoriaTransaccion["EDUCACION"] = "educacion";
-    CategoriaTransaccion["HOGAR"] = "hogar";
-    CategoriaTransaccion["ROPA"] = "ropa";
-    CategoriaTransaccion["TECNOLOGIA"] = "tecnologia";
-    CategoriaTransaccion["VIAJES"] = "viajes";
-    CategoriaTransaccion["OTROS"] = "otros";
+    CategoriaTransaccion["NECESARIO"] = "necesario";
+    CategoriaTransaccion["NO_NECESARIO"] = "no_necesario";
     CategoriaTransaccion["SALARIO"] = "salario";
-    CategoriaTransaccion["FREELANCE"] = "freelance";
-    CategoriaTransaccion["INVERSIONES"] = "inversiones";
-    CategoriaTransaccion["REGALOS"] = "regalos";
+    CategoriaTransaccion["REGALO"] = "regalo";
+    CategoriaTransaccion["OTROS"] = "otros";
 })(CategoriaTransaccion || (exports.CategoriaTransaccion = CategoriaTransaccion = {}));
 var TipoFondo;
 (function (TipoFondo) {

@@ -20,6 +20,7 @@ export declare class UpdateTransaccionDto {
     fecha?: Date;
 }
 export declare class FiltroTransaccionesDto {
+    fondoId?: string;
     tipo?: TipoTransaccion;
     categoria?: CategoriaTransaccion;
     fecha?: string;

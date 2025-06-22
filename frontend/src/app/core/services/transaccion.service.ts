@@ -33,6 +33,8 @@ export class TransaccionService {
   obtenerTransacciones(filtros: FiltroTransacciones = {}): Observable<ResponseTransacciones> {
     let params = new HttpParams();
     
+    console.log('📋 Frontend - Filtros recibidos:', filtros);
+    
     // Agregar parámetros de filtro
     Object.keys(filtros).forEach(key => {
       const value = (filtros as any)[key];
@@ -44,6 +46,9 @@ export class TransaccionService {
         }
       }
     });
+    
+    console.log('🌐 Frontend - Parámetros HTTP enviados:', params.toString());
+    console.log('🌐 Frontend - URL completa:', `${this.apiUrl}?${params.toString()}`);
 
     return this.http.get<any>(this.apiUrl, { params })
       .pipe(
@@ -194,22 +199,13 @@ export class TransaccionService {
    */
   obtenerCategorias(): CategoriaTransaccion[] {
     return [
-      // Categorías de gastos (según backend)
-      'alimentacion',
-      'transporte', 
-      'entretenimiento',
-      'salud',
-      'educacion',
-      'hogar',
-      'ropa',
-      'tecnologia',
-      'viajes',
-      'otros',
-      // Categorías de ingresos (según backend)
+      // Categorías de gastos
+      'necesario',
+      'no_necesario',
+      // Categorías de ingresos
       'salario',
-      'freelance',
-      'inversiones',
-      'regalos'
+      'regalo',
+      'otros'
     ];
   }
 
@@ -218,12 +214,11 @@ export class TransaccionService {
    */
   obtenerCategoriasPorTipo(tipo: TipoTransaccion): CategoriaTransaccion[] {
     const categoriasGastos: CategoriaTransaccion[] = [
-      'alimentacion', 'transporte', 'entretenimiento', 'salud', 
-      'educacion', 'hogar', 'ropa', 'tecnologia', 'viajes', 'otros'
+      'necesario', 'no_necesario'
     ];
     
     const categoriasIngresos: CategoriaTransaccion[] = [
-      'salario', 'freelance', 'inversiones', 'regalos'
+      'salario', 'regalo', 'otros'
     ];
     
     return tipo === 'gasto' ? categoriasGastos : categoriasIngresos;
@@ -291,14 +286,14 @@ export class TransaccionService {
         descripcion: 'Compras del supermercado',
         monto: 150000,
         tipo: 'gasto',
-        categoria: 'alimentacion',
+        categoria: 'necesario',
         fecha: new Date(),
         notas: 'Compras semanales'
       },
       {
         _id: `trans_${fondoId}_2`,
         fondoId: fondoId,
-        descripcion: 'Depósito inicial',
+        descripcion: 'Salario mensual',
         monto: 500000,
         tipo: 'ingreso',
         categoria: 'salario',
@@ -308,28 +303,28 @@ export class TransaccionService {
       {
         _id: `trans_${fondoId}_3`,
         fondoId: fondoId,
-        descripcion: 'Transporte público',
+        descripcion: 'Entretenimiento - Cine',
         monto: 25000,
         tipo: 'gasto',
-        categoria: 'transporte',
+        categoria: 'no_necesario',
         fecha: new Date(Date.now() - 172800000), // Hace 2 días
       },
       {
         _id: `trans_${fondoId}_4`,
         fondoId: fondoId,
-        descripcion: 'Transferencia bancaria',
+        descripcion: 'Regalo de cumpleaños',
         monto: 200000,
         tipo: 'ingreso',
-        categoria: 'inversiones',
+        categoria: 'regalo',
         fecha: new Date(Date.now() - 259200000), // Hace 3 días
       },
       {
         _id: `trans_${fondoId}_5`,
         fondoId: fondoId,
-        descripcion: 'Almuerzo en restaurante',
+        descripcion: 'Venta de artículos',
         monto: 35000,
-        tipo: 'gasto',
-        categoria: 'alimentacion',
+        tipo: 'ingreso',
+        categoria: 'otros',
         fecha: new Date(Date.now() - 345600000), // Hace 4 días
       }
     ];
@@ -338,6 +333,7 @@ export class TransaccionService {
   }
   private generarDatosSimulados(filtros: FiltroTransacciones): Observable<ResponseTransacciones> {
     console.log('📊 Generando datos simulados de transacciones...');
+    console.log('📊 Filtros aplicados a datos simulados:', filtros);
     
     // Obtener fondos del cache para usar IDs reales
     let fondosReales: any[] = [];
@@ -353,8 +349,8 @@ export class TransaccionService {
     
     // Si no hay fondos en cache, usar IDs que coincidan con los que viste
     const fondoId1 = fondosReales[0]?._id || '685393a3a9540bbd42b8aa7a';
-    const fondoId2 = fondosReales[1]?._id || fondoId1;
-    const fondoId3 = fondosReales[2]?._id || fondoId1;
+    const fondoId2 = fondosReales[1]?._id || '685393a3a9540bbd42b8aa7b';
+    const fondoId3 = fondosReales[2]?._id || '685393a3a9540bbd42b8aa7c';
     
     console.log('🏦 Usando fondoIds:', { fondoId1, fondoId2, fondoId3 });
     
@@ -365,14 +361,14 @@ export class TransaccionService {
         descripcion: 'Compras del supermercado',
         monto: 150000,
         tipo: 'gasto',
-        categoria: 'alimentacion',
+        categoria: 'necesario',
         fecha: new Date(),
         notas: 'Compras semanales',
         etiquetas: ['supermercado', 'semanal']
       },
       {
         _id: 'trans_2',
-        fondoId: fondoId1, // Usar mismo fondo para asegurar que se encuentre
+        fondoId: fondoId2, // Diferente fondo
         descripcion: 'Salario mensual',
         monto: 2500000,
         tipo: 'ingreso',
@@ -383,47 +379,63 @@ export class TransaccionService {
       {
         _id: 'trans_3',
         fondoId: fondoId1,
-        descripcion: 'Transporte urbano',
+        descripcion: 'Videojuegos',
         monto: 45000,
         tipo: 'gasto',
-        categoria: 'transporte',
+        categoria: 'no_necesario',
         fecha: new Date(),
-        notas: 'Tarjeta de transporte'
+        notas: 'Entretenimiento'
       },
       {
         _id: 'trans_4',
-        fondoId: fondoId1, // Usar mismo fondo para asegurar que se encuentre
-        descripcion: 'Trabajo freelance',
+        fondoId: fondoId3, // Tercer fondo
+        descripcion: 'Regalo familiar',
         monto: 800000,
         tipo: 'ingreso',
-        categoria: 'freelance',
+        categoria: 'regalo',
         fecha: new Date(),
-        etiquetas: ['proyecto', 'desarrollo']
+        etiquetas: ['familia', 'especial']
       },
       {
         _id: 'trans_5',
-        fondoId: fondoId1,
-        descripcion: 'Cena en restaurante',
+        fondoId: fondoId2, // Segundo fondo
+        descripcion: 'Venta de productos',
         monto: 85000,
-        tipo: 'gasto',
-        categoria: 'entretenimiento',
+        tipo: 'ingreso',
+        categoria: 'otros',
         fecha: new Date()
+      },
+      {
+        _id: 'trans_6',
+        fondoId: fondoId3,
+        descripcion: 'Medicamentos',
+        monto: 75000,
+        tipo: 'gasto',
+        categoria: 'necesario',
+        fecha: new Date(Date.now() - 86400000)
       }
     ];
+
+    console.log('📊 Transacciones antes de filtros:', transaccionesSimuladas.map(t => ({ desc: t.descripcion, fondoId: t.fondoId })));
 
     // Aplicar filtros
     let transaccionesFiltradas = transaccionesSimuladas;
     
     if (filtros.tipo) {
+      console.log('🔄 Aplicando filtro tipo:', filtros.tipo);
       transaccionesFiltradas = transaccionesFiltradas.filter(t => t.tipo === filtros.tipo);
     }
     
     if (filtros.categoria) {
+      console.log('🔄 Aplicando filtro categoría:', filtros.categoria);
       transaccionesFiltradas = transaccionesFiltradas.filter(t => t.categoria === filtros.categoria);
     }
     
     if (filtros.fondoId) {
+      console.log('🔄 Aplicando filtro fondo:', filtros.fondoId);
+      console.log('🔄 Transacciones antes del filtro de fondo:', transaccionesFiltradas.map(t => ({ desc: t.descripcion, fondoId: t.fondoId })));
       transaccionesFiltradas = transaccionesFiltradas.filter(t => t.fondoId === filtros.fondoId);
+      console.log('🔄 Transacciones después del filtro de fondo:', transaccionesFiltradas.map(t => ({ desc: t.descripcion, fondoId: t.fondoId })));
     }
 
     const responseSimulada: ResponseTransacciones = {
@@ -447,7 +459,7 @@ export class TransaccionService {
       responseSimulada.resumen!.totalIngresos - responseSimulada.resumen!.totalGastos;
 
     console.log('✅ Transacciones simuladas generadas:', responseSimulada);
-    console.log('🏦 FondoIds usados:', transaccionesFiltradas.map(t => t.fondoId));
+    console.log('🏦 FondoIds en respuesta final:', transaccionesFiltradas.map(t => t.fondoId));
     
     this.transaccionesSubject.next(responseSimulada.transacciones);
     return of(responseSimulada);

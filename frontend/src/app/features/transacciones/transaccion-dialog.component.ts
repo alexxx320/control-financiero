@@ -12,7 +12,9 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 
 import { Transaccion, TipoTransaccion, CategoriaTransaccion } from '../../core/models/transaccion.model';
+import { TransaccionService } from '../../core/services/transaccion.service';
 import { Fondo } from '../../core/models/fondo.model';
+import { CategoriaUtils } from '../../shared/utils/categoria.utils';
 
 export interface TransaccionDialogData {
   transaccion?: Transaccion;
@@ -81,7 +83,7 @@ export interface TransaccionDialogData {
             <mat-label>Categoría</mat-label>
             <mat-select formControlName="categoria">
               <mat-option *ngFor="let categoria of categoriasFiltradasPorTipo" [value]="categoria">
-                {{ categoria | titlecase }}
+                {{ formatearCategoria(categoria) }}
               </mat-option>
             </mat-select>
             <mat-error *ngIf="transaccionForm.get('categoria')?.hasError('required')">
@@ -191,20 +193,11 @@ export class TransaccionDialogComponent implements OnInit {
   guardando = false;
   categoriasFiltradasPorTipo: CategoriaTransaccion[] = [];
 
-  // Categorías por tipo
-  private categoriasIngresos: CategoriaTransaccion[] = [
-    'salario', 'freelance', 'inversiones', 'regalos'
-  ];
-
-  private categoriasGastos: CategoriaTransaccion[] = [
-    'alimentacion', 'transporte', 'entretenimiento', 'salud', 
-    'educacion', 'hogar', 'ropa', 'tecnologia', 'viajes', 'otros'
-  ];
-
   constructor(
     private fb: FormBuilder,
     private dialogRef: MatDialogRef<TransaccionDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: TransaccionDialogData
+    @Inject(MAT_DIALOG_DATA) public data: TransaccionDialogData,
+    private transaccionService: TransaccionService
   ) {
     this.transaccionForm = this.fb.group({
       fondoId: ['', Validators.required],
@@ -236,10 +229,8 @@ export class TransaccionDialogComponent implements OnInit {
   onTipoChange(): void {
     const tipo = this.transaccionForm.get('tipo')?.value as TipoTransaccion;
     
-    if (tipo === 'ingreso') {
-      this.categoriasFiltradasPorTipo = this.categoriasIngresos;
-    } else if (tipo === 'gasto') {
-      this.categoriasFiltradasPorTipo = this.categoriasGastos;
+    if (tipo) {
+      this.categoriasFiltradasPorTipo = this.transaccionService.obtenerCategoriasPorTipo(tipo);
     } else {
       this.categoriasFiltradasPorTipo = [];
     }
@@ -249,6 +240,10 @@ export class TransaccionDialogComponent implements OnInit {
     if (categoriaActual && !this.categoriasFiltradasPorTipo.includes(categoriaActual)) {
       this.transaccionForm.patchValue({ categoria: '' });
     }
+  }
+
+  formatearCategoria(categoria: string): string {
+    return CategoriaUtils.formatearCategoria(categoria);
   }
 
   onSave(): void {
