@@ -21,6 +21,15 @@ export declare class DashboardService {
         mayorGasto: number;
         mayorIngreso: number;
     }>;
+    obtenerDatosGrafico(usuarioId: string, fechaInicio?: string, fechaFin?: string): Promise<{
+        labels: any[];
+        ingresos: any[];
+        gastos: any[];
+        periodo: "hora" | "dia" | "semana" | "mes";
+    }>;
+    private determinarPeriodoAgrupacion;
+    private agruparTransaccionesPorPeriodo;
+    private generarLabelPeriodo;
     verificarConectividad(): Promise<boolean>;
     private procesarFondosPorTipo;
     private procesarTransaccionesPorCategoria;

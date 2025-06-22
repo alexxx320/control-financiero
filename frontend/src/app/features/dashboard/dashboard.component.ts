@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -20,6 +20,13 @@ import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { ResumenFinanciero, EstadisticasDashboard } from '../../core/models/dashboard.model';
 import { Fondo } from '../../core/models/fondo.model';
+
+interface DatosGrafico {
+  labels: string[];
+  ingresos: number[];
+  gastos: number[];
+  periodo: string;
+}
 
 @Component({
   selector: 'app-dashboard',
@@ -72,6 +79,23 @@ import { Fondo } from '../../core/models/fondo.model';
               </mat-select>
             </mat-form-field>
             <span class="periodo-descripcion">{{ obtenerDescripcionPeriodo() }}</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Gráfico de Ingresos vs Gastos -->
+      <mat-card class="grafico-card">
+        <mat-card-header>
+          <mat-card-title>Tendencia de Ingresos vs Gastos</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="grafico-container">
+            <canvas #graficoCanvas width="400" height="200"></canvas>
+          </div>
+          <div *ngIf="!datosGrafico || !datosGrafico.labels || datosGrafico.labels.length === 0" class="sin-datos-grafico">
+            <mat-icon>trending_up</mat-icon>
+            <p>No hay suficientes datos para mostrar la tendencia</p>
+            <small>Necesitas al menos algunas transacciones para ver el gráfico</small>
           </div>
         </mat-card-content>
       </mat-card>
@@ -243,32 +267,6 @@ import { Fondo } from '../../core/models/fondo.model';
           </div>
         </mat-card-content>
       </mat-card>
-
-      <!-- Resumen por tipos de fondos -->
-      <mat-card *ngIf="resumenFinanciero && resumenFinanciero.fondosPorTipo && resumenFinanciero.fondosPorTipo.length > 0" class="resumen-tipos-card">
-        <mat-card-header>
-          <mat-card-title>Resumen por Tipo de Fondo</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <div class="tipos-grid">
-            <div *ngFor="let tipo of resumenFinanciero?.fondosPorTipo" class="tipo-item">
-              <div class="tipo-info">
-                <h4>{{ tipo.tipo | titlecase }}</h4>
-                <p>{{ tipo.cantidad }} fondo(s)</p>
-                <p>{{ formatearMoneda(tipo.montoTotal) }}</p>
-              </div>
-              <div class="tipo-progreso">
-                <mat-progress-bar 
-                  mode="determinate" 
-                  [value]="tipo.progreso"
-                  color="accent">
-                </mat-progress-bar>
-                <span>{{ tipo.progreso }}%</span>
-              </div>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
     </div>
   `,
   styles: [`
@@ -326,6 +324,45 @@ import { Fondo } from '../../core/models/fondo.model';
       color: rgba(0, 0, 0, 0.6);
       font-size: 0.9em;
       font-style: italic;
+    }
+
+    .grafico-card {
+      margin-bottom: 20px;
+    }
+
+    .grafico-container {
+      position: relative;
+      height: 300px;
+      width: 100%;
+    }
+
+    .grafico-container canvas {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .sin-datos-grafico {
+      text-align: center;
+      padding: 40px 20px;
+      color: rgba(0, 0, 0, 0.6);
+    }
+
+    .sin-datos-grafico mat-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      color: rgba(0, 0, 0, 0.3);
+      margin-bottom: 16px;
+    }
+
+    .sin-datos-grafico p {
+      margin: 0 0 8px 0;
+      font-size: 1em;
+    }
+
+    .sin-datos-grafico small {
+      font-size: 0.85em;
+      color: rgba(0, 0, 0, 0.5);
     }
 
     .estadisticas-grid {
@@ -565,6 +602,10 @@ import { Fondo } from '../../core/models/fondo.model';
       min-width: auto;
     }
 
+    .grafico-container {
+      height: 250px;
+    }
+
     .estadisticas-grid {
         grid-template-columns: 1fr;
       }
@@ -595,12 +636,16 @@ import { Fondo } from '../../core/models/fondo.model';
     }
   `]
 })
-export class DashboardComponent implements OnInit, OnDestroy {
+export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
+  @ViewChild('graficoCanvas', { static: false }) graficoCanvas!: ElementRef<HTMLCanvasElement>;
+  
   private destroy$ = new Subject<void>();
+  private chart: any = null;
   
   resumenFinanciero: ResumenFinanciero | null = null;
   estadisticas: EstadisticasDashboard | null = null;
   fondos: Fondo[] = [];
+  datosGrafico: DatosGrafico | null = null;
   cargando = false;
   error: string | null = null;
   backendConectado = true;
@@ -635,6 +680,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    
+    // Limpiar el gráfico si existe
+    if (this.chart) {
+      this.chart.destroy();
+    }
+  }
+
+  ngAfterViewInit(): void {
+    // Inicializar el gráfico después de que la vista esté lista
+    setTimeout(() => {
+      this.inicializarGrafico();
+    }, 100);
   }
 
   verificarConectividadYCargar(): void {
@@ -681,7 +738,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const cargarDatos$ = forkJoin({
       resumen: this.dashboardService.obtenerResumenFinanciero(filtrosFecha.fechaInicio, filtrosFecha.fechaFin),
       estadisticas: this.dashboardService.obtenerEstadisticas(filtrosFecha.fechaInicio, filtrosFecha.fechaFin),
-      fondos: this.fondoService.obtenerFondos()
+      fondos: this.fondoService.obtenerFondos(),
+      datosGrafico: this.dashboardService.obtenerDatosGraficoTendencia(filtrosFecha.fechaInicio, filtrosFecha.fechaFin)
     });
 
     cargarDatos$
@@ -690,12 +748,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
         finalize(() => this.cargando = false)
       )
       .subscribe({
-        next: ({ resumen, estadisticas, fondos }) => {
-          console.log('✅ Datos cargados:', { resumen, estadisticas, fondos });
+        next: ({ resumen, estadisticas, fondos, datosGrafico }) => {
+          console.log('✅ Datos cargados:', { resumen, estadisticas, fondos, datosGrafico });
           
           this.resumenFinanciero = resumen;
           this.estadisticas = estadisticas;
           this.fondos = fondos;
+          this.datosGrafico = datosGrafico;
+          
+          // Actualizar el gráfico con los datos reales
+          setTimeout(() => {
+            this.actualizarGraficoConDatosReales();
+          }, 100);
           
           this.notificationService.mostrarExito('Datos actualizados correctamente');
         },
@@ -730,6 +794,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
     };
 
     this.fondos = [];
+    this.datosGrafico = {
+      labels: [],
+      ingresos: [],
+      gastos: [],
+      periodo: 'mes'
+    };
   }
 
   refrescarFondos(): void {
@@ -763,7 +833,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   cambiarFiltro(nuevoFiltro: 'dia' | 'semana' | 'mes' | 'todas'): void {
     this.filtroSeleccionado = nuevoFiltro;
     this.actualizarPeriodoActual();
-    this.cargarDatos();
+    this.cargarDatos(); // Esto cargará los datos y actualizará el gráfico automáticamente
   }
 
   obtenerFiltrosFecha(): { fechaInicio?: string, fechaFin?: string } {
@@ -884,6 +954,144 @@ export class DashboardComponent implements OnInit, OnDestroy {
     
     // Filtrar solo fondos de tipo 'ahorro' (excluir fondos de tipo 'registro')
     return this.fondos.filter(fondo => fondo.tipo === 'ahorro');
+  }
+
+  private inicializarGrafico(): void {
+    if (!this.graficoCanvas) {
+      console.log('🔴 Canvas no disponible aún');
+      return;
+    }
+
+    const ctx = this.graficoCanvas.nativeElement.getContext('2d');
+    if (!ctx) {
+      console.error('❌ No se pudo obtener el contexto del canvas');
+      return;
+    }
+
+    // Usar datos reales si están disponibles, sino usar datos de ejemplo
+    const datos = this.datosGrafico && this.datosGrafico.labels && this.datosGrafico.labels.length > 0 
+      ? this.datosGrafico 
+      : this.generarDatosEjemplo();
+    
+    this.chart = new (window as any).Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: datos.labels,
+        datasets: [
+          {
+            label: 'Ingresos',
+            data: datos.ingresos,
+            borderColor: '#4caf50',
+            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+            borderWidth: 2,
+            fill: false,
+            tension: 0.4
+          },
+          {
+            label: 'Gastos',
+            data: datos.gastos,
+            borderColor: '#f44336',
+            backgroundColor: 'rgba(244, 67, 54, 0.1)',
+            borderWidth: 2,
+            fill: false,
+            tension: 0.4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: (value: any) => {
+                return new Intl.NumberFormat('es-CO', {
+                  style: 'currency',
+                  currency: 'COP',
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0
+                }).format(value);
+              }
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top'
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+            callbacks: {
+              label: (context: any) => {
+                const label = context.dataset.label || '';
+                const value = new Intl.NumberFormat('es-CO', {
+                  style: 'currency',
+                  currency: 'COP',
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0
+                }).format(context.parsed.y);
+                return `${label}: ${value}`;
+              }
+            }
+          }
+        },
+        interaction: {
+          mode: 'nearest',
+          axis: 'x',
+          intersect: false
+        }
+      }
+    });
+
+    console.log('✅ Gráfico inicializado correctamente con:', datos.labels?.length || 0, 'puntos de datos');
+  }
+
+  private generarDatosEjemplo(): DatosGrafico {
+    // Datos de ejemplo cuando no hay datos reales disponibles
+    const labels: string[] = [];
+    const ingresos: number[] = [];
+    const gastos: number[] = [];
+
+    // Generar algunos datos básicos para mostrar
+    for (let i = 6; i >= 0; i--) {
+      const fecha = new Date();
+      fecha.setDate(fecha.getDate() - i);
+      labels.push(fecha.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' }));
+      ingresos.push(0);
+      gastos.push(0);
+    }
+
+    return { labels, ingresos, gastos, periodo: 'semana' };
+  }
+
+  private actualizarGraficoConDatosReales(): void {
+    if (!this.chart || !this.datosGrafico) {
+      console.log('🔄 No hay gráfico o datos disponibles para actualizar');
+      return;
+    }
+
+    console.log('🔄 Actualizando gráfico con datos reales:', this.datosGrafico);
+    
+    // Verificar que los datos sean válidos
+    if (!this.datosGrafico.labels || this.datosGrafico.labels.length === 0) {
+      console.log('⚠️ No hay datos suficientes para el gráfico');
+      // Usar datos de ejemplo vacíos
+      const datosVacios = this.generarDatosEjemplo();
+      this.chart.data.labels = datosVacios.labels;
+      this.chart.data.datasets[0].data = datosVacios.ingresos;
+      this.chart.data.datasets[1].data = datosVacios.gastos;
+    } else {
+      // Usar datos reales del backend
+      this.chart.data.labels = this.datosGrafico.labels;
+      this.chart.data.datasets[0].data = this.datosGrafico.ingresos;
+      this.chart.data.datasets[1].data = this.datosGrafico.gastos;
+    }
+    
+    this.chart.update('active');
+    console.log('✅ Gráfico actualizado con datos del backend');
   }
 
   private actualizarPeriodoActual(): void {

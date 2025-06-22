@@ -123,6 +123,23 @@ export class DashboardController {
   ) {
     return await this.dashboardService.obtenerEstadisticas(usuarioId, fechaInicio, fechaFin);
   }
+  
+  @Get('datos-grafico')
+  @ApiOperation({ summary: 'Obtener datos para el gráfico de tendencias' })
+  @ApiQuery({ name: 'fechaInicio', required: false, description: 'Fecha de inicio (YYYY-MM-DD)' })
+  @ApiQuery({ name: 'fechaFin', required: false, description: 'Fecha de fin (YYYY-MM-DD)' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Datos del gráfico obtenidos exitosamente' 
+  })
+  async obtenerDatosGrafico(
+    @Query('fechaInicio') fechaInicio?: string,
+    @Query('fechaFin') fechaFin?: string,
+    @GetUser('userId') usuarioId?: string
+  ) {
+    return await this.dashboardService.obtenerDatosGrafico(usuarioId, fechaInicio, fechaFin);
+  }
+
   @Get('alertas')
   @ApiOperation({ summary: 'Obtener alertas personalizadas para el dashboard' })
   @ApiResponse({ 

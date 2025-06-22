@@ -61,6 +61,12 @@ export declare class DashboardController {
         mayorGasto: number;
         mayorIngreso: number;
     }>;
+    obtenerDatosGrafico(fechaInicio?: string, fechaFin?: string, usuarioId?: string): Promise<{
+        labels: any[];
+        ingresos: any[];
+        gastos: any[];
+        periodo: "hora" | "dia" | "semana" | "mes";
+    }>;
     obtenerAlertasDashboard(usuarioId: string): Promise<{
         alertas: any[];
         total: number;

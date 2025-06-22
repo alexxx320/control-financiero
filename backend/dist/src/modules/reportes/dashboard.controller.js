@@ -72,6 +72,9 @@ let DashboardController = class DashboardController {
     async obtenerEstadisticas(fechaInicio, fechaFin, usuarioId) {
         return await this.dashboardService.obtenerEstadisticas(usuarioId, fechaInicio, fechaFin);
     }
+    async obtenerDatosGrafico(fechaInicio, fechaFin, usuarioId) {
+        return await this.dashboardService.obtenerDatosGrafico(usuarioId, fechaInicio, fechaFin);
+    }
     async obtenerAlertasDashboard(usuarioId) {
         console.log('🚨 DashboardController - Obteniendo alertas para usuario:', usuarioId);
         try {
@@ -271,6 +274,22 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String]),
     __metadata("design:returntype", Promise)
 ], DashboardController.prototype, "obtenerEstadisticas", null);
+__decorate([
+    (0, common_1.Get)('datos-grafico'),
+    (0, swagger_1.ApiOperation)({ summary: 'Obtener datos para el gráfico de tendencias' }),
+    (0, swagger_1.ApiQuery)({ name: 'fechaInicio', required: false, description: 'Fecha de inicio (YYYY-MM-DD)' }),
+    (0, swagger_1.ApiQuery)({ name: 'fechaFin', required: false, description: 'Fecha de fin (YYYY-MM-DD)' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Datos del gráfico obtenidos exitosamente'
+    }),
+    __param(0, (0, common_1.Query)('fechaInicio')),
+    __param(1, (0, common_1.Query)('fechaFin')),
+    __param(2, (0, get_user_decorator_1.GetUser)('userId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", Promise)
+], DashboardController.prototype, "obtenerDatosGrafico", null);
 __decorate([
     (0, common_1.Get)('alertas'),
     (0, swagger_1.ApiOperation)({ summary: 'Obtener alertas personalizadas para el dashboard' }),

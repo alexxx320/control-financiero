@@ -46,6 +46,36 @@ export class DashboardService {
       );
   }
 
+  obtenerDatosGraficoTendencia(
+    fechaInicio?: string,
+    fechaFin?: string
+  ): Observable<any> {
+    console.log('📈 Dashboard Service - Obteniendo datos del gráfico de tendencias...');
+    
+    let params = new HttpParams();
+    if (fechaInicio) params = params.set('fechaInicio', fechaInicio);
+    if (fechaFin) params = params.set('fechaFin', fechaFin);
+    
+    return this.http.get<any>(`${this.apiUrl}/dashboard/datos-grafico`, { params })
+      .pipe(
+        map(datos => {
+          console.log('✅ Datos del gráfico del backend:', datos);
+          return datos;
+        }),
+        catchError(error => {
+          console.error('❌ Error al obtener datos del gráfico:', error);
+          console.log('🔄 Fallback a datos vacíos');
+          
+          return of({
+            labels: [],
+            ingresos: [],
+            gastos: [],
+            periodo: 'mes'
+          });
+        })
+      );
+  }
+
   obtenerEstadisticas(
     fechaInicio?: string,
     fechaFin?: string
