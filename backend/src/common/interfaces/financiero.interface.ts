@@ -93,4 +93,5 @@ export interface IEstadisticas {
   fondoMayorBalance: string;
   categoriaFrecuente: CategoriaTransaccion;
   promedioGastoMensual: number;
+  sumaTotalFondos: number; // 🆕 NUEVO: Patrimonio Total (suma de saldos actuales de todos los fondos)
 }

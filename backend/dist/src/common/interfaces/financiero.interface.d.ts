@@ -79,4 +79,5 @@ export interface IEstadisticas {
     fondoMayorBalance: string;
     categoriaFrecuente: CategoriaTransaccion;
     promedioGastoMensual: number;
+    sumaTotalFondos: number;
 }

@@ -257,6 +257,10 @@ export class ReportesService {
 
     const balanceTotal = totalIngresos - totalGastos;
 
+    // 🆕 CALCULAR PATRIMONIO TOTAL (SUMA DE SALDOS ACTUALES DE TODOS LOS FONDOS)
+    const sumaTotalFondos = fondos.reduce((sum, fondo) => sum + (fondo.saldoActual || 0), 0);
+    console.log(`💰 Patrimonio Total calculado: ${sumaTotalFondos}`);
+
     // Encontrar fondo con mayor balance
     let fondoMayorBalance = 'N/A';
     let mayorBalance = -Infinity;
@@ -312,6 +316,7 @@ export class ReportesService {
       fondoMayorBalance,
       categoriaFrecuente,
       promedioGastoMensual: Math.round(promedioGastoMensual * 100) / 100,
+      sumaTotalFondos, // 🆕 NUEVO KPI: Patrimonio Total (suma de saldos de fondos)
     };
   }
 

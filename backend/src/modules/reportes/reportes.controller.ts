@@ -98,7 +98,7 @@ export class ReportesController {
       // Generar datos de flujo de caja (simulado)
       const flujoCaja = this.generarFlujoCajaSimulado();
 
-      // Calcular KPIs
+      // Calcular KPIs (incluyendo suma total de fondos)
       console.log('📈 [DASHBOARD] Calculando KPIs...');
       kpis = {
         totalIngresos: reporteMensual.resumen.totalIngresos,
@@ -106,7 +106,8 @@ export class ReportesController {
         utilidadNeta: reporteMensual.resumen.balanceNeto,
         margenUtilidad: reporteMensual.resumen.totalIngresos > 0 
           ? (reporteMensual.resumen.balanceNeto / reporteMensual.resumen.totalIngresos) * 100 
-          : 0
+          : 0,
+        sumaTotalFondos: estadisticas.sumaTotalFondos || 0 // 🆕 NUEVO KPI: Patrimonio Total
       };
       console.log('✅ [DASHBOARD] KPIs calculados:', kpis);
 

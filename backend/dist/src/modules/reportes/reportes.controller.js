@@ -81,7 +81,8 @@ let ReportesController = class ReportesController {
                 utilidadNeta: reporteMensual.resumen.balanceNeto,
                 margenUtilidad: reporteMensual.resumen.totalIngresos > 0
                     ? (reporteMensual.resumen.balanceNeto / reporteMensual.resumen.totalIngresos) * 100
-                    : 0
+                    : 0,
+                sumaTotalFondos: estadisticas.sumaTotalFondos || 0
             };
             console.log('✅ [DASHBOARD] KPIs calculados:', kpis);
             const dashboardData = {

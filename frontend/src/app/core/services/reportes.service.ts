@@ -66,6 +66,7 @@ export interface EstadisticasGenerales {
   fondoMayorBalance: string;
   categoriaFrecuente: string;
   promedioGastoMensual: number;
+  sumaTotalFondos: number; // 🆕 NUEVO: Patrimonio Total (suma de saldos actuales de todos los fondos)
 }
 
 @Injectable({
@@ -228,7 +229,8 @@ export class ReportesService {
             balanceTotal: 0,
             fondoMayorBalance: 'N/A',
             categoriaFrecuente: 'N/A',
-            promedioGastoMensual: 0
+            promedioGastoMensual: 0,
+            sumaTotalFondos: 0 // 🆕 NUEVO: Patrimonio Total
           };
           return of(estadisticasVacias);
         })

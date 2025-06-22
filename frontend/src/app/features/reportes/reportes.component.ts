@@ -147,6 +147,17 @@ import { NotificationService } from '../../core/services/notification.service';
                   <span class="kpi-value">{{ dashboardData.kpis.margenUtilidad | number:'1.1-1' }}%</span>
                 </div>
               </div>
+              
+              <!-- 🆕 NUEVO KPI: Patrimonio Total (al final) -->
+              <div class="kpi-item patrimonio" [ngClass]="{'positivo': dashboardData.kpis.sumaTotalFondos >= 0, 'negativo': dashboardData.kpis.sumaTotalFondos < 0}">
+                <div class="kpi-icon">
+                  <mat-icon>account_balance_wallet</mat-icon>
+                </div>
+                <div class="kpi-content">
+                  <span class="kpi-label">Patrimonio Total</span>
+                  <span class="kpi-value">{{ dashboardData.kpis.sumaTotalFondos | currency:'COP':'symbol':'1.0-0' }}</span>
+                </div>
+              </div>
             </div>
           </mat-card-content>
         </mat-card>
@@ -441,10 +452,10 @@ import { NotificationService } from '../../core/services/notification.service';
 
     .kpis-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 20px;
       padding: 24px;
-      max-width: 1000px;
+      max-width: 1200px; /* Expandido para 5 KPIs */
       margin: 0 auto;
     }
 
@@ -496,6 +507,24 @@ import { NotificationService } from '../../core/services/notification.service';
       font-size: 1.4rem;
       font-weight: 600;
       line-height: 1.2;
+    }
+
+    .kpi-item.patrimonio {
+      background: rgba(255,255,255,0.15);
+      border-left: 3px solid rgba(255,215,0,0.8); /* Dorado para patrimonio */
+    }
+
+    .kpi-item.patrimonio:hover {
+      background: rgba(255,215,0,0.1);
+      transform: translateY(-4px);
+    }
+
+    .kpi-item.patrimonio .kpi-icon {
+      background: rgba(255,215,0,0.2);
+    }
+
+    .kpi-item.patrimonio .kpi-icon mat-icon {
+      color: #ffd700; /* Dorado */
     }
 
     /* Alertas */

@@ -203,6 +203,8 @@ let ReportesService = class ReportesService {
             .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.GASTO)
             .reduce((sum, t) => sum + t.monto, 0);
         const balanceTotal = totalIngresos - totalGastos;
+        const sumaTotalFondos = fondos.reduce((sum, fondo) => sum + (fondo.saldoActual || 0), 0);
+        console.log(`💰 Patrimonio Total calculado: ${sumaTotalFondos}`);
         let fondoMayorBalance = 'N/A';
         let mayorBalance = -Infinity;
         for (const fondo of fondos) {
@@ -240,6 +242,7 @@ let ReportesService = class ReportesService {
             fondoMayorBalance,
             categoriaFrecuente,
             promedioGastoMensual: Math.round(promedioGastoMensual * 100) / 100,
+            sumaTotalFondos,
         };
     }
     async generarReporteAnual(año, usuarioId) {
