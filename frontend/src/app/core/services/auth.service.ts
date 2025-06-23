@@ -181,10 +181,17 @@ export class AuthService {
    * Verificar si un email está disponible
    */
   verificarEmailDisponible(email: string): Observable<boolean> {
+    if (!email || email.trim() === '') {
+      return of(true); // Email vacío se considera disponible
+    }
+    
     return this.http.post<{disponible: boolean}>(`${this.apiUrl}/verificar-email`, { email })
       .pipe(
-        map(response => response.disponible),
-        catchError(() => of(true)) // En caso de error, asumir que está disponible
+        map(response => response?.disponible ?? true),
+        catchError((error) => {
+          console.error('Error verificando email:', error);
+          return of(true); // En caso de error, asumir que está disponible
+        })
       );
   }
 

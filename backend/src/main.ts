@@ -15,7 +15,8 @@ async function bootstrap() {
     origin: [
       'http://localhost:4200', 
       'http://localhost:3000',
-      'https://hearty-intuition-production.up.railway.app'
+      'https://hearty-intuition-production.up.railway.app',
+      'https://control-financiero.up.railway.app'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     credentials: true,
