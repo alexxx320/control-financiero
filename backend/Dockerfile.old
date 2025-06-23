@@ -1,0 +1,50 @@
+# Dockerfile optimizado para Railway
+FROM node:18-alpine
+
+# Instalar dumb-init para manejo de señales
+RUN apk add --no-cache dumb-init
+
+# Establecer directorio de trabajo
+WORKDIR /app
+
+# Configurar npm para builds más rápidos
+ENV NPM_CONFIG_UPDATE_NOTIFIER=false
+ENV NPM_CONFIG_FUND=false
+ENV NPM_CONFIG_AUDIT=false
+ENV NODE_ENV=production
+
+# Copiar archivos de dependencias
+COPY package*.json ./
+
+# Instalar solo dependencias de producción primero
+RUN npm ci --only=production --silent && \
+    npm cache clean --force
+
+# Instalar dependencias de desarrollo temporalmente para el build
+RUN npm install --only=dev --silent
+
+# Copiar código fuente
+COPY . .
+
+# Construir la aplicación
+RUN npm run build
+
+# Limpiar dependencias de desarrollo
+RUN npm prune --production && \
+    npm cache clean --force
+
+# Crear usuario no-root
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nestjs -u 1001 && \
+    chown -R nestjs:nodejs /app
+
+USER nestjs
+
+# Exponer puerto
+EXPOSE 3000
+
+# Usar dumb-init como entrypoint
+ENTRYPOINT ["dumb-init", "--"]
+
+# Comando de inicio
+CMD ["node", "dist/main"]
