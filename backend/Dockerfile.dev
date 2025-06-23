@@ -1,0 +1,19 @@
+# Dockerfile ultra-simple para desarrollo
+FROM node:18
+
+WORKDIR /app
+
+# Copiar todo
+COPY . .
+
+# Instalar dependencias
+RUN npm install
+
+# Construir
+RUN npm run build
+
+# Exponer puerto
+EXPOSE 3000
+
+# Iniciar
+CMD ["npm", "run", "start:prod"]
