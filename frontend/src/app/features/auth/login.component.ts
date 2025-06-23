@@ -101,16 +101,7 @@ import { NotificationService } from '../../core/services/notification.service';
           </div>
         </mat-card-actions>
 
-        <!-- Demo info -->
-        <mat-card-footer>
-          <div class="demo-info">
-            <mat-icon>info</mat-icon>
-            <div>
-              <strong>Modo Desarrollo:</strong>
-              <p>Usa cualquier email y contraseña para probar la aplicación</p>
-            </div>
-          </div>
-        </mat-card-footer>
+
       </mat-card>
     </div>
   `,
@@ -197,35 +188,7 @@ import { NotificationService } from '../../core/services/notification.service';
       height: 44px;
     }
 
-    .demo-info {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      margin: 16px;
-      padding: 16px;
-      background-color: rgba(33, 150, 243, 0.1);
-      border-radius: 4px;
-      color: #1976d2;
-      font-size: 0.9em;
-    }
 
-    .demo-info mat-icon {
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
-      margin-top: 2px;
-    }
-
-    .demo-info strong {
-      display: block;
-      margin-bottom: 4px;
-    }
-
-    .demo-info p {
-      margin: 0;
-      font-size: 0.85em;
-      opacity: 0.8;
-    }
 
     @media (max-width: 480px) {
       .login-container {
