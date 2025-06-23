@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://tu-api-produccion.com/api'
+  apiUrl: 'https://hcontrol-financiero-production-2ab8.up.railway.app/api'
 };
