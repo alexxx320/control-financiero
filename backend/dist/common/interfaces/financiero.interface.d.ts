@@ -7,7 +7,8 @@ export declare enum CategoriaTransaccion {
     NO_NECESARIO = "no_necesario",
     SALARIO = "salario",
     REGALO = "regalo",
-    OTROS = "otros"
+    OTROS = "otros",
+    TRANSFERENCIA = "transferencia"
 }
 export declare enum TipoFondo {
     REGISTRO = "registro",

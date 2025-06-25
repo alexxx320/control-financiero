@@ -27,6 +27,22 @@ let TransaccionesController = class TransaccionesController {
     async create(createTransaccionDto, usuarioId) {
         return await this.transaccionesService.create(createTransaccionDto, usuarioId);
     }
+    async createTransferencia(createTransferenciaDto, usuarioId) {
+        console.log('🔄 Backend - Endpoint transferencia llamado:', {
+            url: '/api/transacciones/transferencia',
+            body: createTransferenciaDto,
+            usuarioId
+        });
+        try {
+            const resultado = await this.transaccionesService.createTransferencia(createTransferenciaDto, usuarioId);
+            console.log('✅ Backend - Transferencia creada exitosamente:', resultado);
+            return resultado;
+        }
+        catch (error) {
+            console.error('❌ Backend - Error en endpoint transferencia:', error);
+            throw error;
+        }
+    }
     async findAll(filtros, usuarioId) {
         return await this.transaccionesService.findAll(usuarioId, filtros);
     }
@@ -78,6 +94,23 @@ __decorate([
     __metadata("design:paramtypes", [transaccion_dto_1.CreateTransaccionDto, String]),
     __metadata("design:returntype", Promise)
 ], TransaccionesController.prototype, "create", null);
+__decorate([
+    (0, common_1.Post)('transferencia'),
+    (0, swagger_1.ApiOperation)({ summary: 'Crear una transferencia entre fondos' }),
+    (0, swagger_1.ApiResponse)({
+        status: 201,
+        description: 'Transferencia creada exitosamente'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 400,
+        description: 'Datos inválidos o saldo insuficiente'
+    }),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, get_user_decorator_1.GetUser)('userId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [transaccion_dto_1.CreateTransferenciaDto, String]),
+    __metadata("design:returntype", Promise)
+], TransaccionesController.prototype, "createTransferencia", null);
 __decorate([
     (0, common_1.Get)(),
     (0, swagger_1.ApiOperation)({ summary: 'Obtener todas mis transacciones con filtros y paginación' }),

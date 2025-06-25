@@ -2,6 +2,7 @@ import { Model } from 'mongoose';
 import { Fondo, FondoDocument } from './schemas/fondo.schema';
 import { TransaccionDocument } from '../transacciones/schemas/transaccion.schema';
 import { CreateFondoDto, UpdateFondoDto } from '@/common/dto/fondo.dto';
+import { TipoTransaccion } from '@/common/interfaces/financiero.interface';
 export declare class FondosService {
     private fondoModel;
     private transaccionModel;
@@ -14,7 +15,7 @@ export declare class FondosService {
     findByTipo(tipo: string, usuarioId: string): Promise<Fondo[]>;
     getTotalFondos(usuarioId: string): Promise<number>;
     getFondosConMetas(usuarioId: string): Promise<Fondo[]>;
-    actualizarSaldo(fondoId: string, tipo: 'ingreso' | 'gasto', monto: number, usuarioId: string): Promise<Fondo>;
+    actualizarSaldo(fondoId: string, tipo: TipoTransaccion, monto: number, usuarioId: string): Promise<Fondo>;
     getEstadisticasPersonalizadas(usuarioId: string): Promise<{
         totalFondos: number;
         fondosActivos: number;

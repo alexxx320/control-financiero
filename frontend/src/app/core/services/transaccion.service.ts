@@ -11,7 +11,9 @@ import {
   CategoriaTransaccion,
   FiltroTransacciones,
   ResponseTransacciones,
-  EstadisticasTransacciones
+  EstadisticasTransacciones,
+  CreateTransferenciaDto,
+  ResponseTransferencia
 } from '../models/transaccion.model';
 
 @Injectable({
@@ -128,6 +130,49 @@ export class TransaccionService {
   }
 
   /**
+   * Crear una transferencia entre fondos
+   */
+  crearTransferencia(transferencia: CreateTransferenciaDto): Observable<ResponseTransferencia> {
+    console.log('🔄 Frontend - Creando transferencia:', transferencia);
+    console.log('🌐 Frontend - URL de transferencia:', `${this.apiUrl}/transferencia`);
+    console.log('🌐 Frontend - API Base URL:', this.apiUrl);
+    
+    return this.http.post<ResponseTransferencia>(`${this.apiUrl}/transferencia`, transferencia)
+      .pipe(
+        tap(response => {
+          console.log('✅ Frontend - Transferencia creada exitosamente:', response);
+          
+          // Agregar ambas transacciones a la lista local
+          const transaccionesActuales = this.transaccionesSubject.value;
+          this.transaccionesSubject.next([
+            response.transaccionOrigen, 
+            response.transaccionDestino, 
+            ...transaccionesActuales
+          ]);
+        }),
+        catchError(error => {
+          console.error('❌ Frontend - Error al crear transferencia:', error);
+          console.error('❌ Frontend - Error status:', error.status);
+          console.error('❌ Frontend - Error URL:', error.url);
+          console.error('❌ Frontend - Error message:', error.message);
+          
+          let mensaje = 'Error al crear la transferencia';
+          if (error.status === 400) {
+            mensaje = error.error?.message || 'Datos de transferencia inválidos o saldo insuficiente';
+          } else if (error.status === 404) {
+            mensaje = 'Endpoint de transferencias no encontrado - Verificar que el backend esté ejecutándose';
+          } else if (error.status === 401) {
+            mensaje = 'No autorizado para realizar transferencias';
+          } else if (error.status === 0) {
+            mensaje = 'No se puede conectar con el servidor';
+          }
+          
+          throw { ...error, message: mensaje };
+        })
+      );
+  }
+
+  /**
    * Actualizar transacción existente
    */
   actualizarTransaccion(id: string, transaccion: UpdateTransaccionDto): Observable<Transaccion> {
@@ -205,14 +250,16 @@ export class TransaccionService {
       // Categorías de ingresos
       'salario',
       'regalo',
-      'otros'
+      'otros',
+      // Categoría para transferencias
+      'transferencia'
     ];
   }
 
   /**
    * Obtener categorías filtradas por tipo
    */
-  obtenerCategoriasPorTipo(tipo: TipoTransaccion): CategoriaTransaccion[] {
+  obtenerCategoriasPorTipo(tipo: TipoTransaccion | 'transferencia'): CategoriaTransaccion[] {
     const categoriasGastos: CategoriaTransaccion[] = [
       'necesario', 'no_necesario'
     ];
@@ -221,7 +268,15 @@ export class TransaccionService {
       'salario', 'regalo', 'otros'
     ];
     
-    return tipo === 'gasto' ? categoriasGastos : categoriasIngresos;
+    const categoriasTransferencias: CategoriaTransaccion[] = [
+      'transferencia'
+    ];
+    
+    if (tipo === 'gasto') return categoriasGastos;
+    if (tipo === 'ingreso') return categoriasIngresos;
+    if (tipo === 'transferencia') return categoriasTransferencias;
+    
+    return [];
   }
 
   /**

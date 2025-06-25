@@ -12,6 +12,14 @@ export class CreateTransaccionDto {
   @IsNotEmpty()
   fondoId: string;
 
+  @ApiPropertyOptional({
+    description: 'ID del fondo destino (solo para transferencias)',
+    example: '507f1f77bcf86cd799439012'
+  })
+  @IsString()
+  @IsOptional()
+  fondoDestinoId?: string;
+
   @ApiProperty({
     description: 'Descripción de la transacción',
     example: 'Compra de supermercado'
@@ -65,6 +73,58 @@ export class CreateTransaccionDto {
 
   @ApiPropertyOptional({
     description: 'Fecha de la transacción',
+    example: '2024-06-20T05:00:00.000Z',
+    type: Date
+  })
+  @IsOptional()
+  fecha?: Date;
+}
+
+// DTO específico para transferencias
+export class CreateTransferenciaDto {
+  @ApiProperty({
+    description: 'ID del fondo origen',
+    example: '507f1f77bcf86cd799439011'
+  })
+  @IsString()
+  @IsNotEmpty()
+  fondoOrigenId: string;
+
+  @ApiProperty({
+    description: 'ID del fondo destino',
+    example: '507f1f77bcf86cd799439012'
+  })
+  @IsString()
+  @IsNotEmpty()
+  fondoDestinoId: string;
+
+  @ApiProperty({
+    description: 'Monto a transferir',
+    example: 1000.00,
+    minimum: 0.01
+  })
+  @IsNumber()
+  @Min(0.01)
+  monto: number;
+
+  @ApiProperty({
+    description: 'Descripción de la transferencia',
+    example: 'Transferencia de emergencia a ahorros'
+  })
+  @IsString()
+  @IsNotEmpty()
+  descripcion: string;
+
+  @ApiPropertyOptional({
+    description: 'Notas adicionales sobre la transferencia',
+    example: 'Movimiento para alcanzar meta de ahorro'
+  })
+  @IsString()
+  @IsOptional()
+  notas?: string;
+
+  @ApiPropertyOptional({
+    description: 'Fecha de la transferencia',
     example: '2024-06-20T05:00:00.000Z',
     type: Date
   })

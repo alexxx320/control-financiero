@@ -11,6 +11,8 @@ export enum CategoriaTransaccion {
   SALARIO = 'salario',
   REGALO = 'regalo',
   OTROS = 'otros',
+  // Categoría para transferencias
+  TRANSFERENCIA = 'transferencia',
 }
 
 // 🔧 MODIFICADO: Solo dos tipos de fondo

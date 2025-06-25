@@ -9,6 +9,7 @@ export declare class DashboardController {
             totalIngresos: number;
             totalGastos: number;
             balance: number;
+            totalTransferencias: number;
             fondosPorTipo: any[];
             transaccionesPorCategoria: any[];
             tendenciaMensual: any[];
@@ -49,6 +50,7 @@ export declare class DashboardController {
         totalIngresos: number;
         totalGastos: number;
         balance: number;
+        totalTransferencias: number;
         fondosPorTipo: any[];
         transaccionesPorCategoria: any[];
         tendenciaMensual: any[];

@@ -23,7 +23,7 @@ import { TransaccionService } from '../../core/services/transaccion.service';
 import { FiltroTransacciones } from '../../core/models/transaccion.model';
 import { FondoService } from '../../core/services/fondo.service';
 import { NotificationService } from '../../core/services/notification.service';
-import { Transaccion, TipoTransaccion, CategoriaTransaccion } from '../../core/models/transaccion.model';
+import { Transaccion, TipoTransaccion, CategoriaTransaccion, CreateTransferenciaDto } from '../../core/models/transaccion.model';
 import { Fondo } from '../../core/models/fondo.model';
 import { CategoriaUtils } from '../../shared/utils/categoria.utils';
 import { TransaccionDialogComponent } from './transaccion-dialog.component';
@@ -96,6 +96,11 @@ import { TransaccionDialogComponent } from './transaccion-dialog.component';
                 <mat-option value="">Todas</mat-option>
                 <mat-option *ngFor="let categoria of obtenerCategoriasFiltradas()" [value]="categoria">
                   {{ formatearCategoria(categoria) }}
+                </mat-option>
+                <!-- Opción especial para transferencias -->
+                <mat-option value="transferencia">
+                  <mat-icon class="option-icon transferencia">swap_horiz</mat-icon>
+                  Transferencias
                 </mat-option>
               </mat-select>
             </mat-form-field>
@@ -176,9 +181,17 @@ import { TransaccionDialogComponent } from './transaccion-dialog.component';
                 <th mat-header-cell *matHeaderCellDef mat-sort-header> Tipo </th>
                 <td mat-cell *matCellDef="let transaccion"> 
                   <span class="tipo-chip" 
-                        [ngClass]="transaccion.tipo === 'ingreso' ? 'ingreso-chip' : 'gasto-chip'">
-                    <mat-icon>{{ transaccion.tipo === 'ingreso' ? 'trending_up' : 'trending_down' }}</mat-icon>
-                    {{ transaccion.tipo | titlecase }}
+                        [ngClass]="{
+                          'ingreso-chip': transaccion.tipo === 'ingreso' && transaccion.categoria !== 'transferencia',
+                          'gasto-chip': transaccion.tipo === 'gasto' && transaccion.categoria !== 'transferencia',
+                          'transferencia-chip': transaccion.categoria === 'transferencia'
+                        }">
+                    <mat-icon>{{ 
+                      transaccion.categoria === 'transferencia' ? 'swap_horiz' :
+                      transaccion.tipo === 'ingreso' ? 'trending_up' : 
+                      'trending_down'
+                    }}</mat-icon>
+                    {{ transaccion.categoria === 'transferencia' ? 'Transferencia' : (transaccion.tipo | titlecase) }}
                   </span>
                 </td>
               </ng-container>
@@ -186,8 +199,16 @@ import { TransaccionDialogComponent } from './transaccion-dialog.component';
               <ng-container matColumnDef="monto">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header> Monto </th>
                 <td mat-cell *matCellDef="let transaccion" 
-                    [ngClass]="transaccion.tipo === 'ingreso' ? 'ingreso-text' : 'gasto-text'"> 
-                  <strong>{{ (transaccion.tipo === 'ingreso' ? '+' : '-') + (transaccion.monto | currency:'COP':'symbol':'1.0-0') }}</strong>
+                    [ngClass]="{
+                      'ingreso-text': transaccion.tipo === 'ingreso' && transaccion.categoria !== 'transferencia',
+                      'gasto-text': transaccion.tipo === 'gasto' && transaccion.categoria !== 'transferencia',
+                      'transferencia-text': transaccion.categoria === 'transferencia'
+                    }"> 
+                  <strong>{{ 
+                    transaccion.categoria === 'transferencia' ? 
+                      (transaccion.monto | currency:'COP':'symbol':'1.0-0') :
+                    (transaccion.tipo === 'ingreso' ? '+' : '-') + (transaccion.monto | currency:'COP':'symbol':'1.0-0') 
+                  }}</strong>
                 </td>
               </ng-container>
 
@@ -285,6 +306,11 @@ import { TransaccionDialogComponent } from './transaccion-dialog.component';
       color: white;
     }
 
+    .transferencia-chip {
+      background-color: #2196f3;
+      color: white;
+    }
+
     .ingreso-text {
       color: #4caf50;
       font-weight: 500;
@@ -292,6 +318,11 @@ import { TransaccionDialogComponent } from './transaccion-dialog.component';
 
     .gasto-text {
       color: #f44336;
+      font-weight: 500;
+    }
+
+    .transferencia-text {
+      color: #2196f3;
       font-weight: 500;
     }
 
@@ -334,6 +365,7 @@ export class TransaccionesComponent implements OnInit, OnDestroy, AfterViewInit 
   totalIngresos = 0;
   totalGastos = 0;
   balance = 0;
+  totalTransferencias = 0; // 🆕 NUEVO: Contador de transferencias
 
   constructor(
     private fb: FormBuilder,
@@ -348,6 +380,45 @@ export class TransaccionesComponent implements OnInit, OnDestroy, AfterViewInit 
       tipo: [''],
       categoria: ['']
     });
+  }
+
+  crearTransferencia(data: CreateTransferenciaDto): void {
+    console.log('🔄 Iniciando creación de transferencia en componente:', data);
+    
+    // Verificar que los fondos existen
+    const fondoOrigen = this.fondos.find(f => f._id === data.fondoOrigenId);
+    const fondoDestino = this.fondos.find(f => f._id === data.fondoDestinoId);
+    
+    if (!fondoOrigen || !fondoDestino) {
+      this.notificationService.error('Uno de los fondos seleccionados no existe');
+      return;
+    }
+    
+    // Verificar saldo suficiente
+    if (fondoOrigen.saldoActual < data.monto) {
+      this.notificationService.warning(
+        `Saldo insuficiente en "${fondoOrigen.nombre}". Saldo disponible: ${fondoOrigen.saldoActual.toLocaleString()}, monto a transferir: ${data.monto.toLocaleString()}`
+      );
+      return;
+    }
+    
+    this.transaccionService.crearTransferencia(data)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          console.log('✅ Transferencia creada exitosamente en componente:', response);
+          this.notificationService.success(
+            `Transferencia de ${data.monto.toLocaleString()} desde "${fondoOrigen.nombre}" hacia "${fondoDestino.nombre}" realizada correctamente`
+          );
+          this.cargarTransacciones();
+          // También recargar fondos para actualizar saldos
+          this.cargarDatosIniciales();
+        },
+        error: (error) => {
+          console.error('❌ Error al crear transferencia en componente:', error);
+          this.notificationService.error(error.message || 'Error al crear la transferencia');
+        }
+      });
   }
 
   ngOnInit(): void {
@@ -527,15 +598,28 @@ export class TransaccionesComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   calcularEstadisticas(): void {
+    // 🔄 CAMBIO: Excluir transferencias de los totales
     this.totalIngresos = this.transacciones
-      .filter(t => t.tipo === 'ingreso')
+      .filter(t => t.tipo === 'ingreso' && t.categoria !== 'transferencia')
       .reduce((sum, t) => sum + t.monto, 0);
     
     this.totalGastos = this.transacciones
-      .filter(t => t.tipo === 'gasto')
+      .filter(t => t.tipo === 'gasto' && t.categoria !== 'transferencia')
       .reduce((sum, t) => sum + t.monto, 0);
     
     this.balance = this.totalIngresos - this.totalGastos;
+    
+    // 🆕 NUEVO: Contar transferencias por separado
+    this.totalTransferencias = this.transacciones
+      .filter(t => t.categoria === 'transferencia')
+      .length;
+    
+    console.log('📊 Estadísticas calculadas (sin transferencias):', {
+      totalIngresos: this.totalIngresos,
+      totalGastos: this.totalGastos,
+      balance: this.balance,
+      transferencias: this.totalTransferencias
+    });
   }
 
   aplicarFiltros(): void {
@@ -580,6 +664,8 @@ export class TransaccionesComponent implements OnInit, OnDestroy, AfterViewInit 
         } else {
           this.crearTransaccion(result.data);
         }
+      } else if (result && result.action === 'transfer') {
+        this.crearTransferencia(result.data);
       }
     });
   }
@@ -677,9 +763,10 @@ export class TransaccionesComponent implements OnInit, OnDestroy, AfterViewInit 
   obtenerCategoriasFiltradas(): CategoriaTransaccion[] {
     const tipoSeleccionado = this.filtrosForm.get('tipo')?.value;
     if (tipoSeleccionado) {
-      return this.transaccionService.obtenerCategoriasPorTipo(tipoSeleccionado);
+      return this.transaccionService.obtenerCategoriasPorTipo(tipoSeleccionado)
+        .filter(categoria => categoria !== 'transferencia'); // Excluir transferencias del filtro por tipo
     }
-    return this.categorias;
+    return this.categorias.filter(categoria => categoria !== 'transferencia'); // Excluir transferencias de la lista general
   }
 
   debugFiltros(): void {

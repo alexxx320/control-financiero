@@ -22,6 +22,14 @@ export class Transaccion {
   })
   fondoId: Types.ObjectId;
 
+  @Prop({ 
+    required: false, 
+    type: Types.ObjectId, 
+    ref: 'Fondo',
+    index: true 
+  })
+  fondoDestinoId?: Types.ObjectId;
+
   @Prop({ required: true, trim: true })
   descripcion: string;
 

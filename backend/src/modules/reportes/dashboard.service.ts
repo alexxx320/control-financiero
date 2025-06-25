@@ -33,16 +33,28 @@ export class DashboardService {
 
     console.log(`📊 Transacciones encontradas para usuario ${usuarioId}:`, transacciones.length);
 
-    // Calcular totales
+    // 🔄 CAMBIO: Excluir transferencias de los totales
     const totalIngresos = transacciones
-      .filter(t => t.tipo === 'ingreso')
+      .filter(t => t.tipo === 'ingreso' && t.categoria !== 'transferencia')
       .reduce((sum, t) => sum + t.monto, 0);
 
     const totalGastos = transacciones
-      .filter(t => t.tipo === 'gasto')
+      .filter(t => t.tipo === 'gasto' && t.categoria !== 'transferencia')
       .reduce((sum, t) => sum + t.monto, 0);
 
     const balance = totalIngresos - totalGastos;
+    
+    // 🆕 NUEVO: Contar transferencias por separado
+    const totalTransferencias = transacciones
+      .filter(t => t.categoria === 'transferencia')
+      .length;
+
+    console.log('📊 Resumen financiero (sin transferencias en totales):', {
+      totalIngresos,
+      totalGastos,
+      balance,
+      totalTransferencias
+    });
 
     // Obtener fondos del usuario
     const fondos = await this.fondoModel
@@ -62,6 +74,7 @@ export class DashboardService {
       totalIngresos,
       totalGastos,
       balance,
+      totalTransferencias, // 🆕 NUEVO: Contador de transferencias
       fondosPorTipo,
       transaccionesPorCategoria,
       tendenciaMensual: [] // Se puede implementar después
@@ -115,14 +128,18 @@ export class DashboardService {
     // Para transaccionesMes, usar las transacciones filtradas del período seleccionado
     const transaccionesMes = transaccionesFiltradas.length;
 
-    // Calcular mayor gasto del período filtrado
-    const gastosFiltrados = transaccionesFiltradas.filter(t => t.tipo === 'gasto');
+    // Calcular mayor gasto del período filtrado (excluyendo transferencias)
+    const gastosFiltrados = transaccionesFiltradas.filter(t => 
+      t.tipo === 'gasto' && t.categoria !== 'transferencia'
+    );
     const mayorGasto = gastosFiltrados.length > 0 
       ? Math.max(...gastosFiltrados.map(t => t.monto))
       : 0;
 
-    // Calcular mayor ingreso del período filtrado
-    const ingresosFiltrados = transaccionesFiltradas.filter(t => t.tipo === 'ingreso');
+    // Calcular mayor ingreso del período filtrado (excluyendo transferencias)
+    const ingresosFiltrados = transaccionesFiltradas.filter(t => 
+      t.tipo === 'ingreso' && t.categoria !== 'transferencia'
+    );
     const mayorIngreso = ingresosFiltrados.length > 0 
       ? Math.max(...ingresosFiltrados.map(t => t.monto))
       : 0;
@@ -232,10 +249,13 @@ export class DashboardService {
       }
 
       const grupo = grupos.get(clave);
-      if (transaccion.tipo === 'ingreso') {
-        grupo.ingresos += transaccion.monto;
-      } else if (transaccion.tipo === 'gasto') {
-        grupo.gastos += transaccion.monto;
+      // 🔄 CAMBIO: Excluir transferencias de los gráficos
+      if (transaccion.categoria !== 'transferencia') {
+        if (transaccion.tipo === 'ingreso') {
+          grupo.ingresos += transaccion.monto;
+        } else if (transaccion.tipo === 'gasto') {
+          grupo.gastos += transaccion.monto;
+        }
       }
     });
 

@@ -4,6 +4,7 @@ export type TransaccionDocument = Transaccion & Document;
 export declare class Transaccion {
     usuarioId: Types.ObjectId;
     fondoId: Types.ObjectId;
+    fondoDestinoId?: Types.ObjectId;
     descripcion: string;
     monto: number;
     tipo: TipoTransaccion;

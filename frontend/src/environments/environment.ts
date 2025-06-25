@@ -1,4 +1,4 @@
 export const environment = {
   production: false,
-  apiUrl: 'https://control-financiero-production-2ab8.up.railway.app/api'
+  apiUrl: 'http://localhost:3000/api'  // Cambiado para desarrollo local
 };

@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FiltroTransaccionesDto = exports.UpdateTransaccionDto = exports.CreateTransaccionDto = void 0;
+exports.FiltroTransaccionesDto = exports.UpdateTransaccionDto = exports.CreateTransferenciaDto = exports.CreateTransaccionDto = void 0;
 const class_validator_1 = require("class-validator");
 const class_transformer_1 = require("class-transformer");
 const swagger_1 = require("@nestjs/swagger");
@@ -26,6 +26,15 @@ __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], CreateTransaccionDto.prototype, "fondoId", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        description: 'ID del fondo destino (solo para transferencias)',
+        example: '507f1f77bcf86cd799439012'
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateTransaccionDto.prototype, "fondoDestinoId", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'Descripción de la transacción',
@@ -92,6 +101,64 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Date)
 ], CreateTransaccionDto.prototype, "fecha", void 0);
+class CreateTransferenciaDto {
+}
+exports.CreateTransferenciaDto = CreateTransferenciaDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'ID del fondo origen',
+        example: '507f1f77bcf86cd799439011'
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], CreateTransferenciaDto.prototype, "fondoOrigenId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'ID del fondo destino',
+        example: '507f1f77bcf86cd799439012'
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], CreateTransferenciaDto.prototype, "fondoDestinoId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Monto a transferir',
+        example: 1000.00,
+        minimum: 0.01
+    }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0.01),
+    __metadata("design:type", Number)
+], CreateTransferenciaDto.prototype, "monto", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Descripción de la transferencia',
+        example: 'Transferencia de emergencia a ahorros'
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], CreateTransferenciaDto.prototype, "descripcion", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        description: 'Notas adicionales sobre la transferencia',
+        example: 'Movimiento para alcanzar meta de ahorro'
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateTransferenciaDto.prototype, "notas", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        description: 'Fecha de la transferencia',
+        example: '2024-06-20T05:00:00.000Z',
+        type: Date
+    }),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Date)
+], CreateTransferenciaDto.prototype, "fecha", void 0);
 class UpdateTransaccionDto {
 }
 exports.UpdateTransaccionDto = UpdateTransaccionDto;

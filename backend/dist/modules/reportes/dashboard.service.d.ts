@@ -9,6 +9,7 @@ export declare class DashboardService {
         totalIngresos: number;
         totalGastos: number;
         balance: number;
+        totalTransferencias: number;
         fondosPorTipo: any[];
         transaccionesPorCategoria: any[];
         tendenciaMensual: any[];

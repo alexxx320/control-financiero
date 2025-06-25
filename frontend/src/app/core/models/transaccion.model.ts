@@ -7,12 +7,16 @@ export type CategoriaTransaccion =
   // Categorías de ingresos
   | 'salario'
   | 'regalo'
-  | 'otros';
+  | 'otros'
+  // Categoría para transferencias
+  | 'transferencia';
 
 export interface Transaccion {
   _id?: string;
   fondoId: string;
+  fondoDestinoId?: string; // Para transferencias
   _fondoNombre?: string; // Campo para el nombre del fondo cuando viene populado
+  _fondoDestinoNombre?: string; // Campo para el nombre del fondo destino cuando viene populado
   descripcion: string;
   monto: number;
   tipo: TipoTransaccion;
@@ -94,6 +98,21 @@ export interface ResponseTransacciones {
       monto: number;
     }[];
   };
+}
+
+// Interfaz específica para transferencias
+export interface CreateTransferenciaDto {
+  fondoOrigenId: string;
+  fondoDestinoId: string;
+  monto: number;
+  descripcion: string;
+  notas?: string;
+  fecha?: Date | string;
+}
+
+export interface ResponseTransferencia {
+  transaccionOrigen: Transaccion;
+  transaccionDestino: Transaccion;
 }
 
 export interface EstadisticasTransacciones {

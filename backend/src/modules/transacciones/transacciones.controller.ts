@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { TransaccionesService } from './transacciones.service';
-import { CreateTransaccionDto, UpdateTransaccionDto, FiltroTransaccionesDto } from '@/common/dto/transaccion.dto';
+import { CreateTransaccionDto, UpdateTransaccionDto, FiltroTransaccionesDto, CreateTransferenciaDto } from '@/common/dto/transaccion.dto';
 import { Transaccion } from './schemas/transaccion.schema';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '@/common/decorators/get-user.decorator';
@@ -41,6 +41,36 @@ export class TransaccionesController {
     @GetUser('userId') usuarioId: string
   ): Promise<Transaccion> {
     return await this.transaccionesService.create(createTransaccionDto, usuarioId);
+  }
+
+  @Post('transferencia')
+  @ApiOperation({ summary: 'Crear una transferencia entre fondos' })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Transferencia creada exitosamente' 
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Datos inválidos o saldo insuficiente' 
+  })
+  async createTransferencia(
+    @Body() createTransferenciaDto: CreateTransferenciaDto,
+    @GetUser('userId') usuarioId: string
+  ) {
+    console.log('🔄 Backend - Endpoint transferencia llamado:', {
+      url: '/api/transacciones/transferencia',
+      body: createTransferenciaDto,
+      usuarioId
+    });
+    
+    try {
+      const resultado = await this.transaccionesService.createTransferencia(createTransferenciaDto, usuarioId);
+      console.log('✅ Backend - Transferencia creada exitosamente:', resultado);
+      return resultado;
+    } catch (error) {
+      console.error('❌ Backend - Error en endpoint transferencia:', error);
+      throw error;
+    }
   }
 
   @Get()

@@ -11,7 +11,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 
-import { Transaccion, TipoTransaccion, CategoriaTransaccion } from '../../core/models/transaccion.model';
+import { Transaccion, TipoTransaccion, CategoriaTransaccion, CreateTransferenciaDto } from '../../core/models/transaccion.model';
 import { TransaccionService } from '../../core/services/transaccion.service';
 import { Fondo } from '../../core/models/fondo.model';
 import { CategoriaUtils } from '../../shared/utils/categoria.utils';
@@ -68,6 +68,23 @@ export interface TransaccionDialogData {
           </mat-form-field>
         </div>
 
+        <!-- Campo adicional para fondo destino (solo transferencias) -->
+        <div class="form-row" *ngIf="esTransferencia()">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Fondo Destino</mat-label>
+            <mat-select formControlName="fondoDestinoId">
+              <mat-option *ngFor="let fondo of fondosDisponiblesDestino" [value]="fondo._id">
+                {{ fondo.nombre }} ({{ fondo.tipo | titlecase }})
+                <span class="fondo-saldo"> - Saldo: {{ fondo.saldoActual | currency:'COP':'symbol':'1.0-0' }}</span>
+              </mat-option>
+            </mat-select>
+            <mat-error *ngIf="transaccionForm.get('fondoDestinoId')?.hasError('required')">
+              Selecciona el fondo destino
+            </mat-error>
+            <mat-hint>El dinero se transferirá desde "{{ obtenerNombreFondoOrigen() }}" hacia este fondo</mat-hint>
+          </mat-form-field>
+        </div>
+
         <div class="form-row">
           <mat-form-field appearance="outline" class="half-width">
             <mat-label>Tipo</mat-label>
@@ -79,6 +96,10 @@ export interface TransaccionDialogData {
               <mat-option value="gasto">
                 <mat-icon class="option-icon gasto">trending_down</mat-icon>
                 Gasto
+              </mat-option>
+              <mat-option value="transferencia">
+                <mat-icon class="option-icon transferencia">swap_horiz</mat-icon>
+                Transferencia
               </mat-option>
             </mat-select>
             <mat-error *ngIf="transaccionForm.get('tipo')?.hasError('required')">
@@ -174,6 +195,10 @@ export interface TransaccionDialogData {
       color: #f44336;
     }
 
+    .option-icon.transferencia {
+      color: #2196f3;
+    }
+
     .fondo-saldo {
       font-size: 0.8em;
       color: rgba(0,0,0,0.6);
@@ -205,6 +230,7 @@ export class TransaccionDialogComponent implements OnInit {
   transaccionForm: FormGroup;
   guardando = false;
   categoriasFiltradasPorTipo: CategoriaTransaccion[] = [];
+  fondosDisponiblesDestino: Fondo[] = []; // Para transferencias
 
   constructor(
     private fb: FormBuilder,
@@ -214,6 +240,7 @@ export class TransaccionDialogComponent implements OnInit {
   ) {
     this.transaccionForm = this.fb.group({
       fondoId: ['', Validators.required],
+      fondoDestinoId: [''], // Para transferencias
       tipo: ['', Validators.required],
       categoria: ['', Validators.required],
       descripcion: ['', [Validators.required, Validators.minLength(3)]],
@@ -243,13 +270,32 @@ export class TransaccionDialogComponent implements OnInit {
       });
       console.log('💰 Fondo preseleccionado:', this.data.fondoPreseleccionado);
     }
+    
+    // Suscribirse a cambios en el fondo origen para actualizar fondos destino
+    this.transaccionForm.get('fondoId')?.valueChanges.subscribe(() => {
+      if (this.esTransferencia()) {
+        this.actualizarFondosDestino();
+      }
+    });
   }
 
   onTipoChange(): void {
-    const tipo = this.transaccionForm.get('tipo')?.value as TipoTransaccion;
+    const tipo = this.transaccionForm.get('tipo')?.value as (TipoTransaccion | 'transferencia');
     
     if (tipo) {
       this.categoriasFiltradasPorTipo = this.transaccionService.obtenerCategoriasPorTipo(tipo);
+      
+      // Si es transferencia, configurar validaciones especiales
+      if (tipo === 'transferencia') {
+        this.transaccionForm.get('fondoDestinoId')?.setValidators([Validators.required]);
+        this.transaccionForm.get('categoria')?.setValue('transferencia');
+        this.actualizarFondosDestino();
+      } else {
+        this.transaccionForm.get('fondoDestinoId')?.clearValidators();
+        this.transaccionForm.get('fondoDestinoId')?.setValue('');
+      }
+      
+      this.transaccionForm.get('fondoDestinoId')?.updateValueAndValidity();
     } else {
       this.categoriasFiltradasPorTipo = [];
     }
@@ -272,23 +318,65 @@ export class TransaccionDialogComponent implements OnInit {
     return fondo ? fondo.nombre : 'Fondo no encontrado';
   }
 
+  // Métodos para transferencias
+  esTransferencia(): boolean {
+    return this.transaccionForm.get('tipo')?.value === 'transferencia';
+  }
+
+  obtenerNombreFondoOrigen(): string {
+    const fondoOrigenId = this.transaccionForm.get('fondoId')?.value;
+    if (!fondoOrigenId) return 'Selecciona fondo origen';
+    
+    const fondo = this.data.fondos.find(f => f._id === fondoOrigenId);
+    return fondo ? fondo.nombre : 'Fondo no encontrado';
+  }
+
+  actualizarFondosDestino(): void {
+    const fondoOrigenId = this.transaccionForm.get('fondoId')?.value;
+    
+    // Filtrar fondos que no sean el fondo origen
+    this.fondosDisponiblesDestino = this.data.fondos.filter(fondo => 
+      fondo._id !== fondoOrigenId
+    );
+    
+    // Si el fondo destino actual ya no está disponible, limpiarlo
+    const fondoDestinoActual = this.transaccionForm.get('fondoDestinoId')?.value;
+    if (fondoDestinoActual && !this.fondosDisponiblesDestino.find(f => f._id === fondoDestinoActual)) {
+      this.transaccionForm.get('fondoDestinoId')?.setValue('');
+    }
+  }
+
   onSave(): void {
     if (this.transaccionForm.invalid) return;
 
     this.guardando = true;
     const formData = this.transaccionForm.value;
     
-    // Procesar datos de la transacción
-    const transaccionData = {
-      fondoId: formData.fondoId,
-      tipo: formData.tipo,
-      categoria: formData.categoria,
-      descripcion: formData.descripcion,
-      monto: Number(formData.monto),
-      fecha: formData.fecha
-    };
+    // Si es transferencia, enviar datos de transferencia
+    if (formData.tipo === 'transferencia') {
+      const transferenciaData: CreateTransferenciaDto = {
+        fondoOrigenId: formData.fondoId,
+        fondoDestinoId: formData.fondoDestinoId,
+        monto: Number(formData.monto),
+        descripcion: formData.descripcion,
+        notas: formData.notas || '',
+        fecha: formData.fecha
+      };
+      
+      this.dialogRef.close({ action: 'transfer', data: transferenciaData });
+    } else {
+      // Procesar datos de transacción normal
+      const transaccionData = {
+        fondoId: formData.fondoId,
+        tipo: formData.tipo,
+        categoria: formData.categoria,
+        descripcion: formData.descripcion,
+        monto: Number(formData.monto),
+        fecha: formData.fecha
+      };
 
-    this.dialogRef.close({ action: 'save', data: transaccionData });
+      this.dialogRef.close({ action: 'save', data: transaccionData });
+    }
   }
 
   onCancel(): void {

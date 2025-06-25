@@ -18,6 +18,7 @@ const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const fondo_schema_1 = require("./schemas/fondo.schema");
 const transaccion_schema_1 = require("../transacciones/schemas/transaccion.schema");
+const financiero_interface_1 = require("../../common/interfaces/financiero.interface");
 let FondosService = class FondosService {
     constructor(fondoModel, transaccionModel) {
         this.fondoModel = fondoModel;
@@ -176,9 +177,16 @@ let FondosService = class FondosService {
     }
     async actualizarSaldo(fondoId, tipo, monto, usuarioId) {
         const fondo = await this.findOne(fondoId, usuarioId);
-        const nuevoSaldo = tipo === 'ingreso'
-            ? fondo.saldoActual + monto
-            : fondo.saldoActual - monto;
+        let nuevoSaldo;
+        if (tipo === financiero_interface_1.TipoTransaccion.INGRESO) {
+            nuevoSaldo = fondo.saldoActual + monto;
+        }
+        else if (tipo === financiero_interface_1.TipoTransaccion.GASTO) {
+            nuevoSaldo = fondo.saldoActual - monto;
+        }
+        else {
+            throw new common_1.BadRequestException(`Tipo de transacción no válido para actualizar saldo: ${tipo}`);
+        }
         if (nuevoSaldo < 0) {
             console.warn(`⚠️ Saldo negativo en fondo "${fondo.nombre}": ${nuevoSaldo}`);
         }

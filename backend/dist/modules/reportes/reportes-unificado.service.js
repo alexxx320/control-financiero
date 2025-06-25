@@ -54,10 +54,10 @@ let ReportesUnificadoService = class ReportesUnificadoService {
             let ingresos = 0;
             let gastos = 0;
             for (const trans of transacciones) {
-                if (trans.tipo === 'ingreso') {
+                if (trans.tipo === 'ingreso' && trans.categoria !== 'transferencia') {
                     ingresos += trans.monto;
                 }
-                else {
+                else if (trans.tipo === 'gasto' && trans.categoria !== 'transferencia') {
                     gastos += trans.monto;
                 }
             }
@@ -146,7 +146,8 @@ let ReportesUnificadoService = class ReportesUnificadoService {
                 $match: {
                     fondo: { $in: fondosIds },
                     fecha: { $gte: fechaInicio, $lte: fechaFin },
-                    tipo: 'gasto'
+                    tipo: 'gasto',
+                    categoria: { $ne: 'transferencia' }
                 }
             },
             {
@@ -188,7 +189,8 @@ let ReportesUnificadoService = class ReportesUnificadoService {
             {
                 $match: {
                     fondo: { $in: fondosIds },
-                    fecha: { $gte: fechaInicio, $lte: fechaFin }
+                    fecha: { $gte: fechaInicio, $lte: fechaFin },
+                    categoria: { $ne: 'transferencia' }
                 }
             },
             {
@@ -214,10 +216,10 @@ let ReportesUnificadoService = class ReportesUnificadoService {
             const transacciones = await this.transaccionModel.find({ fondo: fondo._id }).exec();
             let balance = 0;
             for (const trans of transacciones) {
-                if (trans.tipo === 'ingreso') {
+                if (trans.tipo === 'ingreso' && trans.categoria !== 'transferencia') {
                     balance += trans.monto;
                 }
-                else {
+                else if (trans.tipo === 'gasto' && trans.categoria !== 'transferencia') {
                     balance -= trans.monto;
                 }
             }

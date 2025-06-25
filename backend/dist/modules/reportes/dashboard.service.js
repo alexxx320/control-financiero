@@ -42,12 +42,21 @@ let DashboardService = class DashboardService {
             .exec();
         console.log(`📊 Transacciones encontradas para usuario ${usuarioId}:`, transacciones.length);
         const totalIngresos = transacciones
-            .filter(t => t.tipo === 'ingreso')
+            .filter(t => t.tipo === 'ingreso' && t.categoria !== 'transferencia')
             .reduce((sum, t) => sum + t.monto, 0);
         const totalGastos = transacciones
-            .filter(t => t.tipo === 'gasto')
+            .filter(t => t.tipo === 'gasto' && t.categoria !== 'transferencia')
             .reduce((sum, t) => sum + t.monto, 0);
         const balance = totalIngresos - totalGastos;
+        const totalTransferencias = transacciones
+            .filter(t => t.categoria === 'transferencia')
+            .length;
+        console.log('📊 Resumen financiero (sin transferencias en totales):', {
+            totalIngresos,
+            totalGastos,
+            balance,
+            totalTransferencias
+        });
         const fondos = await this.fondoModel
             .find({
             usuarioId: new mongoose_2.Types.ObjectId(usuarioId),
@@ -60,6 +69,7 @@ let DashboardService = class DashboardService {
             totalIngresos,
             totalGastos,
             balance,
+            totalTransferencias,
             fondosPorTipo,
             transaccionesPorCategoria,
             tendenciaMensual: []
@@ -94,11 +104,11 @@ let DashboardService = class DashboardService {
         mañana.setDate(mañana.getDate() + 1);
         const transaccionesHoy = todasLasTransacciones.filter(t => t.fecha >= hoy && t.fecha < mañana).length;
         const transaccionesMes = transaccionesFiltradas.length;
-        const gastosFiltrados = transaccionesFiltradas.filter(t => t.tipo === 'gasto');
+        const gastosFiltrados = transaccionesFiltradas.filter(t => t.tipo === 'gasto' && t.categoria !== 'transferencia');
         const mayorGasto = gastosFiltrados.length > 0
             ? Math.max(...gastosFiltrados.map(t => t.monto))
             : 0;
-        const ingresosFiltrados = transaccionesFiltradas.filter(t => t.tipo === 'ingreso');
+        const ingresosFiltrados = transaccionesFiltradas.filter(t => t.tipo === 'ingreso' && t.categoria !== 'transferencia');
         const mayorIngreso = ingresosFiltrados.length > 0
             ? Math.max(...ingresosFiltrados.map(t => t.monto))
             : 0;
@@ -191,11 +201,13 @@ let DashboardService = class DashboardService {
                 });
             }
             const grupo = grupos.get(clave);
-            if (transaccion.tipo === 'ingreso') {
-                grupo.ingresos += transaccion.monto;
-            }
-            else if (transaccion.tipo === 'gasto') {
-                grupo.gastos += transaccion.monto;
+            if (transaccion.categoria !== 'transferencia') {
+                if (transaccion.tipo === 'ingreso') {
+                    grupo.ingresos += transaccion.monto;
+                }
+                else if (transaccion.tipo === 'gasto') {
+                    grupo.gastos += transaccion.monto;
+                }
             }
         });
         const resultado = Array.from(grupos.values())

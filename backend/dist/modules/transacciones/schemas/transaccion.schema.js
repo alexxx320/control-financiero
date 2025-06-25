@@ -35,6 +35,15 @@ __decorate([
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], Transaccion.prototype, "fondoId", void 0);
 __decorate([
+    (0, mongoose_1.Prop)({
+        required: false,
+        type: mongoose_2.Types.ObjectId,
+        ref: 'Fondo',
+        index: true
+    }),
+    __metadata("design:type", mongoose_2.Types.ObjectId)
+], Transaccion.prototype, "fondoDestinoId", void 0);
+__decorate([
     (0, mongoose_1.Prop)({ required: true, trim: true }),
     __metadata("design:type", String)
 ], Transaccion.prototype, "descripcion", void 0);

@@ -2,7 +2,8 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Transaccion, TransaccionDocument } from './schemas/transaccion.schema';
-import { CreateTransaccionDto, UpdateTransaccionDto, FiltroTransaccionesDto } from '@/common/dto/transaccion.dto';
+import { CreateTransaccionDto, UpdateTransaccionDto, FiltroTransaccionesDto, CreateTransferenciaDto } from '@/common/dto/transaccion.dto';
+import { TipoTransaccion, CategoriaTransaccion } from '@/common/interfaces/financiero.interface';
 import { FondosService } from '../fondos/fondos.service';
 
 @Injectable()
@@ -27,7 +28,7 @@ export class TransaccionesService {
     // ACTUALIZAR EL SALDO DEL FONDO
     await this.fondosService.actualizarSaldo(
       createTransaccionDto.fondoId, 
-      createTransaccionDto.tipo, 
+      createTransaccionDto.tipo as TipoTransaccion, 
       createTransaccionDto.monto, 
       usuarioId
     );
@@ -47,6 +48,96 @@ export class TransaccionesService {
       .findById(transaccionGuardada._id)
       .populate('fondoId', 'nombre tipo')
       .exec();
+  }
+
+  async createTransferencia(createTransferenciaDto: CreateTransferenciaDto, usuarioId: string): Promise<{
+    transaccionOrigen: Transaccion;
+    transaccionDestino: Transaccion;
+  }> {
+    console.log('🔄 CREAR TRANSFERENCIA - Moviendo dinero entre fondos');
+    console.log('📊 Datos de transferencia:', createTransferenciaDto);
+    
+    const { fondoOrigenId, fondoDestinoId, monto, descripcion, notas, fecha } = createTransferenciaDto;
+    
+    // Validar que los fondos sean diferentes
+    if (fondoOrigenId === fondoDestinoId) {
+      throw new BadRequestException('No se puede transferir al mismo fondo');
+    }
+    
+    // Verificar que ambos fondos existen y pertenecen al usuario
+    const [fondoOrigen, fondoDestino] = await Promise.all([
+      this.fondosService.findOne(fondoOrigenId, usuarioId),
+      this.fondosService.findOne(fondoDestinoId, usuarioId)
+    ]);
+    
+    // Verificar que el fondo origen tiene suficiente saldo
+    if (fondoOrigen.saldoActual < monto) {
+      throw new BadRequestException(
+        `Saldo insuficiente en fondo "${fondoOrigen.nombre}". Saldo disponible: ${fondoOrigen.saldoActual}, monto solicitado: ${monto}`
+      );
+    }
+    
+    const fechaTransferencia = fecha || new Date();
+    const descripcionCompleta = `${descripcion} - Transferencia de "${fondoOrigen.nombre}" a "${fondoDestino.nombre}"`;
+    
+    // 🔄 CAMBIO: Crear transacción de GASTO en fondo origen (el dinero sale)
+    const transaccionOrigen = new this.transaccionModel({
+      usuarioId: new Types.ObjectId(usuarioId),
+      fondoId: new Types.ObjectId(fondoOrigenId),
+      fondoDestinoId: new Types.ObjectId(fondoDestinoId),
+      descripcion: `${descripcionCompleta} (Salida)`,
+      monto,
+      tipo: TipoTransaccion.GASTO,  // 🔄 GASTO porque sale dinero del fondo
+      categoria: CategoriaTransaccion.TRANSFERENCIA,
+      fecha: fechaTransferencia,
+      notas,
+      etiquetas: ['transferencia', 'salida']
+    });
+    
+    // 🔄 CAMBIO: Crear transacción de INGRESO en fondo destino (el dinero entra)
+    const transaccionDestino = new this.transaccionModel({
+      usuarioId: new Types.ObjectId(usuarioId),
+      fondoId: new Types.ObjectId(fondoDestinoId),
+      fondoDestinoId: new Types.ObjectId(fondoOrigenId), // Referencia cruzada
+      descripcion: `${descripcionCompleta} (Entrada)`,
+      monto,
+      tipo: TipoTransaccion.INGRESO,  // 🔄 INGRESO porque entra dinero al fondo
+      categoria: CategoriaTransaccion.TRANSFERENCIA,
+      fecha: fechaTransferencia,
+      notas,
+      etiquetas: ['transferencia', 'entrada']
+    });
+    
+    // Guardar ambas transacciones
+    const [transaccionOrigenGuardada, transaccionDestinoGuardada] = await Promise.all([
+      transaccionOrigen.save(),
+      transaccionDestino.save()
+    ]);
+    
+    // 🔄 CAMBIO: Actualizar saldos usando los tipos correctos (GASTO e INGRESO)
+    await Promise.all([
+      this.fondosService.actualizarSaldo(fondoOrigenId, TipoTransaccion.GASTO, monto, usuarioId),    // Resta del origen
+      this.fondosService.actualizarSaldo(fondoDestinoId, TipoTransaccion.INGRESO, monto, usuarioId) // Suma al destino
+    ]);
+    
+    console.log('✅ Transferencia completada exitosamente');
+    
+    // Retornar ambas transacciones con datos populados
+    const [transaccionOrigenPopulada, transaccionDestinoPopulada] = await Promise.all([
+      this.transaccionModel.findById(transaccionOrigenGuardada._id)
+        .populate('fondoId', 'nombre tipo')
+        .populate('fondoDestinoId', 'nombre tipo')
+        .exec(),
+      this.transaccionModel.findById(transaccionDestinoGuardada._id)
+        .populate('fondoId', 'nombre tipo')
+        .populate('fondoDestinoId', 'nombre tipo')
+        .exec()
+    ]);
+    
+    return {
+      transaccionOrigen: transaccionOrigenPopulada,
+      transaccionDestino: transaccionDestinoPopulada
+    };
   }
 
   async findAll(usuarioId: string, filtros: FiltroTransaccionesDto = {}): Promise<{
@@ -189,7 +280,7 @@ export class TransaccionesService {
     
     // 2. REVERTIR el efecto de la transacción original
     console.log('🔄 PASO 1: Revirtiendo efecto original...');
-    const tipoOriginalInverso = transaccionOriginal.tipo === 'ingreso' ? 'gasto' : 'ingreso';
+    const tipoOriginalInverso = transaccionOriginal.tipo === TipoTransaccion.INGRESO ? TipoTransaccion.GASTO : TipoTransaccion.INGRESO;
     await this.fondosService.actualizarSaldo(
       fondoOriginalId,
       tipoOriginalInverso,
@@ -209,7 +300,7 @@ export class TransaccionesService {
     console.log('🔄 PASO 2: Aplicando nuevos valores...');
     await this.fondosService.actualizarSaldo(
       nuevoFondoId,
-      nuevoTipo,
+      nuevoTipo as TipoTransaccion,
       nuevoMonto,
       usuarioId
     );
@@ -259,7 +350,7 @@ export class TransaccionesService {
     
     // 2. REVERTIR el efecto en el saldo del fondo
     console.log('🔄 Revirtiendo efecto en el saldo...');
-    const tipoInverso = transaccion.tipo === 'ingreso' ? 'gasto' : 'ingreso';
+    const tipoInverso = transaccion.tipo === TipoTransaccion.INGRESO ? TipoTransaccion.GASTO : TipoTransaccion.INGRESO;
     await this.fondosService.actualizarSaldo(
       fondoId,
       tipoInverso,
@@ -318,6 +409,7 @@ export class TransaccionesService {
     gastos: number;
     balance: number;
     transacciones: number;
+    transferencias: number;
   }> {
     const fechaInicio = new Date(año, mes - 1, 1);
     const fechaFin = new Date(año, mes, 0, 23, 59, 59);
@@ -335,14 +427,40 @@ export class TransaccionesService {
       {
         $group: {
           _id: null,
+          // 🔄 CAMBIO: Excluir transferencias de ingresos
           ingresos: {
             $sum: {
-              $cond: [{ $eq: ['$tipo', 'ingreso'] }, '$monto', 0]
+              $cond: [
+                { 
+                  $and: [
+                    { $eq: ['$tipo', 'ingreso'] },
+                    { $ne: ['$categoria', 'transferencia'] } // ✅ Excluir transferencias
+                  ]
+                }, 
+                '$monto', 
+                0
+              ]
             }
           },
+          // 🔄 CAMBIO: Excluir transferencias de gastos
           gastos: {
             $sum: {
-              $cond: [{ $eq: ['$tipo', 'gasto'] }, '$monto', 0]
+              $cond: [
+                { 
+                  $and: [
+                    { $eq: ['$tipo', 'gasto'] },
+                    { $ne: ['$categoria', 'transferencia'] } // ✅ Excluir transferencias
+                  ]
+                }, 
+                '$monto', 
+                0
+              ]
+            }
+          },
+          // 🆕 NUEVO: Contar transferencias por separado
+          transferencias: {
+            $sum: {
+              $cond: [{ $eq: ['$categoria', 'transferencia'] }, 1, 0]
             }
           },
           transacciones: { $sum: 1 },
@@ -354,11 +472,12 @@ export class TransaccionesService {
           gastos: 1,
           balance: { $subtract: ['$ingresos', '$gastos'] },
           transacciones: 1,
+          transferencias: 1,
           _id: 0,
         },
       },
     ]);
 
-    return resumen[0] || { ingresos: 0, gastos: 0, balance: 0, transacciones: 0 };
+    return resumen[0] || { ingresos: 0, gastos: 0, balance: 0, transacciones: 0, transferencias: 0 };
   }
 }

@@ -1,12 +1,21 @@
 import { TipoTransaccion, CategoriaTransaccion } from '../interfaces/financiero.interface';
 export declare class CreateTransaccionDto {
     fondoId: string;
+    fondoDestinoId?: string;
     descripcion: string;
     monto: number;
     tipo: TipoTransaccion;
     categoria: CategoriaTransaccion;
     notas?: string;
     etiquetas?: string[];
+    fecha?: Date;
+}
+export declare class CreateTransferenciaDto {
+    fondoOrigenId: string;
+    fondoDestinoId: string;
+    monto: number;
+    descripcion: string;
+    notas?: string;
     fecha?: Date;
 }
 export declare class UpdateTransaccionDto {

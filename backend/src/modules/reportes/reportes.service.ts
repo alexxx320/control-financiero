@@ -64,11 +64,11 @@ export class ReportesService {
       console.log(`📊 Transacciones del mes para ${fondo.nombre}: ${transaccionesMes.length}`);
 
       const ingresosMes = transaccionesMes
-        .filter(t => t.tipo === TipoTransaccion.INGRESO)
+        .filter(t => t.tipo === TipoTransaccion.INGRESO && t.categoria !== 'transferencia')
         .reduce((sum, t) => sum + t.monto, 0);
 
       const gastosMes = transaccionesMes
-        .filter(t => t.tipo === TipoTransaccion.GASTO)
+        .filter(t => t.tipo === TipoTransaccion.GASTO && t.categoria !== 'transferencia')
         .reduce((sum, t) => sum + t.monto, 0);
 
       console.log(`💰 ${fondo.nombre} - Ingresos: ${ingresosMes}, Gastos: ${gastosMes}`);
@@ -84,11 +84,11 @@ export class ReportesService {
       console.log(`📈 Transacciones históricas para ${fondo.nombre}: ${todasTransacciones.length}`);
 
       const totalIngresosFondo = todasTransacciones
-        .filter(t => t.tipo === TipoTransaccion.INGRESO)
+        .filter(t => t.tipo === TipoTransaccion.INGRESO && t.categoria !== 'transferencia')
         .reduce((sum, t) => sum + t.monto, 0);
 
       const totalGastosFondo = todasTransacciones
-        .filter(t => t.tipo === TipoTransaccion.GASTO)
+        .filter(t => t.tipo === TipoTransaccion.GASTO && t.categoria !== 'transferencia')
         .reduce((sum, t) => sum + t.monto, 0);
 
       // Usar el saldo actual del fondo directamente
@@ -159,11 +159,11 @@ export class ReportesService {
         .exec();
 
       const totalIngresos = transacciones
-        .filter(t => t.tipo === TipoTransaccion.INGRESO)
+        .filter(t => t.tipo === TipoTransaccion.INGRESO && t.categoria !== 'transferencia')
         .reduce((sum, t) => sum + t.monto, 0);
 
       const totalGastos = transacciones
-        .filter(t => t.tipo === TipoTransaccion.GASTO)
+        .filter(t => t.tipo === TipoTransaccion.GASTO && t.categoria !== 'transferencia')
         .reduce((sum, t) => sum + t.monto, 0);
 
       const balance = totalIngresos - totalGastos;
@@ -248,11 +248,11 @@ export class ReportesService {
     ]);
 
     const totalIngresos = transacciones
-      .filter(t => t.tipo === TipoTransaccion.INGRESO)
+      .filter(t => t.tipo === TipoTransaccion.INGRESO && t.categoria !== 'transferencia')
       .reduce((sum, t) => sum + t.monto, 0);
 
     const totalGastos = transacciones
-      .filter(t => t.tipo === TipoTransaccion.GASTO)
+      .filter(t => t.tipo === TipoTransaccion.GASTO && t.categoria !== 'transferencia')
       .reduce((sum, t) => sum + t.monto, 0);
 
     const balanceTotal = totalIngresos - totalGastos;
@@ -271,12 +271,12 @@ export class ReportesService {
       );
 
       const ingresosFondo = transaccionesFondo
-        .filter(t => t.tipo === TipoTransaccion.INGRESO)
-        .reduce((sum, t) => sum + t.monto, 0);
+      .filter(t => t.tipo === TipoTransaccion.INGRESO && t.categoria !== 'transferencia')
+      .reduce((sum, t) => sum + t.monto, 0);
 
       const gastosFondo = transaccionesFondo
-        .filter(t => t.tipo === TipoTransaccion.GASTO)
-        .reduce((sum, t) => sum + t.monto, 0);
+      .filter(t => t.tipo === TipoTransaccion.GASTO && t.categoria !== 'transferencia')
+      .reduce((sum, t) => sum + t.monto, 0);
 
       const balanceFondo = ingresosFondo - gastosFondo;
 
@@ -304,7 +304,7 @@ export class ReportesService {
     fechaInicio.setMonth(fechaInicio.getMonth() - 12);
 
     const gastosUltimoAño = transacciones
-      .filter(t => t.tipo === TipoTransaccion.GASTO && t.fecha >= fechaInicio)
+      .filter(t => t.tipo === TipoTransaccion.GASTO && t.categoria !== 'transferencia' && t.fecha >= fechaInicio)
       .reduce((sum, t) => sum + t.monto, 0);
 
     const promedioGastoMensual = gastosUltimoAño / 12;
@@ -434,11 +434,11 @@ export class ReportesService {
       console.log(`📊 Transacciones del período para ${fondo.nombre}: ${transaccionesPeriodo.length}`);
 
       const ingresosPeriodo = transaccionesPeriodo
-        .filter(t => t.tipo === TipoTransaccion.INGRESO)
+        .filter(t => t.tipo === TipoTransaccion.INGRESO && t.categoria !== 'transferencia')
         .reduce((sum, t) => sum + t.monto, 0);
 
       const gastosPeriodo = transaccionesPeriodo
-        .filter(t => t.tipo === TipoTransaccion.GASTO)
+        .filter(t => t.tipo === TipoTransaccion.GASTO && t.categoria !== 'transferencia')
         .reduce((sum, t) => sum + t.monto, 0);
 
       console.log(`💰 ${fondo.nombre} - Ingresos: ${ingresosPeriodo}, Gastos: ${gastosPeriodo}`);
@@ -453,11 +453,11 @@ export class ReportesService {
         .exec();
 
       const ingresosAnteriores = todasTransaccionesAnteriores
-        .filter(t => t.tipo === TipoTransaccion.INGRESO)
+        .filter(t => t.tipo === TipoTransaccion.INGRESO && t.categoria !== 'transferencia')
         .reduce((sum, t) => sum + t.monto, 0);
 
       const gastosAnteriores = todasTransaccionesAnteriores
-        .filter(t => t.tipo === TipoTransaccion.GASTO)
+        .filter(t => t.tipo === TipoTransaccion.GASTO && t.categoria !== 'transferencia')
         .reduce((sum, t) => sum + t.monto, 0);
 
       const balanceInicial = ingresosAnteriores - gastosAnteriores;
@@ -566,11 +566,14 @@ export class ReportesService {
       usuarioId: new Types.ObjectId(usuarioId)
     }).exec();
     
-    return transacciones
-      .filter(t => t.tipo === TipoTransaccion.INGRESO)
-      .reduce((sum, t) => sum + t.monto, 0) - 
-      transacciones
-      .filter(t => t.tipo === TipoTransaccion.GASTO)
+    const totalIngresos = transacciones
+      .filter(t => t.tipo === TipoTransaccion.INGRESO && t.categoria !== 'transferencia')
       .reduce((sum, t) => sum + t.monto, 0);
+      
+    const totalGastos = transacciones
+      .filter(t => t.tipo === TipoTransaccion.GASTO && t.categoria !== 'transferencia')
+      .reduce((sum, t) => sum + t.monto, 0);
+    
+    return totalIngresos - totalGastos;
   }
 }

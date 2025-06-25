@@ -52,10 +52,10 @@ let ReportesService = class ReportesService {
                 .exec();
             console.log(`📊 Transacciones del mes para ${fondo.nombre}: ${transaccionesMes.length}`);
             const ingresosMes = transaccionesMes
-                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.INGRESO)
+                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.INGRESO && t.categoria !== 'transferencia')
                 .reduce((sum, t) => sum + t.monto, 0);
             const gastosMes = transaccionesMes
-                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.GASTO)
+                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.GASTO && t.categoria !== 'transferencia')
                 .reduce((sum, t) => sum + t.monto, 0);
             console.log(`💰 ${fondo.nombre} - Ingresos: ${ingresosMes}, Gastos: ${gastosMes}`);
             const todasTransacciones = await this.transaccionModel
@@ -66,10 +66,10 @@ let ReportesService = class ReportesService {
                 .exec();
             console.log(`📈 Transacciones históricas para ${fondo.nombre}: ${todasTransacciones.length}`);
             const totalIngresosFondo = todasTransacciones
-                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.INGRESO)
+                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.INGRESO && t.categoria !== 'transferencia')
                 .reduce((sum, t) => sum + t.monto, 0);
             const totalGastosFondo = todasTransacciones
-                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.GASTO)
+                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.GASTO && t.categoria !== 'transferencia')
                 .reduce((sum, t) => sum + t.monto, 0);
             const balanceFinal = fondo.saldoActual;
             const balanceInicial = balanceFinal - (ingresosMes - gastosMes);
@@ -126,10 +126,10 @@ let ReportesService = class ReportesService {
             })
                 .exec();
             const totalIngresos = transacciones
-                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.INGRESO)
+                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.INGRESO && t.categoria !== 'transferencia')
                 .reduce((sum, t) => sum + t.monto, 0);
             const totalGastos = transacciones
-                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.GASTO)
+                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.GASTO && t.categoria !== 'transferencia')
                 .reduce((sum, t) => sum + t.monto, 0);
             const balance = totalIngresos - totalGastos;
             if (balance < 0) {
@@ -197,10 +197,10 @@ let ReportesService = class ReportesService {
             }).exec(),
         ]);
         const totalIngresos = transacciones
-            .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.INGRESO)
+            .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.INGRESO && t.categoria !== 'transferencia')
             .reduce((sum, t) => sum + t.monto, 0);
         const totalGastos = transacciones
-            .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.GASTO)
+            .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.GASTO && t.categoria !== 'transferencia')
             .reduce((sum, t) => sum + t.monto, 0);
         const balanceTotal = totalIngresos - totalGastos;
         const sumaTotalFondos = fondos.reduce((sum, fondo) => sum + (fondo.saldoActual || 0), 0);
@@ -210,10 +210,10 @@ let ReportesService = class ReportesService {
         for (const fondo of fondos) {
             const transaccionesFondo = transacciones.filter(t => t.fondoId.toString() === fondo._id.toString());
             const ingresosFondo = transaccionesFondo
-                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.INGRESO)
+                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.INGRESO && t.categoria !== 'transferencia')
                 .reduce((sum, t) => sum + t.monto, 0);
             const gastosFondo = transaccionesFondo
-                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.GASTO)
+                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.GASTO && t.categoria !== 'transferencia')
                 .reduce((sum, t) => sum + t.monto, 0);
             const balanceFondo = ingresosFondo - gastosFondo;
             if (balanceFondo > mayorBalance) {
@@ -232,7 +232,7 @@ let ReportesService = class ReportesService {
         const fechaInicio = new Date();
         fechaInicio.setMonth(fechaInicio.getMonth() - 12);
         const gastosUltimoAño = transacciones
-            .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.GASTO && t.fecha >= fechaInicio)
+            .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.GASTO && t.categoria !== 'transferencia' && t.fecha >= fechaInicio)
             .reduce((sum, t) => sum + t.monto, 0);
         const promedioGastoMensual = gastosUltimoAño / 12;
         return {
@@ -313,10 +313,10 @@ let ReportesService = class ReportesService {
                 .exec();
             console.log(`📊 Transacciones del período para ${fondo.nombre}: ${transaccionesPeriodo.length}`);
             const ingresosPeriodo = transaccionesPeriodo
-                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.INGRESO)
+                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.INGRESO && t.categoria !== 'transferencia')
                 .reduce((sum, t) => sum + t.monto, 0);
             const gastosPeriodo = transaccionesPeriodo
-                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.GASTO)
+                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.GASTO && t.categoria !== 'transferencia')
                 .reduce((sum, t) => sum + t.monto, 0);
             console.log(`💰 ${fondo.nombre} - Ingresos: ${ingresosPeriodo}, Gastos: ${gastosPeriodo}`);
             const todasTransaccionesAnteriores = await this.transaccionModel
@@ -327,10 +327,10 @@ let ReportesService = class ReportesService {
             })
                 .exec();
             const ingresosAnteriores = todasTransaccionesAnteriores
-                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.INGRESO)
+                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.INGRESO && t.categoria !== 'transferencia')
                 .reduce((sum, t) => sum + t.monto, 0);
             const gastosAnteriores = todasTransaccionesAnteriores
-                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.GASTO)
+                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.GASTO && t.categoria !== 'transferencia')
                 .reduce((sum, t) => sum + t.monto, 0);
             const balanceInicial = ingresosAnteriores - gastosAnteriores;
             const balanceFinal = balanceInicial + (ingresosPeriodo - gastosPeriodo);
@@ -416,12 +416,13 @@ let ReportesService = class ReportesService {
         const transacciones = await this.transaccionModel.find({
             usuarioId: new mongoose_2.Types.ObjectId(usuarioId)
         }).exec();
-        return transacciones
-            .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.INGRESO)
-            .reduce((sum, t) => sum + t.monto, 0) -
-            transacciones
-                .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.GASTO)
-                .reduce((sum, t) => sum + t.monto, 0);
+        const totalIngresos = transacciones
+            .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.INGRESO && t.categoria !== 'transferencia')
+            .reduce((sum, t) => sum + t.monto, 0);
+        const totalGastos = transacciones
+            .filter(t => t.tipo === financiero_interface_1.TipoTransaccion.GASTO && t.categoria !== 'transferencia')
+            .reduce((sum, t) => sum + t.monto, 0);
+        return totalIngresos - totalGastos;
     }
 };
 exports.ReportesService = ReportesService;

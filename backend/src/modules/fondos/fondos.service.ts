@@ -4,6 +4,7 @@ import { Model, Types } from 'mongoose';
 import { Fondo, FondoDocument } from './schemas/fondo.schema';
 import { Transaccion, TransaccionDocument } from '../transacciones/schemas/transaccion.schema';
 import { CreateFondoDto, UpdateFondoDto } from '@/common/dto/fondo.dto';
+import { TipoTransaccion } from '@/common/interfaces/financiero.interface';
 
 @Injectable()
 export class FondosService {
@@ -215,12 +216,20 @@ export class FondosService {
   /**
    * Actualizar saldo del fondo cuando hay transacciones
    */
-  async actualizarSaldo(fondoId: string, tipo: 'ingreso' | 'gasto', monto: number, usuarioId: string): Promise<Fondo> {
+  async actualizarSaldo(fondoId: string, tipo: TipoTransaccion, monto: number, usuarioId: string): Promise<Fondo> {
     const fondo = await this.findOne(fondoId, usuarioId);
     
-    const nuevoSaldo = tipo === 'ingreso' 
-      ? fondo.saldoActual + monto
-      : fondo.saldoActual - monto;
+    let nuevoSaldo: number;
+    
+    // Para transferencias, el tipo ya viene como INGRESO o GASTO desde el servicio de transacciones
+    // No necesitamos manejar TRANSFERENCIA aquí directamente
+    if (tipo === TipoTransaccion.INGRESO) {
+      nuevoSaldo = fondo.saldoActual + monto;
+    } else if (tipo === TipoTransaccion.GASTO) {
+      nuevoSaldo = fondo.saldoActual - monto;
+    } else {
+      throw new BadRequestException(`Tipo de transacción no válido para actualizar saldo: ${tipo}`);
+    }
     
     // Permitir saldos negativos pero registrar la situación
     if (nuevoSaldo < 0) {

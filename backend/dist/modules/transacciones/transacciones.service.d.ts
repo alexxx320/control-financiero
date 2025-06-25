@@ -1,12 +1,16 @@
 import { Model } from 'mongoose';
 import { Transaccion, TransaccionDocument } from './schemas/transaccion.schema';
-import { CreateTransaccionDto, UpdateTransaccionDto, FiltroTransaccionesDto } from '@/common/dto/transaccion.dto';
+import { CreateTransaccionDto, UpdateTransaccionDto, FiltroTransaccionesDto, CreateTransferenciaDto } from '@/common/dto/transaccion.dto';
 import { FondosService } from '../fondos/fondos.service';
 export declare class TransaccionesService {
     private transaccionModel;
     private fondosService;
     constructor(transaccionModel: Model<TransaccionDocument>, fondosService: FondosService);
     create(createTransaccionDto: CreateTransaccionDto, usuarioId: string): Promise<Transaccion>;
+    createTransferencia(createTransferenciaDto: CreateTransferenciaDto, usuarioId: string): Promise<{
+        transaccionOrigen: Transaccion;
+        transaccionDestino: Transaccion;
+    }>;
     findAll(usuarioId: string, filtros?: FiltroTransaccionesDto): Promise<{
         transacciones: Transaccion[];
         total: number;
@@ -28,5 +32,6 @@ export declare class TransaccionesService {
         gastos: number;
         balance: number;
         transacciones: number;
+        transferencias: number;
     }>;
 }

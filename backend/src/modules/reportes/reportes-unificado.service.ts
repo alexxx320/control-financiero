@@ -47,9 +47,9 @@ export class ReportesUnificadoService {
       let gastos = 0;
       
       for (const trans of transacciones) {
-        if (trans.tipo === 'ingreso') {
+        if (trans.tipo === 'ingreso' && trans.categoria !== 'transferencia') {
           ingresos += trans.monto;
-        } else {
+        } else if (trans.tipo === 'gasto' && trans.categoria !== 'transferencia') {
           gastos += trans.monto;
         }
       }
@@ -150,7 +150,8 @@ export class ReportesUnificadoService {
         $match: {
           fondo: { $in: fondosIds },
           fecha: { $gte: fechaInicio, $lte: fechaFin },
-          tipo: 'gasto'
+          tipo: 'gasto',
+          categoria: { $ne: 'transferencia' } // Excluir transferencias
         }
       },
       {
@@ -198,7 +199,8 @@ export class ReportesUnificadoService {
       {
         $match: {
           fondo: { $in: fondosIds },
-          fecha: { $gte: fechaInicio, $lte: fechaFin }
+          fecha: { $gte: fechaInicio, $lte: fechaFin },
+          categoria: { $ne: 'transferencia' } // Excluir transferencias
         }
       },
       {
@@ -228,9 +230,9 @@ export class ReportesUnificadoService {
       let balance = 0;
       
       for (const trans of transacciones) {
-        if (trans.tipo === 'ingreso') {
+        if (trans.tipo === 'ingreso' && trans.categoria !== 'transferencia') {
           balance += trans.monto;
-        } else {
+        } else if (trans.tipo === 'gasto' && trans.categoria !== 'transferencia') {
           balance -= trans.monto;
         }
       }

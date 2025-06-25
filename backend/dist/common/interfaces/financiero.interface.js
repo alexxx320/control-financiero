@@ -13,6 +13,7 @@ var CategoriaTransaccion;
     CategoriaTransaccion["SALARIO"] = "salario";
     CategoriaTransaccion["REGALO"] = "regalo";
     CategoriaTransaccion["OTROS"] = "otros";
+    CategoriaTransaccion["TRANSFERENCIA"] = "transferencia";
 })(CategoriaTransaccion || (exports.CategoriaTransaccion = CategoriaTransaccion = {}));
 var TipoFondo;
 (function (TipoFondo) {
