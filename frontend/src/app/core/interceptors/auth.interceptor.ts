@@ -2,12 +2,10 @@ import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
 import { Router } from '@angular/router';
-import { AuthService } from '../services/auth.service';
 import { NotificationService } from '../services/notification.service';
 import { environment } from '../../../environments/environment';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const authService = inject(AuthService);
   const router = inject(Router);
   const notificationService = inject(NotificationService);
   
@@ -15,7 +13,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   
   // Solo agregar el token a las peticiones a nuestra API
   if (req.url.includes(environment.apiUrl)) {
-    const token = authService.getToken();
+    // Obtener token directamente del localStorage para evitar dependencia circular
+    const token = localStorage.getItem('cf_auth_token');
     
     if (token) {
       authReq = req.clone({
@@ -24,7 +23,6 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         }
       });
       console.log('✅ AuthInterceptor - Token agregado a:', req.url);
-      console.log('🔑 Token (primeros 30 chars):', token.substring(0, 30) + '...');
     } else {
       console.warn('⚠️ AuthInterceptor - Sin token para:', req.url);
     }
@@ -41,9 +39,15 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       
       if (error.status === 401) {
         console.error('🚫 Error 401 - No autorizado en:', error.url);
-        authService.logout();
-        router.navigate(['/login']);
-        notificationService.warning('Tu sesión ha expirado. Inicia sesión nuevamente.');
+        // Solo hacer logout si es un endpoint de perfil
+        if (error.url?.includes('/perfil')) {
+          localStorage.removeItem('cf_auth_token');
+          localStorage.removeItem('cf_refresh_token');
+          localStorage.removeItem('cf_user_data');
+          localStorage.removeItem('cf_remember_me');
+          router.navigate(['/login']);
+          notificationService.warning('Tu sesión ha expirado. Inicia sesión nuevamente.');
+        }
       } else if (error.status === 403) {
         notificationService.error('No tienes permisos para realizar esta acción');
       } else if (error.status === 0) {

@@ -27,6 +27,22 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
+  @Get('test')
+  @ApiOperation({ summary: 'Test endpoint para verificar que auth funciona' })
+  testAuth() {
+    console.log('🔐 AuthController - Test endpoint accedido');
+    return {
+      message: 'AuthController funcionando correctamente',
+      timestamp: new Date().toISOString(),
+      endpoints: {
+        login: 'POST /api/auth/login',
+        registro: 'POST /api/auth/registro',
+        perfil: 'GET /api/auth/perfil'
+      }
+    };
+  }
+
+  @Public()
   @Post('registro')
   @ApiOperation({ summary: 'Registrar nuevo usuario' })
   @ApiResponse({ 

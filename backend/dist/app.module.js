@@ -18,6 +18,7 @@ const auth_module_1 = require("./modules/auth/auth.module");
 const usuarios_module_1 = require("./modules/usuarios/usuarios.module");
 const jwt_auth_guard_1 = require("./modules/auth/guards/jwt-auth.guard");
 const health_controller_1 = require("./health.controller");
+const app_controller_1 = require("./app.controller");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -41,7 +42,7 @@ exports.AppModule = AppModule = __decorate([
             transacciones_module_1.TransaccionesModule,
             reportes_module_1.ReportesModule,
         ],
-        controllers: [health_controller_1.HealthController],
+        controllers: [health_controller_1.HealthController, app_controller_1.AppController],
         providers: [
             {
                 provide: core_1.APP_GUARD,

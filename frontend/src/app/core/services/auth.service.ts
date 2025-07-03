@@ -327,12 +327,27 @@ export class AuthService {
    * Método para verificar conectividad con el backend
    */
   verificarConectividad(): Observable<boolean> {
-    return this.http.get(`${environment.apiUrl.replace('/api', '')}/health`, { responseType: 'text' })
+    // Intentar el endpoint de test de auth
+    return this.http.get('http://localhost:3000/api/auth/test', { responseType: 'json' })
       .pipe(
-        map(() => true),
-        catchError(() => {
-          console.error('Backend no disponible');
-          return of(false);
+        map((response: any) => {
+          console.log('✅ Backend auth disponible:', response);
+          return true;
+        }),
+        catchError((error) => {
+          console.error('❌ Backend auth test falló:', error);
+          // Intentar endpoint básico
+          return this.http.get('http://localhost:3000/api/health', { responseType: 'json' })
+            .pipe(
+              map((response: any) => {
+                console.log('✅ Backend health disponible:', response);
+                return true;
+              }),
+              catchError((healthError) => {
+                console.error('❌ Backend completamente no disponible');
+                return of(false);
+              })
+            );
         })
       );
   }

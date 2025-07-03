@@ -12,7 +12,8 @@ export declare enum CategoriaTransaccion {
 }
 export declare enum TipoFondo {
     REGISTRO = "registro",
-    AHORRO = "ahorro"
+    AHORRO = "ahorro",
+    PRESTAMO = "prestamo"
 }
 export declare enum TipoAlerta {
     INFO = "info",

@@ -1,0 +1,6 @@
+# Este archivo fue eliminado temporalmente para evitar errores de compilación.
+# El contenido se movió a main.ts con imports dinámicos.
+# 
+# Para reinstalar las dependencias de seguridad:
+# npm install helmet cookie-parser express-rate-limit
+# npm install --save-dev @types/cookie-parser

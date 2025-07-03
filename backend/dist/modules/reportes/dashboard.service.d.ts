@@ -26,7 +26,7 @@ export declare class DashboardService {
         labels: any[];
         ingresos: any[];
         gastos: any[];
-        periodo: "mes" | "hora" | "dia" | "semana";
+        periodo: "hora" | "dia" | "semana" | "mes";
     }>;
     private determinarPeriodoAgrupacion;
     private agruparTransaccionesPorPeriodo;

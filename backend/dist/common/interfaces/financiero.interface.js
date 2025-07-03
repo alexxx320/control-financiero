@@ -19,6 +19,7 @@ var TipoFondo;
 (function (TipoFondo) {
     TipoFondo["REGISTRO"] = "registro";
     TipoFondo["AHORRO"] = "ahorro";
+    TipoFondo["PRESTAMO"] = "prestamo";
 })(TipoFondo || (exports.TipoFondo = TipoFondo = {}));
 var TipoAlerta;
 (function (TipoAlerta) {

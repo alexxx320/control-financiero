@@ -3,6 +3,15 @@ import { CreateUsuarioDto, LoginDto, AuthResponseDto, CambiarPasswordDto } from 
 export declare class AuthController {
     private readonly authService;
     constructor(authService: AuthService);
+    testAuth(): {
+        message: string;
+        timestamp: string;
+        endpoints: {
+            login: string;
+            registro: string;
+            perfil: string;
+        };
+    };
     registro(createUsuarioDto: CreateUsuarioDto): Promise<AuthResponseDto>;
     login(loginDto: LoginDto): Promise<AuthResponseDto>;
     obtenerPerfil(user: any): Promise<{

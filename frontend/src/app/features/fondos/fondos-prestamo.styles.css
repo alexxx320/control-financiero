@@ -1,0 +1,50 @@
+/* 🎨 ESTILOS ADICIONALES PARA FONDOS DE PRÉSTAMO */
+
+.tipo-item.prestamo {
+  border-left-color: #ff9800;
+}
+
+.tipo-item.prestamo mat-icon {
+  color: #ff9800;
+}
+
+/* Estilos para tarjetas de fondos de préstamo */
+.fondo-card.prestamo {
+  border-left-color: #ff9800;
+}
+
+.fondo-card.prestamo .fondo-avatar {
+  background-color: #ff9800;
+}
+
+/* Indicadores de estado para préstamos */
+.estado-activo {
+  color: #2196f3;
+  background-color: rgba(33, 150, 243, 0.1);
+}
+
+.estado-pagado {
+  color: #4caf50;
+  background-color: rgba(76, 175, 80, 0.1);
+}
+
+.estado-vencido {
+  color: #f44336;
+  background-color: rgba(244, 67, 54, 0.1);
+}
+
+.estado-parcial {
+  color: #ff9800;
+  background-color: rgba(255, 152, 0, 0.1);
+}
+
+/* Alertas para préstamos vencidos */
+.alerta-vencido {
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  color: #856404;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  font-size: 0.9em;
+}

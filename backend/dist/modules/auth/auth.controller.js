@@ -24,6 +24,18 @@ let AuthController = class AuthController {
     constructor(authService) {
         this.authService = authService;
     }
+    testAuth() {
+        console.log('🔐 AuthController - Test endpoint accedido');
+        return {
+            message: 'AuthController funcionando correctamente',
+            timestamp: new Date().toISOString(),
+            endpoints: {
+                login: 'POST /api/auth/login',
+                registro: 'POST /api/auth/registro',
+                perfil: 'GET /api/auth/perfil'
+            }
+        };
+    }
     async registro(createUsuarioDto) {
         return await this.authService.registro(createUsuarioDto);
     }
@@ -66,6 +78,14 @@ let AuthController = class AuthController {
     }
 };
 exports.AuthController = AuthController;
+__decorate([
+    (0, public_decorator_1.Public)(),
+    (0, common_1.Get)('test'),
+    (0, swagger_1.ApiOperation)({ summary: 'Test endpoint para verificar que auth funciona' }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], AuthController.prototype, "testAuth", null);
 __decorate([
     (0, public_decorator_1.Public)(),
     (0, common_1.Post)('registro'),
