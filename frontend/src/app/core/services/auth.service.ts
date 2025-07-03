@@ -278,7 +278,7 @@ export class AuthService {
    * Obtener token del localStorage
    */
   getToken(): string | null {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('cf_auth_token');
     // Solo hacer log cuando es necesario para debugging
     return token;
   }
@@ -295,7 +295,7 @@ export class AuthService {
    */
   private setToken(token: string): void {
     console.log('💾 Guardando token en localStorage:', token.substring(0, 20) + '...');
-    localStorage.setItem('auth_token', token);
+    localStorage.setItem('cf_auth_token', token);
     console.log('✅ Token guardado exitosamente');
   }
 
@@ -304,7 +304,7 @@ export class AuthService {
    */
   private limpiarSesion(): void {
     console.log('🧽 Limpiando sesión completa...');
-    localStorage.removeItem('auth_token');
+    localStorage.removeItem('cf_auth_token');
     this.currentUserSubject.next(null);
     this.isLoggedInSubject.next(false);
     console.log('✅ Sesión limpiada - usuario deslogueado');
@@ -328,7 +328,7 @@ export class AuthService {
    */
   verificarConectividad(): Observable<boolean> {
     // Intentar el endpoint de test de auth
-    return this.http.get('http://localhost:3000/api/auth/test', { responseType: 'json' })
+    return this.http.get(`${this.apiUrl}/test`, { responseType: 'json' })
       .pipe(
         map((response: any) => {
           console.log('✅ Backend auth disponible:', response);
@@ -336,8 +336,8 @@ export class AuthService {
         }),
         catchError((error) => {
           console.error('❌ Backend auth test falló:', error);
-          // Intentar endpoint básico
-          return this.http.get('http://localhost:3000/api/health', { responseType: 'json' })
+          // Intentar endpoint básico de health
+          return this.http.get(`${environment.apiUrl}/health`, { responseType: 'json' })
             .pipe(
               map((response: any) => {
                 console.log('✅ Backend health disponible:', response);
