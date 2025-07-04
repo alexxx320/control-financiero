@@ -26,6 +26,9 @@ import { TransaccionDialogComponent } from '../transacciones/transaccion-dialog.
 import { TransaccionService } from '../../core/services/transaccion.service';
 import { CategoriaTransaccion } from '../../core/models/transaccion.model';
 
+// 🆕 NUEVO: Importar directiva de formato de números
+import { NumberFormatDirective } from '../../shared/directives/number-format.directive';
+
 @Component({
   selector: 'app-fondos',
   standalone: true,
@@ -44,7 +47,8 @@ import { CategoriaTransaccion } from '../../core/models/transaccion.model';
     MatProgressBarModule,
     MatChipsModule,
     MatGridListModule,
-    MatTooltipModule // 🆕 NUEVO
+    MatTooltipModule, // 🆕 NUEVO
+    NumberFormatDirective // 🆕 NUEVO: Directiva para formatear números
   ],
   template: `
     <div class="fondos-container">
@@ -108,8 +112,9 @@ import { CategoriaTransaccion } from '../../core/models/transaccion.model';
                 <mat-label>
                   {{ tipoSeleccionado === 'prestamo' ? 'Monto Prestado (se convertirá a negativo)' : 'Saldo ' + (fondoEditando ? 'Actual' : 'Inicial') }}
                 </mat-label>
-                <input matInput type="number" formControlName="saldoActual" 
-                       [placeholder]="tipoSeleccionado === 'prestamo' ? 'Ej: 100000 (se guardará como -100000)' : '0'" 
+                <input matInput type="text" formControlName="saldoActual" 
+                       appNumberFormat
+                       [placeholder]="tipoSeleccionado === 'prestamo' ? 'Ej: 100.000 (se guardará como -100.000)' : '0'" 
                        step="0.01">
                 <span matTextPrefix>$</span>
                 <mat-hint *ngIf="tipoSeleccionado === 'prestamo'">
@@ -128,8 +133,9 @@ import { CategoriaTransaccion } from '../../core/models/transaccion.model';
             <div class="form-row" *ngIf="tipoSeleccionado === 'ahorro'">
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Meta de Ahorro *</mat-label>
-                <input matInput type="number" formControlName="metaAhorro" 
-                       placeholder="Ingresa tu meta (ej: 1000000)" min="1" step="1000" required>
+                <input matInput type="text" formControlName="metaAhorro" 
+                       appNumberFormat
+                       placeholder="Ingresa tu meta (ej: 1.000.000)" min="1" step="1000" required>
                 <span matTextPrefix>$</span>
                 <mat-hint><strong>Obligatorio:</strong> Define tu meta de ahorro para este fondo</mat-hint>
                 <mat-error *ngIf="fondoForm.get('metaAhorro')?.hasError('required')">
@@ -145,8 +151,9 @@ import { CategoriaTransaccion } from '../../core/models/transaccion.model';
             <div class="form-row" *ngIf="tipoSeleccionado === 'prestamo'">
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Monto Total del Préstamo *</mat-label>
-                <input matInput type="number" formControlName="metaAhorro" 
-                       placeholder="Monto total prestado (ej: 100000)" min="1" step="1000" required>
+                <input matInput type="text" formControlName="metaAhorro" 
+                       appNumberFormat
+                       placeholder="Monto total prestado (ej: 100.000)" min="1" step="1000" required>
                 <span matTextPrefix>$</span>
                 <mat-hint><strong>Obligatorio:</strong> El monto total que prestaste (usado para calcular el progreso de pago)</mat-hint>
                 <mat-error *ngIf="fondoForm.get('metaAhorro')?.hasError('required')">
@@ -162,8 +169,9 @@ import { CategoriaTransaccion } from '../../core/models/transaccion.model';
             <div class="form-row" *ngIf="tipoSeleccionado === 'deuda'">
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Monto Total de la Deuda *</mat-label>
-                <input matInput type="number" formControlName="metaAhorro" 
-                       placeholder="Monto total que debes (ej: 50000)" min="1" step="1000" required>
+                <input matInput type="text" formControlName="metaAhorro" 
+                       appNumberFormat
+                       placeholder="Monto total que debes (ej: 50.000)" min="1" step="1000" required>
                 <span matTextPrefix>$</span>
                 <mat-hint><strong>Obligatorio:</strong> El monto total que debes (usado para calcular el progreso de pago)</mat-hint>
                 <mat-error *ngIf="fondoForm.get('metaAhorro')?.hasError('required')">
@@ -217,7 +225,7 @@ import { CategoriaTransaccion } from '../../core/models/transaccion.model';
                   {{ PrestamoUtils.esPrestamo(fondo) ? PrestamoUtils.getTextoSaldo(fondo) : DeudaUtils.esDeuda(fondo) ? DeudaUtils.getTextoSaldo(fondo) : (fondo.saldoActual >= 0 ? 'Saldo Actual:' : 'Deuda Actual:') }}
                 </div>
                 <div class="saldo-valor" [class]="fondo.saldoActual >= 0 ? 'saldo-positivo' : 'saldo-negativo'">
-                  {{ PrestamoUtils.esPrestamo(fondo) ? PrestamoUtils.formatearMonto(fondo) : DeudaUtils.esDeuda(fondo) ? DeudaUtils.formatearMonto(fondo) : (fondo.saldoActual >= 0 ? fondo.saldoActual : -fondo.saldoActual) | currency:'COP':'symbol':'1.0-0' }}
+                  {{ PrestamoUtils.esPrestamo(fondo) ? (PrestamoUtils.formatearMonto(fondo) | currency:'COP':'symbol':'1.0-0') : DeudaUtils.esDeuda(fondo) ? (DeudaUtils.formatearMonto(fondo) | currency:'COP':'symbol':'1.0-0') : (fondo.saldoActual >= 0 ? fondo.saldoActual : -fondo.saldoActual) | currency:'COP':'symbol':'1.0-0' }}
                 </div>
               </div>
 

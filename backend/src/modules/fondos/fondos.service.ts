@@ -305,7 +305,7 @@ export class FondosService {
     
     let nuevoSaldo: number;
     
-    // 🔧 CORREGIDO FINAL: Lógica correcta para deudas según requerimiento
+    // 🔧 CORREGIDO FINAL: Lógica correcta para deudas y préstamos según requerimiento
     if (fondo.tipo === 'deuda') {
       // Para DEUDAS: Lógica específica del negocio
       // - INGRESO (nueva deuda): Aumenta total deuda Y saldo negativo ✅
@@ -346,8 +346,49 @@ export class FondosService {
       } else {
         throw new BadRequestException(`Tipo de transacción no válido para actualizar saldo de deuda: ${tipo}`);
       }
+      
+    } else if (fondo.tipo === 'prestamo') {
+      // Para PRÉSTAMOS: Lógica específica del negocio
+      // - INGRESO (cobro de préstamo): Solo mejora saldo (acerca a 0), meta se mantiene ✅
+      // - GASTO (nuevo préstamo): Aumenta total prestado Y saldo negativo ✅
+      if (tipo === TipoTransaccion.INGRESO) {
+        // 💰 COBRO DE PRÉSTAMO: Solo mejorar saldo (acercar a 0), meta se mantiene
+        nuevoSaldo = fondo.saldoActual + monto; // Mejora el saldo (menos negativo)
+        console.log(`💰 PRÉSTAMO - Cobro realizado: ${monto}, saldo anterior: ${fondo.saldoActual}, nuevo saldo: ${nuevoSaldo}`);
+        console.log(`🎯 PRÉSTAMO - Préstamo total se mantiene: ${fondo.metaAhorro} (sin cambios)`);
+        
+        // Solo actualizar el saldo, mantener la meta igual
+        return await this.fondoModel
+          .findOneAndUpdate(
+            { _id: fondoId, usuarioId: new Types.ObjectId(usuarioId) },
+            { saldoActual: nuevoSaldo }, // Solo cambiar saldo
+            { new: true }
+          )
+          .exec();
+          
+      } else if (tipo === TipoTransaccion.GASTO) {
+        // 💳 NUEVO PRÉSTAMO: Aumentar total prestado Y empeorar saldo
+        nuevoSaldo = fondo.saldoActual - monto; // Empeora el saldo (más negativo)
+        const nuevaMeta = fondo.metaAhorro + monto; // Aumenta total prestado
+        console.log(`💳 PRÉSTAMO - Nuevo préstamo otorgado: ${monto}, saldo anterior: ${fondo.saldoActual}, nuevo saldo: ${nuevoSaldo}`);
+        console.log(`🎯 PRÉSTAMO - Préstamo total actualizado: ${fondo.metaAhorro} → ${nuevaMeta}`);
+        
+        // Actualizar tanto saldo como meta
+        return await this.fondoModel
+          .findOneAndUpdate(
+            { _id: fondoId, usuarioId: new Types.ObjectId(usuarioId) },
+            { 
+              saldoActual: nuevoSaldo,
+              metaAhorro: nuevaMeta
+            },
+            { new: true }
+          )
+          .exec();
+      } else {
+        throw new BadRequestException(`Tipo de transacción no válido para actualizar saldo de préstamo: ${tipo}`);
+      }
     } else {
-      // Para FONDOS NORMALES (registro, ahorro, préstamo): Lógica NORMAL
+      // Para FONDOS NORMALES (registro, ahorro): Lógica NORMAL
       // - INGRESO: Aumenta el saldo
       // - GASTO: Disminuye el saldo
       if (tipo === TipoTransaccion.INGRESO) {
@@ -359,7 +400,7 @@ export class FondosService {
       }
       
       // Permitir saldos negativos pero registrar la situación para fondos que no sean deuda o préstamo
-      if (nuevoSaldo < 0 && fondo.tipo !== 'prestamo') {
+      if (nuevoSaldo < 0) {
         console.warn(`⚠️ Saldo negativo en fondo "${fondo.nombre}" (tipo: ${fondo.tipo}): ${nuevoSaldo}`);
       }
       

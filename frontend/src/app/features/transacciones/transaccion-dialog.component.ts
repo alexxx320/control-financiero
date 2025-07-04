@@ -15,6 +15,7 @@ import { Transaccion, TipoTransaccion, CategoriaTransaccion, CreateTransferencia
 import { TransaccionService } from '../../core/services/transaccion.service';
 import { Fondo } from '../../core/models/fondo.model';
 import { CategoriaUtils } from '../../shared/utils/categoria.utils';
+import { NumberFormatDirective } from '../../shared/directives/number-format.directive';
 
 export interface TransaccionDialogData {
   transaccion?: Transaccion;
@@ -38,7 +39,8 @@ export interface TransaccionDialogData {
     MatDatepickerModule,
     MatNativeDateModule,
     MatChipsModule,
-    MatIconModule
+    MatIconModule,
+    NumberFormatDirective
   ],
   template: `
     <h2 mat-dialog-title>
@@ -133,7 +135,9 @@ export interface TransaccionDialogData {
         <div class="form-row">
           <mat-form-field appearance="outline" class="half-width">
             <mat-label>Monto</mat-label>
-            <input matInput type="number" formControlName="monto" placeholder="0" min="0.01" step="0.01">
+            <input matInput type="text" formControlName="monto" 
+                   appNumberFormat
+                   placeholder="Ej: 50.000" min="0.01" step="0.01">
             <span matTextPrefix>$</span>
             <mat-error *ngIf="transaccionForm.get('monto')?.hasError('required')">
               El monto es requerido

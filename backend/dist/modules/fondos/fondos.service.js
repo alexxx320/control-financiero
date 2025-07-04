@@ -272,6 +272,31 @@ let FondosService = class FondosService {
                 throw new common_1.BadRequestException(`Tipo de transacción no válido para actualizar saldo de deuda: ${tipo}`);
             }
         }
+        else if (fondo.tipo === 'prestamo') {
+            if (tipo === financiero_interface_1.TipoTransaccion.INGRESO) {
+                nuevoSaldo = fondo.saldoActual + monto;
+                console.log(`💰 PRÉSTAMO - Cobro realizado: ${monto}, saldo anterior: ${fondo.saldoActual}, nuevo saldo: ${nuevoSaldo}`);
+                console.log(`🎯 PRÉSTAMO - Total prestado se mantiene: ${fondo.metaAhorro} (sin cambios)`);
+                return await this.fondoModel
+                    .findOneAndUpdate({ _id: fondoId, usuarioId: new mongoose_2.Types.ObjectId(usuarioId) }, { saldoActual: nuevoSaldo }, { new: true })
+                    .exec();
+            }
+            else if (tipo === financiero_interface_1.TipoTransaccion.GASTO) {
+                nuevoSaldo = fondo.saldoActual - monto;
+                const nuevaMeta = fondo.metaAhorro + monto;
+                console.log(`💳 PRÉSTAMO - Nuevo préstamo otorgado: ${monto}, saldo anterior: ${fondo.saldoActual}, nuevo saldo: ${nuevoSaldo}`);
+                console.log(`🎯 PRÉSTAMO - Total prestado actualizado: ${fondo.metaAhorro} → ${nuevaMeta}`);
+                return await this.fondoModel
+                    .findOneAndUpdate({ _id: fondoId, usuarioId: new mongoose_2.Types.ObjectId(usuarioId) }, {
+                    saldoActual: nuevoSaldo,
+                    metaAhorro: nuevaMeta
+                }, { new: true })
+                    .exec();
+            }
+            else {
+                throw new common_1.BadRequestException(`Tipo de transacción no válido para actualizar saldo de préstamo: ${tipo}`);
+            }
+        }
         else {
             if (tipo === financiero_interface_1.TipoTransaccion.INGRESO) {
                 nuevoSaldo = fondo.saldoActual + monto;
@@ -282,7 +307,7 @@ let FondosService = class FondosService {
             else {
                 throw new common_1.BadRequestException(`Tipo de transacción no válido para actualizar saldo: ${tipo}`);
             }
-            if (nuevoSaldo < 0 && fondo.tipo !== 'prestamo') {
+            if (nuevoSaldo < 0) {
                 console.warn(`⚠️ Saldo negativo en fondo "${fondo.nombre}" (tipo: ${fondo.tipo}): ${nuevoSaldo}`);
             }
             console.log(`🔄 Actualizando saldo de fondo "${fondo.nombre}" (${fondo.tipo}): ${fondo.saldoActual} → ${nuevoSaldo}`);
