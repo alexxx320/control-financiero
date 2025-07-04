@@ -248,6 +248,10 @@ import { CategoriaTransaccion } from '../../core/models/transaccion.model';
               <div class="deuda-info" *ngIf="DeudaUtils.esDeuda(fondo)">
                 <div class="deuda-stats">
                   <div class="stat-item">
+                    <span class="stat-label">Total Deuda:</span>
+                    <span class="stat-value total-deuda">{{ fondo.metaAhorro | currency:'COP':'symbol':'1.0-0' }}</span>
+                  </div>
+                  <div class="stat-item">
                     <span class="stat-label">Monto Pagado:</span>
                     <span class="stat-value pagado">{{ DeudaUtils.calcularProgreso(fondo).montoPagado | currency:'COP':'symbol':'1.0-0' }}</span>
                   </div>
@@ -551,6 +555,11 @@ import { CategoriaTransaccion } from '../../core/models/transaccion.model';
 
     .stat-value.pendiente {
       color: #f44336;
+    }
+
+    .stat-value.total-deuda {
+      color: #d32f2f;
+      font-weight: 700;
     }
 
     .progreso-porcentaje.prestamo {

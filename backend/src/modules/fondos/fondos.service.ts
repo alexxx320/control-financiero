@@ -305,20 +305,17 @@ export class FondosService {
     
     let nuevoSaldo: number;
     
-    // 🆕 NUEVO: Lógica diferente para deudas
+    // 🔧 CORREGIDO FINAL: Lógica correcta para deudas según requerimiento
     if (fondo.tipo === 'deuda') {
-      // Para DEUDAS: Lógica INVERSA
-      // - GASTO (pagar deuda): Disminuye la deuda (saldo se acerca a 0)
-      // - INGRESO (nueva deuda): Aumenta la deuda (saldo se aleja de 0)
-      if (tipo === TipoTransaccion.GASTO) {
-        nuevoSaldo = fondo.saldoActual + monto; // Pagar deuda reduce la deuda
-        console.log(`💵 DEUDA - Pago realizado: ${monto}, saldo anterior: ${fondo.saldoActual}, nuevo saldo: ${nuevoSaldo}`);
-      } else if (tipo === TipoTransaccion.INGRESO) {
-        nuevoSaldo = fondo.saldoActual - monto; // Nueva deuda aumenta la deuda
-        console.log(`💳 DEUDA - Nueva deuda: ${monto}, saldo anterior: ${fondo.saldoActual}, nuevo saldo: ${nuevoSaldo}`);
-        // 🆕 NUEVO: También aumentar la meta cuando se adquiere nueva deuda
-        const nuevaMeta = fondo.metaAhorro + monto;
-        console.log(`🎯 DEUDA - Meta actualizada: ${fondo.metaAhorro} → ${nuevaMeta}`);
+      // Para DEUDAS: Lógica específica del negocio
+      // - INGRESO (nueva deuda): Aumenta total deuda Y saldo negativo ✅
+      // - GASTO (pago de deuda): Solo mejora saldo (acerca a 0) ✅
+      if (tipo === TipoTransaccion.INGRESO) {
+        // 💳 NUEVA DEUDA ADQUIRIDA: Aumentar total deuda Y empeorar saldo
+        nuevoSaldo = fondo.saldoActual - monto; // Empeora el saldo (más negativo)
+        const nuevaMeta = fondo.metaAhorro + monto; // Aumenta total deuda
+        console.log(`💳 DEUDA - Nueva deuda adquirida: ${monto}, saldo anterior: ${fondo.saldoActual}, nuevo saldo: ${nuevoSaldo}`);
+        console.log(`🎯 DEUDA - Total deuda actualizado: ${fondo.metaAhorro} → ${nuevaMeta}`);
         
         // Actualizar tanto saldo como meta
         return await this.fondoModel
@@ -328,6 +325,21 @@ export class FondosService {
               saldoActual: nuevoSaldo,
               metaAhorro: nuevaMeta
             },
+            { new: true }
+          )
+          .exec();
+          
+      } else if (tipo === TipoTransaccion.GASTO) {
+        // 💰 PAGO DE DEUDA: Solo mejorar saldo (acercar a 0), meta se mantiene
+        nuevoSaldo = fondo.saldoActual + monto; // Mejora el saldo (menos negativo)
+        console.log(`💰 DEUDA - Pago realizado: ${monto}, saldo anterior: ${fondo.saldoActual}, nuevo saldo: ${nuevoSaldo}`);
+        console.log(`🎯 DEUDA - Total deuda se mantiene: ${fondo.metaAhorro} (sin cambios)`);
+        
+        // Solo actualizar el saldo, mantener la meta igual
+        return await this.fondoModel
+          .findOneAndUpdate(
+            { _id: fondoId, usuarioId: new Types.ObjectId(usuarioId) },
+            { saldoActual: nuevoSaldo }, // Solo cambiar saldo
             { new: true }
           )
           .exec();
@@ -345,23 +357,23 @@ export class FondosService {
       } else {
         throw new BadRequestException(`Tipo de transacción no válido para actualizar saldo: ${tipo}`);
       }
+      
+      // Permitir saldos negativos pero registrar la situación para fondos que no sean deuda o préstamo
+      if (nuevoSaldo < 0 && fondo.tipo !== 'prestamo') {
+        console.warn(`⚠️ Saldo negativo en fondo "${fondo.nombre}" (tipo: ${fondo.tipo}): ${nuevoSaldo}`);
+      }
+      
+      console.log(`🔄 Actualizando saldo de fondo "${fondo.nombre}" (${fondo.tipo}): ${fondo.saldoActual} → ${nuevoSaldo}`);
+      
+      // Para fondos normales, solo actualizar saldo
+      return await this.fondoModel
+        .findOneAndUpdate(
+          { _id: fondoId, usuarioId: new Types.ObjectId(usuarioId) },
+          { saldoActual: nuevoSaldo },
+          { new: true }
+        )
+        .exec();
     }
-    
-    // Permitir saldos negativos pero registrar la situación
-    if (nuevoSaldo < 0 && fondo.tipo !== 'deuda' && fondo.tipo !== 'prestamo') {
-      console.warn(`⚠️ Saldo negativo en fondo "${fondo.nombre}" (tipo: ${fondo.tipo}): ${nuevoSaldo}`);
-    }
-    
-    console.log(`🔄 Actualizando saldo de fondo "${fondo.nombre}" (${fondo.tipo}): ${fondo.saldoActual} → ${nuevoSaldo}`);
-    
-    // Para deudas con ingreso, ya se actualizó arriba (con meta), para otros casos solo saldo
-    return await this.fondoModel
-      .findOneAndUpdate(
-        { _id: fondoId, usuarioId: new Types.ObjectId(usuarioId) },
-        { saldoActual: nuevoSaldo },
-        { new: true }
-      )
-      .exec();
   }
 
   /**

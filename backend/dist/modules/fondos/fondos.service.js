@@ -248,13 +248,25 @@ let FondosService = class FondosService {
         const fondo = await this.findOne(fondoId, usuarioId);
         let nuevoSaldo;
         if (fondo.tipo === 'deuda') {
-            if (tipo === financiero_interface_1.TipoTransaccion.GASTO) {
-                nuevoSaldo = fondo.saldoActual + monto;
-                console.log(`💵 DEUDA - Pago realizado: ${monto}, saldo anterior: ${fondo.saldoActual}, nuevo saldo: ${nuevoSaldo}`);
-            }
-            else if (tipo === financiero_interface_1.TipoTransaccion.INGRESO) {
+            if (tipo === financiero_interface_1.TipoTransaccion.INGRESO) {
                 nuevoSaldo = fondo.saldoActual - monto;
-                console.log(`💳 DEUDA - Nueva deuda: ${monto}, saldo anterior: ${fondo.saldoActual}, nuevo saldo: ${nuevoSaldo}`);
+                const nuevaMeta = fondo.metaAhorro + monto;
+                console.log(`💳 DEUDA - Nueva deuda adquirida: ${monto}, saldo anterior: ${fondo.saldoActual}, nuevo saldo: ${nuevoSaldo}`);
+                console.log(`🎯 DEUDA - Total deuda actualizado: ${fondo.metaAhorro} → ${nuevaMeta}`);
+                return await this.fondoModel
+                    .findOneAndUpdate({ _id: fondoId, usuarioId: new mongoose_2.Types.ObjectId(usuarioId) }, {
+                    saldoActual: nuevoSaldo,
+                    metaAhorro: nuevaMeta
+                }, { new: true })
+                    .exec();
+            }
+            else if (tipo === financiero_interface_1.TipoTransaccion.GASTO) {
+                nuevoSaldo = fondo.saldoActual + monto;
+                console.log(`💰 DEUDA - Pago realizado: ${monto}, saldo anterior: ${fondo.saldoActual}, nuevo saldo: ${nuevoSaldo}`);
+                console.log(`🎯 DEUDA - Total deuda se mantiene: ${fondo.metaAhorro} (sin cambios)`);
+                return await this.fondoModel
+                    .findOneAndUpdate({ _id: fondoId, usuarioId: new mongoose_2.Types.ObjectId(usuarioId) }, { saldoActual: nuevoSaldo }, { new: true })
+                    .exec();
             }
             else {
                 throw new common_1.BadRequestException(`Tipo de transacción no válido para actualizar saldo de deuda: ${tipo}`);
@@ -270,14 +282,14 @@ let FondosService = class FondosService {
             else {
                 throw new common_1.BadRequestException(`Tipo de transacción no válido para actualizar saldo: ${tipo}`);
             }
+            if (nuevoSaldo < 0 && fondo.tipo !== 'prestamo') {
+                console.warn(`⚠️ Saldo negativo en fondo "${fondo.nombre}" (tipo: ${fondo.tipo}): ${nuevoSaldo}`);
+            }
+            console.log(`🔄 Actualizando saldo de fondo "${fondo.nombre}" (${fondo.tipo}): ${fondo.saldoActual} → ${nuevoSaldo}`);
+            return await this.fondoModel
+                .findOneAndUpdate({ _id: fondoId, usuarioId: new mongoose_2.Types.ObjectId(usuarioId) }, { saldoActual: nuevoSaldo }, { new: true })
+                .exec();
         }
-        if (nuevoSaldo < 0 && fondo.tipo !== 'deuda' && fondo.tipo !== 'prestamo') {
-            console.warn(`⚠️ Saldo negativo en fondo "${fondo.nombre}" (tipo: ${fondo.tipo}): ${nuevoSaldo}`);
-        }
-        console.log(`🔄 Actualizando saldo de fondo "${fondo.nombre}" (${fondo.tipo}): ${fondo.saldoActual} → ${nuevoSaldo}`);
-        return await this.fondoModel
-            .findOneAndUpdate({ _id: fondoId, usuarioId: new mongoose_2.Types.ObjectId(usuarioId) }, { saldoActual: nuevoSaldo }, { new: true })
-            .exec();
     }
     async getEstadisticasPersonalizadas(usuarioId) {
         const fondos = await this.fondoModel
