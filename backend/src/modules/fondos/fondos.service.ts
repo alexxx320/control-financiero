@@ -152,6 +152,67 @@ export class FondosService {
         datosActualizacion.metaAhorro = updateFondoDto.metaAhorro;
       }
       console.log(`🎯 [FONDOS] Actualizando fondo de ahorro con meta: ${datosActualizacion.metaAhorro}`);
+    } else if (tipoFinal === 'prestamo') {
+      // Para fondos de préstamo, meta es OBLIGATORIA si se está proporcionando
+      if (updateFondoDto.metaAhorro !== undefined) {
+        if (updateFondoDto.metaAhorro <= 0) {
+          throw new BadRequestException('La meta del préstamo debe ser mayor a 0');
+        }
+        datosActualizacion.metaAhorro = updateFondoDto.metaAhorro;
+      }
+      console.log(`💵 [FONDOS] Actualizando fondo de préstamo con meta: ${datosActualizacion.metaAhorro}`);
+    } else if (tipoFinal === 'deuda') {
+      // 🆕 NUEVO: Lógica especial para deudas
+      if (updateFondoDto.metaAhorro !== undefined) {
+        if (updateFondoDto.metaAhorro <= 0) {
+          throw new BadRequestException('El monto de la deuda debe ser mayor a 0');
+        }
+        
+        // 🔧 LÓGICA ESPECIAL: Al aumentar deuda, reiniciar progreso
+        const metaAnterior = fondoExistente.metaAhorro || 0;
+        const saldoAnterior = fondoExistente.saldoActual;
+        const montoPagadoActual = metaAnterior + saldoAnterior; // Cuánto se ha pagado hasta ahora
+        
+        console.log(`🔴 [FONDOS] Editando deuda:`);
+        console.log(`  - Meta anterior: ${metaAnterior}`);
+        console.log(`  - Saldo anterior: ${saldoAnterior}`);
+        console.log(`  - Monto pagado actual: ${montoPagadoActual}`);
+        console.log(`  - Nueva meta: ${updateFondoDto.metaAhorro}`);
+        
+        if (updateFondoDto.metaAhorro > metaAnterior) {
+          // 🆕 CASO: AUMENTAR DEUDA (nuevo préstamo)
+          // Reiniciar progreso - la nueva meta es el objetivo completo
+          console.log(`📈 Aumentando deuda: ${metaAnterior} → ${updateFondoDto.metaAhorro}`);
+          console.log(`🔄 Reiniciando progreso - nueva deuda completa: ${updateFondoDto.metaAhorro}`);
+          
+          datosActualizacion.saldoActual = -updateFondoDto.metaAhorro; // Deuda completa
+          
+          console.log(`  - Nuevo saldo: ${datosActualizacion.saldoActual} (deuda completa)`);
+          console.log(`  - Progreso reiniciado: 0% de ${updateFondoDto.metaAhorro}`);
+        } else if (updateFondoDto.metaAhorro < metaAnterior) {
+          // 📉 CASO: DISMINUIR DEUDA (descuento/condonación)
+          // Mantener el monto pagado si es posible
+          console.log(`📉 Disminuyendo deuda: ${metaAnterior} → ${updateFondoDto.metaAhorro}`);
+          
+          if (montoPagadoActual >= updateFondoDto.metaAhorro) {
+            // Ya se pagó más de lo que ahora se debe
+            console.log(`✅ Deuda totalmente pagada (pagado: ${montoPagadoActual}, nueva meta: ${updateFondoDto.metaAhorro})`);
+            datosActualizacion.saldoActual = 0;
+          } else {
+            // Mantener progreso proporcional
+            const nuevaDeudaPendiente = updateFondoDto.metaAhorro - montoPagadoActual;
+            datosActualizacion.saldoActual = -nuevaDeudaPendiente;
+            console.log(`  - Manteniendo monto pagado: ${montoPagadoActual}`);
+            console.log(`  - Nueva deuda pendiente: ${nuevaDeudaPendiente}`);
+          }
+        } else {
+          // 🔄 CASO: MISMA META (solo actualización de otros campos)
+          console.log(`🔄 Meta sin cambios: ${metaAnterior}`);
+          // No cambiar el saldo
+        }
+        
+        datosActualizacion.metaAhorro = updateFondoDto.metaAhorro;
+      }
     }
 
     const fondoActualizado = await this.fondoModel
@@ -255,6 +316,21 @@ export class FondosService {
       } else if (tipo === TipoTransaccion.INGRESO) {
         nuevoSaldo = fondo.saldoActual - monto; // Nueva deuda aumenta la deuda
         console.log(`💳 DEUDA - Nueva deuda: ${monto}, saldo anterior: ${fondo.saldoActual}, nuevo saldo: ${nuevoSaldo}`);
+        // 🆕 NUEVO: También aumentar la meta cuando se adquiere nueva deuda
+        const nuevaMeta = fondo.metaAhorro + monto;
+        console.log(`🎯 DEUDA - Meta actualizada: ${fondo.metaAhorro} → ${nuevaMeta}`);
+        
+        // Actualizar tanto saldo como meta
+        return await this.fondoModel
+          .findOneAndUpdate(
+            { _id: fondoId, usuarioId: new Types.ObjectId(usuarioId) },
+            { 
+              saldoActual: nuevoSaldo,
+              metaAhorro: nuevaMeta
+            },
+            { new: true }
+          )
+          .exec();
       } else {
         throw new BadRequestException(`Tipo de transacción no válido para actualizar saldo de deuda: ${tipo}`);
       }
@@ -278,6 +354,7 @@ export class FondosService {
     
     console.log(`🔄 Actualizando saldo de fondo "${fondo.nombre}" (${fondo.tipo}): ${fondo.saldoActual} → ${nuevoSaldo}`);
     
+    // Para deudas con ingreso, ya se actualizó arriba (con meta), para otros casos solo saldo
     return await this.fondoModel
       .findOneAndUpdate(
         { _id: fondoId, usuarioId: new Types.ObjectId(usuarioId) },

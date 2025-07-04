@@ -136,6 +136,54 @@ let FondosService = class FondosService {
             }
             console.log(`🎯 [FONDOS] Actualizando fondo de ahorro con meta: ${datosActualizacion.metaAhorro}`);
         }
+        else if (tipoFinal === 'prestamo') {
+            if (updateFondoDto.metaAhorro !== undefined) {
+                if (updateFondoDto.metaAhorro <= 0) {
+                    throw new common_1.BadRequestException('La meta del préstamo debe ser mayor a 0');
+                }
+                datosActualizacion.metaAhorro = updateFondoDto.metaAhorro;
+            }
+            console.log(`💵 [FONDOS] Actualizando fondo de préstamo con meta: ${datosActualizacion.metaAhorro}`);
+        }
+        else if (tipoFinal === 'deuda') {
+            if (updateFondoDto.metaAhorro !== undefined) {
+                if (updateFondoDto.metaAhorro <= 0) {
+                    throw new common_1.BadRequestException('El monto de la deuda debe ser mayor a 0');
+                }
+                const metaAnterior = fondoExistente.metaAhorro || 0;
+                const saldoAnterior = fondoExistente.saldoActual;
+                const montoPagadoActual = metaAnterior + saldoAnterior;
+                console.log(`🔴 [FONDOS] Editando deuda:`);
+                console.log(`  - Meta anterior: ${metaAnterior}`);
+                console.log(`  - Saldo anterior: ${saldoAnterior}`);
+                console.log(`  - Monto pagado actual: ${montoPagadoActual}`);
+                console.log(`  - Nueva meta: ${updateFondoDto.metaAhorro}`);
+                if (updateFondoDto.metaAhorro > metaAnterior) {
+                    console.log(`📈 Aumentando deuda: ${metaAnterior} → ${updateFondoDto.metaAhorro}`);
+                    console.log(`🔄 Reiniciando progreso - nueva deuda completa: ${updateFondoDto.metaAhorro}`);
+                    datosActualizacion.saldoActual = -updateFondoDto.metaAhorro;
+                    console.log(`  - Nuevo saldo: ${datosActualizacion.saldoActual} (deuda completa)`);
+                    console.log(`  - Progreso reiniciado: 0% de ${updateFondoDto.metaAhorro}`);
+                }
+                else if (updateFondoDto.metaAhorro < metaAnterior) {
+                    console.log(`📉 Disminuyendo deuda: ${metaAnterior} → ${updateFondoDto.metaAhorro}`);
+                    if (montoPagadoActual >= updateFondoDto.metaAhorro) {
+                        console.log(`✅ Deuda totalmente pagada (pagado: ${montoPagadoActual}, nueva meta: ${updateFondoDto.metaAhorro})`);
+                        datosActualizacion.saldoActual = 0;
+                    }
+                    else {
+                        const nuevaDeudaPendiente = updateFondoDto.metaAhorro - montoPagadoActual;
+                        datosActualizacion.saldoActual = -nuevaDeudaPendiente;
+                        console.log(`  - Manteniendo monto pagado: ${montoPagadoActual}`);
+                        console.log(`  - Nueva deuda pendiente: ${nuevaDeudaPendiente}`);
+                    }
+                }
+                else {
+                    console.log(`🔄 Meta sin cambios: ${metaAnterior}`);
+                }
+                datosActualizacion.metaAhorro = updateFondoDto.metaAhorro;
+            }
+        }
         const fondoActualizado = await this.fondoModel
             .findOneAndUpdate({ _id: id, usuarioId: new mongoose_2.Types.ObjectId(usuarioId) }, datosActualizacion, { new: true })
             .exec();
