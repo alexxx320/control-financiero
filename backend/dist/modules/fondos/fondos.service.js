@@ -34,6 +34,7 @@ let FondosService = class FondosService {
             throw new common_1.BadRequestException(`Ya existe un fondo con el nombre "${createFondoDto.nombre}"`);
         }
         let metaAhorro = 0;
+        let saldoInicial = createFondoDto.saldoActual || 0;
         if (createFondoDto.tipo === 'ahorro') {
             if (!createFondoDto.metaAhorro || createFondoDto.metaAhorro <= 0) {
                 throw new common_1.BadRequestException('La meta de ahorro es obligatoria y debe ser mayor a 0 para fondos de ahorro');
@@ -48,10 +49,30 @@ let FondosService = class FondosService {
             }
             console.log(`📝 [FONDOS] Fondo de registro sin meta (prohibida)`);
         }
+        else if (createFondoDto.tipo === 'prestamo') {
+            if (!createFondoDto.metaAhorro || createFondoDto.metaAhorro <= 0) {
+                throw new common_1.BadRequestException('La meta del préstamo es obligatoria y debe ser mayor a 0');
+            }
+            metaAhorro = createFondoDto.metaAhorro;
+            if (saldoInicial >= 0) {
+                saldoInicial = -metaAhorro;
+            }
+            console.log(`💵 [FONDOS] Fondo de préstamo con meta: ${metaAhorro}, saldo inicial: ${saldoInicial}`);
+        }
+        else if (createFondoDto.tipo === 'deuda') {
+            if (!createFondoDto.metaAhorro || createFondoDto.metaAhorro <= 0) {
+                throw new common_1.BadRequestException('El monto de la deuda es obligatorio y debe ser mayor a 0');
+            }
+            metaAhorro = createFondoDto.metaAhorro;
+            if (saldoInicial >= 0) {
+                saldoInicial = -metaAhorro;
+            }
+            console.log(`🔴 [FONDOS] Fondo de deuda con meta: ${metaAhorro}, saldo inicial: ${saldoInicial}`);
+        }
         const nuevoFondo = new this.fondoModel({
             ...createFondoDto,
             usuarioId: new mongoose_2.Types.ObjectId(usuarioId),
-            saldoActual: createFondoDto.saldoActual || 0,
+            saldoActual: saldoInicial,
             metaAhorro,
             fechaCreacion: new Date(),
             activo: true,
@@ -178,18 +199,34 @@ let FondosService = class FondosService {
     async actualizarSaldo(fondoId, tipo, monto, usuarioId) {
         const fondo = await this.findOne(fondoId, usuarioId);
         let nuevoSaldo;
-        if (tipo === financiero_interface_1.TipoTransaccion.INGRESO) {
-            nuevoSaldo = fondo.saldoActual + monto;
-        }
-        else if (tipo === financiero_interface_1.TipoTransaccion.GASTO) {
-            nuevoSaldo = fondo.saldoActual - monto;
+        if (fondo.tipo === 'deuda') {
+            if (tipo === financiero_interface_1.TipoTransaccion.GASTO) {
+                nuevoSaldo = fondo.saldoActual + monto;
+                console.log(`💵 DEUDA - Pago realizado: ${monto}, saldo anterior: ${fondo.saldoActual}, nuevo saldo: ${nuevoSaldo}`);
+            }
+            else if (tipo === financiero_interface_1.TipoTransaccion.INGRESO) {
+                nuevoSaldo = fondo.saldoActual - monto;
+                console.log(`💳 DEUDA - Nueva deuda: ${monto}, saldo anterior: ${fondo.saldoActual}, nuevo saldo: ${nuevoSaldo}`);
+            }
+            else {
+                throw new common_1.BadRequestException(`Tipo de transacción no válido para actualizar saldo de deuda: ${tipo}`);
+            }
         }
         else {
-            throw new common_1.BadRequestException(`Tipo de transacción no válido para actualizar saldo: ${tipo}`);
+            if (tipo === financiero_interface_1.TipoTransaccion.INGRESO) {
+                nuevoSaldo = fondo.saldoActual + monto;
+            }
+            else if (tipo === financiero_interface_1.TipoTransaccion.GASTO) {
+                nuevoSaldo = fondo.saldoActual - monto;
+            }
+            else {
+                throw new common_1.BadRequestException(`Tipo de transacción no válido para actualizar saldo: ${tipo}`);
+            }
         }
-        if (nuevoSaldo < 0) {
-            console.warn(`⚠️ Saldo negativo en fondo "${fondo.nombre}": ${nuevoSaldo}`);
+        if (nuevoSaldo < 0 && fondo.tipo !== 'deuda' && fondo.tipo !== 'prestamo') {
+            console.warn(`⚠️ Saldo negativo en fondo "${fondo.nombre}" (tipo: ${fondo.tipo}): ${nuevoSaldo}`);
         }
+        console.log(`🔄 Actualizando saldo de fondo "${fondo.nombre}" (${fondo.tipo}): ${fondo.saldoActual} → ${nuevoSaldo}`);
         return await this.fondoModel
             .findOneAndUpdate({ _id: fondoId, usuarioId: new mongoose_2.Types.ObjectId(usuarioId) }, { saldoActual: nuevoSaldo }, { new: true })
             .exec();
@@ -217,8 +254,19 @@ let FondosService = class FondosService {
         let progresoPromedio = 0;
         if (fondosConMetas.length > 0) {
             const progresoTotal = fondosConMetas.reduce((sum, f) => {
-                const progreso = (f.saldoActual / f.metaAhorro) * 100;
-                return sum + Math.min(progreso, 100);
+                let progreso;
+                if (f.tipo === 'prestamo') {
+                    const montoPagado = f.metaAhorro + f.saldoActual;
+                    progreso = (montoPagado / f.metaAhorro) * 100;
+                }
+                else if (f.tipo === 'deuda') {
+                    const montoPagado = f.metaAhorro + f.saldoActual;
+                    progreso = (montoPagado / f.metaAhorro) * 100;
+                }
+                else {
+                    progreso = (f.saldoActual / f.metaAhorro) * 100;
+                }
+                return sum + Math.min(Math.max(progreso, 0), 100);
             }, 0);
             progresoPromedio = progresoTotal / fondosConMetas.length;
         }
@@ -230,6 +278,96 @@ let FondosService = class FondosService {
             saldoTotalActual: saldoTotal,
             fondoMayorSaldo,
             progresoPromedioMetas: Math.round(progresoPromedio * 100) / 100
+        };
+    }
+    async getEstadisticasPrestamos(usuarioId) {
+        const prestamos = await this.fondoModel
+            .find({
+            usuarioId: new mongoose_2.Types.ObjectId(usuarioId),
+            tipo: 'prestamo',
+            activo: true
+        })
+            .exec();
+        const prestamosActivos = prestamos.filter(p => p.saldoActual < 0);
+        const montoTotalPrestado = prestamos.reduce((sum, p) => sum + p.metaAhorro, 0);
+        let montoTotalPagado = 0;
+        let montoTotalPendiente = 0;
+        prestamos.forEach(prestamo => {
+            const montoPagado = prestamo.metaAhorro + prestamo.saldoActual;
+            const montoPendiente = Math.abs(prestamo.saldoActual);
+            montoTotalPagado += Math.max(montoPagado, 0);
+            montoTotalPendiente += montoPendiente;
+        });
+        const progresoPromedio = prestamos.length > 0
+            ? (montoTotalPagado / montoTotalPrestado) * 100
+            : 0;
+        return {
+            totalPrestamos: prestamos.length,
+            prestamosActivos: prestamosActivos.length,
+            montoTotalPrestado,
+            montoTotalPagado,
+            montoTotalPendiente,
+            progresoPromedioPagos: Math.round(progresoPromedio * 100) / 100
+        };
+    }
+    getProgresoPrestamo(prestamo) {
+        if (prestamo.tipo !== 'prestamo') {
+            throw new common_1.BadRequestException('Esta función solo es válida para fondos tipo préstamo');
+        }
+        const montoPagado = prestamo.metaAhorro + prestamo.saldoActual;
+        const montoPendiente = Math.abs(prestamo.saldoActual);
+        const porcentajePagado = (montoPagado / prestamo.metaAhorro) * 100;
+        const estaCompletado = prestamo.saldoActual >= 0;
+        return {
+            porcentajePagado: Math.max(0, Math.min(100, porcentajePagado)),
+            montoPagado: Math.max(0, montoPagado),
+            montoPendiente,
+            estaCompletado
+        };
+    }
+    async getEstadisticasDeudas(usuarioId) {
+        const deudas = await this.fondoModel
+            .find({
+            usuarioId: new mongoose_2.Types.ObjectId(usuarioId),
+            tipo: 'deuda',
+            activo: true
+        })
+            .exec();
+        const deudasActivas = deudas.filter(d => d.saldoActual < 0);
+        const montoTotalDebe = deudas.reduce((sum, d) => sum + d.metaAhorro, 0);
+        let montoTotalPagado = 0;
+        let montoTotalPendiente = 0;
+        deudas.forEach(deuda => {
+            const montoPagado = deuda.metaAhorro + deuda.saldoActual;
+            const montoPendiente = Math.abs(deuda.saldoActual);
+            montoTotalPagado += Math.max(montoPagado, 0);
+            montoTotalPendiente += montoPendiente;
+        });
+        const progresoPromedio = deudas.length > 0
+            ? (montoTotalPagado / montoTotalDebe) * 100
+            : 0;
+        return {
+            totalDeudas: deudas.length,
+            deudasActivas: deudasActivas.length,
+            montoTotalDebe,
+            montoTotalPagado,
+            montoTotalPendiente,
+            progresoPromedioPagos: Math.round(progresoPromedio * 100) / 100
+        };
+    }
+    getProgresoDeuda(deuda) {
+        if (deuda.tipo !== 'deuda') {
+            throw new common_1.BadRequestException('Esta función solo es válida para fondos tipo deuda');
+        }
+        const montoPagado = deuda.metaAhorro + deuda.saldoActual;
+        const montoPendiente = Math.abs(deuda.saldoActual);
+        const porcentajePagado = (montoPagado / deuda.metaAhorro) * 100;
+        const estaLiquidada = deuda.saldoActual >= 0;
+        return {
+            porcentajePagado: Math.max(0, Math.min(100, porcentajePagado)),
+            montoPagado: Math.max(0, montoPagado),
+            montoPendiente,
+            estaLiquidada
         };
     }
 };

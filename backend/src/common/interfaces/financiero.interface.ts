@@ -15,11 +15,12 @@ export enum CategoriaTransaccion {
   TRANSFERENCIA = 'transferencia',
 }
 
-// 🔧 MODIFICADO: Tres tipos de fondo
+// 🔧 MODIFICADO: Cuatro tipos de fondo incluyendo deudas
 export enum TipoFondo {
   REGISTRO = 'registro',  // Para registrar transacciones sin meta
   AHORRO = 'ahorro',      // Para ahorros con meta opcional
-  PRESTAMO = 'prestamo'   // Para manejo de préstamos
+  PRESTAMO = 'prestamo',  // Para manejo de préstamos (cuentas por cobrar)
+  DEUDA = 'deuda'         // Para manejo de deudas (cuentas por pagar)
 }
 
 export enum TipoAlerta {

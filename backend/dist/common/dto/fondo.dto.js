@@ -42,19 +42,17 @@ __decorate([
         enumName: 'TipoFondo'
     }),
     (0, class_validator_1.IsEnum)(financiero_interface_1.TipoFondo, {
-        message: 'El tipo debe ser "registro" o "ahorro"'
+        message: 'El tipo debe ser "registro", "ahorro", "prestamo" o "deuda"'
     }),
     __metadata("design:type", String)
 ], CreateFondoDto.prototype, "tipo", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
-        description: 'Saldo inicial del fondo',
+        description: 'Saldo inicial del fondo (puede ser negativo para préstamos)',
         example: 0,
-        minimum: 0,
         default: 0
     }),
     (0, class_validator_1.IsNumber)(),
-    (0, class_validator_1.Min)(0),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Number)
 ], CreateFondoDto.prototype, "saldoActual", void 0);
@@ -64,15 +62,15 @@ __decorate([
         example: 100000,
         minimum: 1
     }),
-    (0, class_validator_1.ValidateIf)(o => o.tipo === financiero_interface_1.TipoFondo.AHORRO),
+    (0, class_validator_1.ValidateIf)(o => o.tipo === financiero_interface_1.TipoFondo.AHORRO || o.tipo === financiero_interface_1.TipoFondo.PRESTAMO || o.tipo === financiero_interface_1.TipoFondo.DEUDA),
     (0, class_validator_1.IsNumber)({}, {
-        message: 'La meta debe ser un número válido para fondos de ahorro'
+        message: 'La meta debe ser un número válido para fondos de ahorro, préstamos y deudas'
     }),
     (0, class_validator_1.Min)(1, {
-        message: 'La meta debe ser mayor a 0 para fondos de ahorro'
+        message: 'La meta debe ser mayor a 0 para fondos de ahorro, préstamos y deudas'
     }),
     (0, class_validator_1.IsNotEmpty)({
-        message: 'La meta de ahorro es obligatoria para fondos de ahorro'
+        message: 'La meta es obligatoria para fondos de ahorro, préstamos y deudas'
     }),
     __metadata("design:type", Number)
 ], CreateFondoDto.prototype, "metaAhorro", void 0);
@@ -102,7 +100,7 @@ __decorate([
         enum: financiero_interface_1.TipoFondo
     }),
     (0, class_validator_1.IsEnum)(financiero_interface_1.TipoFondo, {
-        message: 'El tipo debe ser "registro" o "ahorro"'
+        message: 'El tipo debe ser "registro", "ahorro", "prestamo" o "deuda"'
     }),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
@@ -112,15 +110,15 @@ __decorate([
         description: 'Meta de ahorro (obligatoria para fondos tipo "ahorro")',
         minimum: 1
     }),
-    (0, class_validator_1.ValidateIf)(o => o.tipo === financiero_interface_1.TipoFondo.AHORRO || !o.tipo),
+    (0, class_validator_1.ValidateIf)(o => o.tipo === financiero_interface_1.TipoFondo.AHORRO || o.tipo === financiero_interface_1.TipoFondo.PRESTAMO || o.tipo === financiero_interface_1.TipoFondo.DEUDA || (!o.tipo)),
     (0, class_validator_1.IsNumber)({}, {
         message: 'La meta debe ser un número válido'
     }),
     (0, class_validator_1.Min)(1, {
-        message: 'La meta debe ser mayor a 0 para fondos de ahorro'
+        message: 'La meta debe ser mayor a 0 para fondos de ahorro, préstamos y deudas'
     }),
     (0, class_validator_1.IsNotEmpty)({
-        message: 'La meta de ahorro es obligatoria para fondos de ahorro'
+        message: 'La meta es obligatoria para fondos de ahorro, préstamos y deudas'
     }),
     __metadata("design:type", Number)
 ], UpdateFondoDto.prototype, "metaAhorro", void 0);

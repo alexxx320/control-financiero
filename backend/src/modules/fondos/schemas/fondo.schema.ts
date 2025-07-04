@@ -28,7 +28,7 @@ export class Fondo {
   tipo: TipoFondo;
 
   @Prop({ required: true, default: 0 })
-  saldoActual: number;
+  saldoActual: number; // Puede ser negativo para préstamos
 
   @Prop({ min: 0, default: 0 })
   metaAhorro: number;

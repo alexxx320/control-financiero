@@ -28,4 +28,32 @@ export declare class FondosService {
         } | null;
         progresoPromedioMetas: number;
     }>;
+    getEstadisticasPrestamos(usuarioId: string): Promise<{
+        totalPrestamos: number;
+        prestamosActivos: number;
+        montoTotalPrestado: number;
+        montoTotalPagado: number;
+        montoTotalPendiente: number;
+        progresoPromedioPagos: number;
+    }>;
+    getProgresoPrestamo(prestamo: Fondo): {
+        porcentajePagado: number;
+        montoPagado: number;
+        montoPendiente: number;
+        estaCompletado: boolean;
+    };
+    getEstadisticasDeudas(usuarioId: string): Promise<{
+        totalDeudas: number;
+        deudasActivas: number;
+        montoTotalDebe: number;
+        montoTotalPagado: number;
+        montoTotalPendiente: number;
+        progresoPromedioPagos: number;
+    }>;
+    getProgresoDeuda(deuda: Fondo): {
+        porcentajePagado: number;
+        montoPagado: number;
+        montoPendiente: number;
+        estaLiquidada: boolean;
+    };
 }

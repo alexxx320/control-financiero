@@ -28,6 +28,7 @@ export class FondosService {
 
     // 🔧 VALIDACIÓN ESTRICTA: Manejo de meta según tipo de fondo
     let metaAhorro = 0;
+    let saldoInicial = createFondoDto.saldoActual || 0;
     
     if (createFondoDto.tipo === 'ahorro') {
       // Para fondos de ahorro, meta es OBLIGATORIA y debe ser > 0
@@ -43,12 +44,34 @@ export class FondosService {
         throw new BadRequestException('Los fondos de registro no pueden tener meta de ahorro');
       }
       console.log(`📝 [FONDOS] Fondo de registro sin meta (prohibida)`);
+    } else if (createFondoDto.tipo === 'prestamo') {
+      // Para fondos de préstamo, meta es OBLIGATORIA (monto total del préstamo)
+      if (!createFondoDto.metaAhorro || createFondoDto.metaAhorro <= 0) {
+        throw new BadRequestException('La meta del préstamo es obligatoria y debe ser mayor a 0');
+      }
+      metaAhorro = createFondoDto.metaAhorro;
+      // Para préstamos, el saldo inicial debe ser negativo (lo que se debe)
+      if (saldoInicial >= 0) {
+        saldoInicial = -metaAhorro; // Por defecto, el saldo inicial es el monto total que se debe
+      }
+      console.log(`💵 [FONDOS] Fondo de préstamo con meta: ${metaAhorro}, saldo inicial: ${saldoInicial}`);
+    } else if (createFondoDto.tipo === 'deuda') {
+      // Para fondos de deuda, meta es OBLIGATORIA (monto total de la deuda)
+      if (!createFondoDto.metaAhorro || createFondoDto.metaAhorro <= 0) {
+        throw new BadRequestException('El monto de la deuda es obligatorio y debe ser mayor a 0');
+      }
+      metaAhorro = createFondoDto.metaAhorro;
+      // Para deudas, el saldo inicial debe ser negativo (lo que debo)
+      if (saldoInicial >= 0) {
+        saldoInicial = -metaAhorro; // Por defecto, el saldo inicial es el monto total que debo
+      }
+      console.log(`🔴 [FONDOS] Fondo de deuda con meta: ${metaAhorro}, saldo inicial: ${saldoInicial}`);
     }
 
     const nuevoFondo = new this.fondoModel({
       ...createFondoDto,
       usuarioId: new Types.ObjectId(usuarioId),
-      saldoActual: createFondoDto.saldoActual || 0,
+      saldoActual: saldoInicial,
       metaAhorro,  // Meta calculada según tipo
       fechaCreacion: new Date(),
       activo: true,
@@ -221,20 +244,39 @@ export class FondosService {
     
     let nuevoSaldo: number;
     
-    // Para transferencias, el tipo ya viene como INGRESO o GASTO desde el servicio de transacciones
-    // No necesitamos manejar TRANSFERENCIA aquí directamente
-    if (tipo === TipoTransaccion.INGRESO) {
-      nuevoSaldo = fondo.saldoActual + monto;
-    } else if (tipo === TipoTransaccion.GASTO) {
-      nuevoSaldo = fondo.saldoActual - monto;
+    // 🆕 NUEVO: Lógica diferente para deudas
+    if (fondo.tipo === 'deuda') {
+      // Para DEUDAS: Lógica INVERSA
+      // - GASTO (pagar deuda): Disminuye la deuda (saldo se acerca a 0)
+      // - INGRESO (nueva deuda): Aumenta la deuda (saldo se aleja de 0)
+      if (tipo === TipoTransaccion.GASTO) {
+        nuevoSaldo = fondo.saldoActual + monto; // Pagar deuda reduce la deuda
+        console.log(`💵 DEUDA - Pago realizado: ${monto}, saldo anterior: ${fondo.saldoActual}, nuevo saldo: ${nuevoSaldo}`);
+      } else if (tipo === TipoTransaccion.INGRESO) {
+        nuevoSaldo = fondo.saldoActual - monto; // Nueva deuda aumenta la deuda
+        console.log(`💳 DEUDA - Nueva deuda: ${monto}, saldo anterior: ${fondo.saldoActual}, nuevo saldo: ${nuevoSaldo}`);
+      } else {
+        throw new BadRequestException(`Tipo de transacción no válido para actualizar saldo de deuda: ${tipo}`);
+      }
     } else {
-      throw new BadRequestException(`Tipo de transacción no válido para actualizar saldo: ${tipo}`);
+      // Para FONDOS NORMALES (registro, ahorro, préstamo): Lógica NORMAL
+      // - INGRESO: Aumenta el saldo
+      // - GASTO: Disminuye el saldo
+      if (tipo === TipoTransaccion.INGRESO) {
+        nuevoSaldo = fondo.saldoActual + monto;
+      } else if (tipo === TipoTransaccion.GASTO) {
+        nuevoSaldo = fondo.saldoActual - monto;
+      } else {
+        throw new BadRequestException(`Tipo de transacción no válido para actualizar saldo: ${tipo}`);
+      }
     }
     
     // Permitir saldos negativos pero registrar la situación
-    if (nuevoSaldo < 0) {
-      console.warn(`⚠️ Saldo negativo en fondo "${fondo.nombre}": ${nuevoSaldo}`);
+    if (nuevoSaldo < 0 && fondo.tipo !== 'deuda' && fondo.tipo !== 'prestamo') {
+      console.warn(`⚠️ Saldo negativo en fondo "${fondo.nombre}" (tipo: ${fondo.tipo}): ${nuevoSaldo}`);
     }
+    
+    console.log(`🔄 Actualizando saldo de fondo "${fondo.nombre}" (${fondo.tipo}): ${fondo.saldoActual} → ${nuevoSaldo}`);
     
     return await this.fondoModel
       .findOneAndUpdate(
@@ -283,12 +325,26 @@ export class FondosService {
       };
     }
 
-    // Calcular progreso promedio de metas
+    // Calcular progreso promedio de metas (incluyendo lógica de préstamos)
     let progresoPromedio = 0;
     if (fondosConMetas.length > 0) {
       const progresoTotal = fondosConMetas.reduce((sum, f) => {
-        const progreso = (f.saldoActual / f.metaAhorro) * 100;
-        return sum + Math.min(progreso, 100);
+        let progreso: number;
+        if (f.tipo === 'prestamo') {
+          // Para préstamos: progreso = (monto_pagado / monto_total) * 100
+          // Si saldo es -100000 y meta es 100000, entonces se ha pagado 0 (progreso = 0%)
+          // Si saldo es 0 y meta es 100000, entonces se ha pagado todo (progreso = 100%)
+          const montoPagado = f.metaAhorro + f.saldoActual; // saldo negativo + meta positiva
+          progreso = (montoPagado / f.metaAhorro) * 100;
+        } else if (f.tipo === 'deuda') {
+          // Para deudas: misma lógica que préstamos (saldo negativo que se acerca a 0)
+          const montoPagado = f.metaAhorro + f.saldoActual; // saldo negativo + meta positiva
+          progreso = (montoPagado / f.metaAhorro) * 100;
+        } else {
+          // Para fondos normales de ahorro
+          progreso = (f.saldoActual / f.metaAhorro) * 100;
+        }
+        return sum + Math.min(Math.max(progreso, 0), 100); // Entre 0% y 100%
       }, 0);
       progresoPromedio = progresoTotal / fondosConMetas.length;
     }
@@ -301,6 +357,152 @@ export class FondosService {
       saldoTotalActual: saldoTotal,
       fondoMayorSaldo,
       progresoPromedioMetas: Math.round(progresoPromedio * 100) / 100
+    };
+  }
+
+  /**
+   * Obtener estadísticas específicas para préstamos
+   */
+  async getEstadisticasPrestamos(usuarioId: string): Promise<{
+    totalPrestamos: number;
+    prestamosActivos: number;
+    montoTotalPrestado: number;
+    montoTotalPagado: number;
+    montoTotalPendiente: number;
+    progresoPromedioPagos: number;
+  }> {
+    const prestamos = await this.fondoModel
+      .find({ 
+        usuarioId: new Types.ObjectId(usuarioId),
+        tipo: 'prestamo',
+        activo: true
+      })
+      .exec();
+
+    const prestamosActivos = prestamos.filter(p => p.saldoActual < 0);
+    const montoTotalPrestado = prestamos.reduce((sum, p) => sum + p.metaAhorro, 0);
+    
+    let montoTotalPagado = 0;
+    let montoTotalPendiente = 0;
+    
+    prestamos.forEach(prestamo => {
+      const montoPagado = prestamo.metaAhorro + prestamo.saldoActual; // saldo negativo + meta positiva
+      const montoPendiente = Math.abs(prestamo.saldoActual);
+      
+      montoTotalPagado += Math.max(montoPagado, 0);
+      montoTotalPendiente += montoPendiente;
+    });
+
+    const progresoPromedio = prestamos.length > 0 
+      ? (montoTotalPagado / montoTotalPrestado) * 100 
+      : 0;
+
+    return {
+      totalPrestamos: prestamos.length,
+      prestamosActivos: prestamosActivos.length,
+      montoTotalPrestado,
+      montoTotalPagado,
+      montoTotalPendiente,
+      progresoPromedioPagos: Math.round(progresoPromedio * 100) / 100
+    };
+  }
+
+  /**
+   * Calcular progreso de pago de un préstamo específico
+   */
+  getProgresoPrestamo(prestamo: Fondo): {
+    porcentajePagado: number;
+    montoPagado: number;
+    montoPendiente: number;
+    estaCompletado: boolean;
+  } {
+    if (prestamo.tipo !== 'prestamo') {
+      throw new BadRequestException('Esta función solo es válida para fondos tipo préstamo');
+    }
+
+    const montoPagado = prestamo.metaAhorro + prestamo.saldoActual; // Cuanto se ha pagado
+    const montoPendiente = Math.abs(prestamo.saldoActual); // Cuanto falta por pagar
+    const porcentajePagado = (montoPagado / prestamo.metaAhorro) * 100;
+    const estaCompletado = prestamo.saldoActual >= 0;
+
+    return {
+      porcentajePagado: Math.max(0, Math.min(100, porcentajePagado)),
+      montoPagado: Math.max(0, montoPagado),
+      montoPendiente,
+      estaCompletado
+    };
+  }
+
+  /**
+   * Obtener estadísticas específicas para deudas
+   */
+  async getEstadisticasDeudas(usuarioId: string): Promise<{
+    totalDeudas: number;
+    deudasActivas: number;
+    montoTotalDebe: number;
+    montoTotalPagado: number;
+    montoTotalPendiente: number;
+    progresoPromedioPagos: number;
+  }> {
+    const deudas = await this.fondoModel
+      .find({ 
+        usuarioId: new Types.ObjectId(usuarioId),
+        tipo: 'deuda',
+        activo: true
+      })
+      .exec();
+
+    const deudasActivas = deudas.filter(d => d.saldoActual < 0);
+    const montoTotalDebe = deudas.reduce((sum, d) => sum + d.metaAhorro, 0);
+    
+    let montoTotalPagado = 0;
+    let montoTotalPendiente = 0;
+    
+    deudas.forEach(deuda => {
+      const montoPagado = deuda.metaAhorro + deuda.saldoActual; // saldo negativo + meta positiva
+      const montoPendiente = Math.abs(deuda.saldoActual);
+      
+      montoTotalPagado += Math.max(montoPagado, 0);
+      montoTotalPendiente += montoPendiente;
+    });
+
+    const progresoPromedio = deudas.length > 0 
+      ? (montoTotalPagado / montoTotalDebe) * 100 
+      : 0;
+
+    return {
+      totalDeudas: deudas.length,
+      deudasActivas: deudasActivas.length,
+      montoTotalDebe,
+      montoTotalPagado,
+      montoTotalPendiente,
+      progresoPromedioPagos: Math.round(progresoPromedio * 100) / 100
+    };
+  }
+
+  /**
+   * Calcular progreso de pago de una deuda específica
+   */
+  getProgresoDeuda(deuda: Fondo): {
+    porcentajePagado: number;
+    montoPagado: number;
+    montoPendiente: number;
+    estaLiquidada: boolean;
+  } {
+    if (deuda.tipo !== 'deuda') {
+      throw new BadRequestException('Esta función solo es válida para fondos tipo deuda');
+    }
+
+    const montoPagado = deuda.metaAhorro + deuda.saldoActual; // Cuanto se ha pagado
+    const montoPendiente = Math.abs(deuda.saldoActual); // Cuanto falta por pagar
+    const porcentajePagado = (montoPagado / deuda.metaAhorro) * 100;
+    const estaLiquidada = deuda.saldoActual >= 0;
+
+    return {
+      porcentajePagado: Math.max(0, Math.min(100, porcentajePagado)),
+      montoPagado: Math.max(0, montoPagado),
+      montoPendiente,
+      estaLiquidada
     };
   }
 }

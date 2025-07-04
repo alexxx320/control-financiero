@@ -46,6 +46,20 @@ let FondosController = class FondosController {
                 : 0
         };
     }
+    async getEstadisticasPrestamos(usuarioId) {
+        return await this.fondosService.getEstadisticasPrestamos(usuarioId);
+    }
+    async getProgresoPrestamo(id, usuarioId) {
+        const fondo = await this.fondosService.findOne(id, usuarioId);
+        return this.fondosService.getProgresoPrestamo(fondo);
+    }
+    async getEstadisticasDeudas(usuarioId) {
+        return await this.fondosService.getEstadisticasDeudas(usuarioId);
+    }
+    async getProgresoDeuda(id, usuarioId) {
+        const fondo = await this.fondosService.findOne(id, usuarioId);
+        return this.fondosService.getProgresoDeuda(fondo);
+    }
     async findOne(id, usuarioId) {
         return await this.fondosService.findOne(id, usuarioId);
     }
@@ -110,6 +124,74 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], FondosController.prototype, "getEstadisticas", null);
+__decorate([
+    (0, common_1.Get)('estadisticas/prestamos'),
+    (0, swagger_1.ApiOperation)({ summary: 'Obtener estadísticas específicas de préstamos' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Estadísticas de préstamos obtenidas exitosamente'
+    }),
+    __param(0, (0, get_user_decorator_1.GetUser)('userId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], FondosController.prototype, "getEstadisticasPrestamos", null);
+__decorate([
+    (0, common_1.Get)(':id/progreso-prestamo'),
+    (0, swagger_1.ApiOperation)({ summary: 'Obtener progreso de pago de un préstamo específico' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID del fondo préstamo' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Progreso del préstamo obtenido exitosamente'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 404,
+        description: 'Fondo no encontrado'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 400,
+        description: 'El fondo no es de tipo préstamo'
+    }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, get_user_decorator_1.GetUser)('userId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], FondosController.prototype, "getProgresoPrestamo", null);
+__decorate([
+    (0, common_1.Get)('estadisticas/deudas'),
+    (0, swagger_1.ApiOperation)({ summary: 'Obtener estadísticas específicas de deudas' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Estadísticas de deudas obtenidas exitosamente'
+    }),
+    __param(0, (0, get_user_decorator_1.GetUser)('userId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], FondosController.prototype, "getEstadisticasDeudas", null);
+__decorate([
+    (0, common_1.Get)(':id/progreso-deuda'),
+    (0, swagger_1.ApiOperation)({ summary: 'Obtener progreso de pago de una deuda específica' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID del fondo deuda' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Progreso de la deuda obtenido exitosamente'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 404,
+        description: 'Fondo no encontrado'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 400,
+        description: 'El fondo no es de tipo deuda'
+    }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, get_user_decorator_1.GetUser)('userId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], FondosController.prototype, "getProgresoDeuda", null);
 __decorate([
     (0, common_1.Get)(':id'),
     (0, swagger_1.ApiOperation)({ summary: 'Obtener un fondo por ID' }),

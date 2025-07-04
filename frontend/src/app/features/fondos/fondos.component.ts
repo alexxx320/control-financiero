@@ -17,7 +17,7 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
 import { FondoService } from '../../core/services/fondo.service';
-import { Fondo, TipoFondo, CreateFondoDto, UpdateFondoDto } from '../../core/models/fondo.model';
+import { Fondo, TipoFondo, CreateFondoDto, UpdateFondoDto, PrestamoUtils, ProgresoPrestamo, DeudaUtils } from '../../core/models/fondo.model';
 import { FondoDetalleModalComponent } from '../../shared/components/fondo-detalle-modal.component';
 import { NotificationService } from '../../core/services/notification.service';
 
@@ -92,6 +92,12 @@ import { CategoriaTransaccion } from '../../core/models/transaccion.model';
                   <mat-option value="ahorro">
                     💰 Ahorro
                   </mat-option>
+                  <mat-option value="prestamo">
+                    💵 Préstamo
+                  </mat-option>
+                  <mat-option value="deuda">
+                    🔴 Deuda
+                  </mat-option>
                 </mat-select>
                 <mat-error *ngIf="fondoForm.get('tipo')?.hasError('required')">
                   El tipo es requerido
@@ -99,18 +105,21 @@ import { CategoriaTransaccion } from '../../core/models/transaccion.model';
               </mat-form-field>
 
               <mat-form-field appearance="outline" class="half-width">
-                <mat-label>Saldo {{ fondoEditando ? 'Actual' : 'Inicial' }}</mat-label>
+                <mat-label>
+                  {{ tipoSeleccionado === 'prestamo' ? 'Monto Prestado (se convertirá a negativo)' : 'Saldo ' + (fondoEditando ? 'Actual' : 'Inicial') }}
+                </mat-label>
                 <input matInput type="number" formControlName="saldoActual" 
-                       placeholder="0" min="0" step="0.01">
+                       [placeholder]="tipoSeleccionado === 'prestamo' ? 'Ej: 100000 (se guardará como -100000)' : '0'" 
+                       step="0.01">
                 <span matTextPrefix>$</span>
-                <mat-hint *ngIf="fondoEditando">
+                <mat-hint *ngIf="tipoSeleccionado === 'prestamo'">
+                  💡 Para préstamos, ingresa el monto positivo que prestaste
+                </mat-hint>
+                <mat-hint *ngIf="fondoEditando && tipoSeleccionado !== 'prestamo'">
                   El saldo solo se modifica mediante transacciones
                 </mat-hint>
                 <mat-error *ngIf="fondoForm.get('saldoActual')?.hasError('required')">
                   El saldo inicial es requerido
-                </mat-error>
-                <mat-error *ngIf="fondoForm.get('saldoActual')?.hasError('min')">
-                  El saldo debe ser mayor o igual a 0
                 </mat-error>
               </mat-form-field>
             </div>
@@ -128,6 +137,40 @@ import { CategoriaTransaccion } from '../../core/models/transaccion.model';
                 </mat-error>
                 <mat-error *ngIf="fondoForm.get('metaAhorro')?.hasError('min')">
                   La meta debe ser mayor a $0 (mínimo $1)
+                </mat-error>
+              </mat-form-field>
+            </div>
+
+            <!-- 🔧 NUEVO: CAMPO META PARA PRÉSTAMOS -->
+            <div class="form-row" *ngIf="tipoSeleccionado === 'prestamo'">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Monto Total del Préstamo *</mat-label>
+                <input matInput type="number" formControlName="metaAhorro" 
+                       placeholder="Monto total prestado (ej: 100000)" min="1" step="1000" required>
+                <span matTextPrefix>$</span>
+                <mat-hint><strong>Obligatorio:</strong> El monto total que prestaste (usado para calcular el progreso de pago)</mat-hint>
+                <mat-error *ngIf="fondoForm.get('metaAhorro')?.hasError('required')">
+                  El monto del préstamo es obligatorio
+                </mat-error>
+                <mat-error *ngIf="fondoForm.get('metaAhorro')?.hasError('min')">
+                  El monto debe ser mayor a $0
+                </mat-error>
+              </mat-form-field>
+            </div>
+
+            <!-- 🆕 NUEVO: CAMPO META PARA DEUDAS -->
+            <div class="form-row" *ngIf="tipoSeleccionado === 'deuda'">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Monto Total de la Deuda *</mat-label>
+                <input matInput type="number" formControlName="metaAhorro" 
+                       placeholder="Monto total que debes (ej: 50000)" min="1" step="1000" required>
+                <span matTextPrefix>$</span>
+                <mat-hint><strong>Obligatorio:</strong> El monto total que debes (usado para calcular el progreso de pago)</mat-hint>
+                <mat-error *ngIf="fondoForm.get('metaAhorro')?.hasError('required')">
+                  El monto de la deuda es obligatorio
+                </mat-error>
+                <mat-error *ngIf="fondoForm.get('metaAhorro')?.hasError('min')">
+                  El monto debe ser mayor a $0
                 </mat-error>
               </mat-form-field>
             </div>
@@ -170,18 +213,53 @@ import { CategoriaTransaccion } from '../../core/models/transaccion.model';
               <p *ngIf="fondo.descripcion" class="descripcion">{{ fondo.descripcion }}</p>
               
               <div class="saldo-info">
-                <div class="saldo-label">{{ fondo.saldoActual >= 0 ? 'Saldo Actual:' : 'Deuda Actual:' }}</div>
+                <div class="saldo-label">
+                  {{ PrestamoUtils.esPrestamo(fondo) ? PrestamoUtils.getTextoSaldo(fondo) : DeudaUtils.esDeuda(fondo) ? DeudaUtils.getTextoSaldo(fondo) : (fondo.saldoActual >= 0 ? 'Saldo Actual:' : 'Deuda Actual:') }}
+                </div>
                 <div class="saldo-valor" [class]="fondo.saldoActual >= 0 ? 'saldo-positivo' : 'saldo-negativo'">
-                  {{ (fondo.saldoActual >= 0 ? fondo.saldoActual : -fondo.saldoActual) | currency:'COP':'symbol':'1.0-0' }}
+                  {{ PrestamoUtils.esPrestamo(fondo) ? PrestamoUtils.formatearMonto(fondo) : DeudaUtils.esDeuda(fondo) ? DeudaUtils.formatearMonto(fondo) : (fondo.saldoActual >= 0 ? fondo.saldoActual : -fondo.saldoActual) | currency:'COP':'symbol':'1.0-0' }}
                 </div>
               </div>
 
-              <div class="meta-info" *ngIf="fondo.metaAhorro && fondo.metaAhorro > 0">
+              <div class="meta-info" *ngIf="fondo.tipo === 'ahorro' && fondo.metaAhorro && fondo.metaAhorro > 0">
                 <div class="meta-label">Meta de Ahorro:</div>
                 <div class="meta-valor">{{ fondo.metaAhorro | currency:'COP':'symbol':'1.0-0' }}</div>
               </div>
 
-              <div class="progreso-section" *ngIf="fondo.metaAhorro && fondo.metaAhorro > 0 && fondo.saldoActual > 0">
+              <!-- Información específica para Préstamos -->
+              <div class="prestamo-info" *ngIf="PrestamoUtils.esPrestamo(fondo)">
+                <div class="prestamo-stats">
+                  <div class="stat-item">
+                    <span class="stat-label">Monto Prestado:</span>
+                    <span class="stat-value prestado">{{ fondo.metaAhorro | currency:'COP':'symbol':'1.0-0' }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">Monto Pagado:</span>
+                    <span class="stat-value pagado">{{ PrestamoUtils.calcularProgreso(fondo).montoPagado | currency:'COP':'symbol':'1.0-0' }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">Pendiente:</span>
+                    <span class="stat-value pendiente">{{ PrestamoUtils.calcularProgreso(fondo).montoPendiente | currency:'COP':'symbol':'1.0-0' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 🆕 NUEVO: Información específica para Deudas -->
+              <div class="deuda-info" *ngIf="DeudaUtils.esDeuda(fondo)">
+                <div class="deuda-stats">
+                  <div class="stat-item">
+                    <span class="stat-label">Monto Pagado:</span>
+                    <span class="stat-value pagado">{{ DeudaUtils.calcularProgreso(fondo).montoPagado | currency:'COP':'symbol':'1.0-0' }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">Pendiente:</span>
+                    <span class="stat-value pendiente">{{ DeudaUtils.calcularProgreso(fondo).montoPendiente | currency:'COP':'symbol':'1.0-0' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Barra de Progreso para Ahorros -->
+              <div class="progreso-section" *ngIf="fondo.tipo === 'ahorro' && fondo.metaAhorro && fondo.metaAhorro > 0 && fondo.saldoActual > 0">
                 <div class="progreso-header">
                   <span>Progreso hacia la meta:</span>
                   <span class="progreso-porcentaje">{{ calcularProgresoMeta(fondo) }}%</span>
@@ -190,6 +268,38 @@ import { CategoriaTransaccion } from '../../core/models/transaccion.model';
                   mode="determinate" 
                   [value]="calcularProgresoMeta(fondo)">
                 </mat-progress-bar>
+              </div>
+
+              <!-- Barra de Progreso para Préstamos -->
+              <div class="progreso-section" *ngIf="PrestamoUtils.esPrestamo(fondo)">
+                <div class="progreso-header">
+                  <span>Progreso de pago:</span>
+                  <span class="progreso-porcentaje prestamo">{{ PrestamoUtils.calcularProgreso(fondo).porcentajePagado.toFixed(1) }}%</span>
+                </div>
+                <mat-progress-bar 
+                  mode="determinate" 
+                  [value]="PrestamoUtils.calcularProgreso(fondo).porcentajePagado"
+                  class="prestamo-progress">
+                </mat-progress-bar>
+                <div class="progreso-status" *ngIf="PrestamoUtils.calcularProgreso(fondo).estaCompletado">
+                  🎉 ¡Préstamo completamente pagado!
+                </div>
+              </div>
+
+              <!-- 🆕 NUEVO: Barra de Progreso para Deudas -->
+              <div class="progreso-section" *ngIf="DeudaUtils.esDeuda(fondo)">
+                <div class="progreso-header">
+                  <span>Progreso de pago:</span>
+                  <span class="progreso-porcentaje deuda">{{ DeudaUtils.calcularProgreso(fondo).porcentajePagado.toFixed(1) }}%</span>
+                </div>
+                <mat-progress-bar 
+                  mode="determinate" 
+                  [value]="DeudaUtils.calcularProgreso(fondo).porcentajePagado"
+                  class="deuda-progress">
+                </mat-progress-bar>
+                <div class="progreso-status" *ngIf="DeudaUtils.calcularProgreso(fondo).estaLiquidada">
+                  🎉 ¡Deuda completamente liquidada!
+                </div>
               </div>
 
               <div class="fecha-creacion" *ngIf="fondo.fechaCreacion">
@@ -401,6 +511,91 @@ import { CategoriaTransaccion } from '../../core/models/transaccion.model';
       color: #f44336;
     }
 
+    /* Estilos específicos para préstamos */
+    .prestamo-info {
+      background: linear-gradient(135deg, #fff3e0 0%, #ffecb3 100%);
+      border-radius: 8px;
+      padding: 12px;
+      border-left: 4px solid #ff9800;
+      margin-bottom: 16px;
+    }
+
+    .prestamo-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .stat-label {
+      font-weight: 500;
+      color: #555;
+    }
+
+    .stat-value {
+      font-weight: 600;
+    }
+
+    .stat-value.prestado {
+      color: #ff9800;
+    }
+
+    .stat-value.pagado {
+      color: #4caf50;
+    }
+
+    .stat-value.pendiente {
+      color: #f44336;
+    }
+
+    .progreso-porcentaje.prestamo {
+      color: #ff9800;
+    }
+
+    .prestamo-progress {
+      height: 8px;
+      border-radius: 4px;
+    }
+
+    .progreso-status {
+      text-align: center;
+      font-weight: 500;
+      color: #4caf50;
+      margin-top: 8px;
+      padding: 8px;
+      background: #e8f5e8;
+      border-radius: 6px;
+    }
+
+    /* 🆕 NUEVO: Estilos específicos para deudas */
+    .deuda-info {
+      background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+      border-radius: 8px;
+      padding: 12px;
+      border-left: 4px solid #f44336;
+      margin-bottom: 16px;
+    }
+
+    .deuda-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .progreso-porcentaje.deuda {
+      color: #f44336;
+    }
+
+    .deuda-progress {
+      height: 8px;
+      border-radius: 4px;
+    }
+
     .meta-valor {
       font-weight: 600;
       color: #2196f3;
@@ -558,6 +753,12 @@ export class FondosComponent implements OnInit, OnDestroy {
   guardando = false;
   tipoSeleccionado: TipoFondo = 'registro'; // 🔧 AGREGADO
   
+  // 🆕 NUEVO: Hacer PrestamoUtils disponible en el template
+  PrestamoUtils = PrestamoUtils;
+  
+  // 🆕 NUEVO: Hacer DeudaUtils disponible en el template
+  DeudaUtils = DeudaUtils;
+  
   // 🆕 NUEVO: Variables para transacciones
   categorias: CategoriaTransaccion[] = [];
 
@@ -656,7 +857,8 @@ export class FondosComponent implements OnInit, OnDestroy {
       nombre: fondo.nombre,
       descripcion: fondo.descripcion || '',
       tipo: fondo.tipo,
-      saldoActual: fondo.saldoActual || 0,
+      // 🔧 NUEVO: Para préstamos y deudas, mostrar el saldo como positivo en el formulario
+      saldoActual: (PrestamoUtils.esPrestamo(fondo) || DeudaUtils.esDeuda(fondo)) ? Math.abs(fondo.saldoActual) : (fondo.saldoActual || 0),
       metaAhorro: fondo.metaAhorro || 0
     });
     
@@ -681,8 +883,8 @@ export class FondosComponent implements OnInit, OnDestroy {
         nombre: fondoData.nombre,
         descripcion: fondoData.descripcion,
         tipo: fondoData.tipo,
-        // 🔧 Meta solo para fondos de ahorro
-        metaAhorro: fondoData.tipo === 'ahorro' ? (fondoData.metaAhorro || 0) : 0
+        // 🔧 Meta obligatoria para fondos de ahorro, préstamos y deudas
+        metaAhorro: (fondoData.tipo === 'ahorro' || fondoData.tipo === 'prestamo' || fondoData.tipo === 'deuda') ? (fondoData.metaAhorro || 0) : 0
       };
 
       this.fondoService.actualizarFondo(this.fondoEditando._id!, updateData)
@@ -706,9 +908,25 @@ export class FondosComponent implements OnInit, OnDestroy {
         descripcion: fondoData.descripcion,
         tipo: fondoData.tipo,
         saldoActual: fondoData.saldoActual || 0,
-        // 🔧 Meta solo para fondos de ahorro
-        metaAhorro: fondoData.tipo === 'ahorro' ? (fondoData.metaAhorro || 0) : 0
+        // 🔧 Meta obligatoria para fondos de ahorro, préstamos y deudas
+        metaAhorro: (fondoData.tipo === 'ahorro' || fondoData.tipo === 'prestamo' || fondoData.tipo === 'deuda') ? (fondoData.metaAhorro || 0) : 0
       };
+
+      // 🔧 NUEVO: Lógica especial para préstamos
+      if (fondoData.tipo === 'prestamo') {
+        // Para préstamos, convertir el saldo inicial a negativo si es positivo
+        if (createData.saldoActual! > 0) {
+          createData.saldoActual = -Math.abs(createData.saldoActual!);
+        }
+        console.log('💵 Préstamo: Saldo convertido a negativo:', createData.saldoActual);
+      } else if (fondoData.tipo === 'deuda') {
+        // 🆕 NUEVO: Lógica especial para deudas
+        // Para deudas, convertir el saldo inicial a negativo si es positivo
+        if (createData.saldoActual! > 0) {
+          createData.saldoActual = -Math.abs(createData.saldoActual!);
+        }
+        console.log('🔴 Deuda: Saldo convertido a negativo:', createData.saldoActual);
+      }
 
       this.fondoService.crearFondo(createData)
         .pipe(takeUntil(this.destroy$))
@@ -853,7 +1071,9 @@ export class FondosComponent implements OnInit, OnDestroy {
   obtenerIconoTipo(tipo: TipoFondo): string {
     const iconos: Record<TipoFondo, string> = {
       'registro': 'assignment',
-      'ahorro': 'savings'
+      'ahorro': 'savings',
+      'prestamo': 'account_balance',
+      'deuda': 'credit_card'
     };
     return iconos[tipo] || 'account_balance_wallet';
   }
@@ -862,7 +1082,9 @@ export class FondosComponent implements OnInit, OnDestroy {
   obtenerNombreTipo(tipo: TipoFondo): string {
     const nombres: Record<TipoFondo, string> = {
       'registro': 'Control de Movimientos',
-      'ahorro': 'Fondo de Ahorro'
+      'ahorro': 'Fondo de Ahorro',
+      'prestamo': 'Préstamo - Cuentas por Cobrar',
+      'deuda': 'Deuda - Cuentas por Pagar'
     };
     return nombres[tipo] || tipo;
   }
@@ -894,6 +1116,32 @@ export class FondosComponent implements OnInit, OnDestroy {
       }
       
       console.log('💰 Fondo de ahorro: Campo meta OBLIGATORIO');
+    } else if (tipo === 'prestamo') {
+      // Para préstamos: OBLIGATORIO (monto total del préstamo)
+      metaControl?.enable();
+      metaControl?.setValidators([
+        Validators.required,
+        Validators.min(1)
+      ]);
+      
+      if (!metaControl?.value || metaControl?.value <= 0) {
+        metaControl?.setValue(null);
+      }
+      
+      console.log('💵 Préstamo: Campo meta OBLIGATORIO (monto prestado)');
+    } else if (tipo === 'deuda') {
+      // Para deudas: OBLIGATORIO (monto total de la deuda)
+      metaControl?.enable();
+      metaControl?.setValidators([
+        Validators.required,
+        Validators.min(1)
+      ]);
+      
+      if (!metaControl?.value || metaControl?.value <= 0) {
+        metaControl?.setValue(null);
+      }
+      
+      console.log('🔴 Deuda: Campo meta OBLIGATORIO (monto que debo)');
     }
     
     metaControl?.updateValueAndValidity();

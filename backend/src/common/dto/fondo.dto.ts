@@ -26,18 +26,16 @@ export class CreateFondoDto {
     enumName: 'TipoFondo'
   })
   @IsEnum(TipoFondo, {
-    message: 'El tipo debe ser "registro" o "ahorro"'
+    message: 'El tipo debe ser "registro", "ahorro", "prestamo" o "deuda"'
   })
   tipo: TipoFondo;
 
   @ApiPropertyOptional({
-    description: 'Saldo inicial del fondo',
+    description: 'Saldo inicial del fondo (puede ser negativo para préstamos)',
     example: 0,
-    minimum: 0,
     default: 0
   })
   @IsNumber()
-  @Min(0)
   @IsOptional()
   saldoActual?: number;
 
@@ -46,15 +44,15 @@ export class CreateFondoDto {
     example: 100000,
     minimum: 1
   })
-  @ValidateIf(o => o.tipo === TipoFondo.AHORRO)
+  @ValidateIf(o => o.tipo === TipoFondo.AHORRO || o.tipo === TipoFondo.PRESTAMO || o.tipo === TipoFondo.DEUDA)
   @IsNumber({}, {
-    message: 'La meta debe ser un número válido para fondos de ahorro'
+    message: 'La meta debe ser un número válido para fondos de ahorro, préstamos y deudas'
   })
   @Min(1, {
-    message: 'La meta debe ser mayor a 0 para fondos de ahorro'
+    message: 'La meta debe ser mayor a 0 para fondos de ahorro, préstamos y deudas'
   })
   @IsNotEmpty({
-    message: 'La meta de ahorro es obligatoria para fondos de ahorro'
+    message: 'La meta es obligatoria para fondos de ahorro, préstamos y deudas'
   })
   metaAhorro?: number;
 }
@@ -80,7 +78,7 @@ export class UpdateFondoDto {
     enum: TipoFondo
   })
   @IsEnum(TipoFondo, {
-    message: 'El tipo debe ser "registro" o "ahorro"'
+    message: 'El tipo debe ser "registro", "ahorro", "prestamo" o "deuda"'
   })
   @IsOptional()
   tipo?: TipoFondo;
@@ -89,15 +87,15 @@ export class UpdateFondoDto {
     description: 'Meta de ahorro (obligatoria para fondos tipo "ahorro")',
     minimum: 1
   })
-  @ValidateIf(o => o.tipo === TipoFondo.AHORRO || !o.tipo)
+  @ValidateIf(o => o.tipo === TipoFondo.AHORRO || o.tipo === TipoFondo.PRESTAMO || o.tipo === TipoFondo.DEUDA || (!o.tipo))
   @IsNumber({}, {
     message: 'La meta debe ser un número válido'
   })
   @Min(1, {
-    message: 'La meta debe ser mayor a 0 para fondos de ahorro'
+    message: 'La meta debe ser mayor a 0 para fondos de ahorro, préstamos y deudas'
   })
   @IsNotEmpty({
-    message: 'La meta de ahorro es obligatoria para fondos de ahorro'
+    message: 'La meta es obligatoria para fondos de ahorro, préstamos y deudas'
   })
   metaAhorro?: number;
 

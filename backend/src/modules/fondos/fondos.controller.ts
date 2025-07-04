@@ -74,6 +74,72 @@ export class FondosController {
     };
   }
 
+  @Get('estadisticas/prestamos')
+  @ApiOperation({ summary: 'Obtener estadísticas específicas de préstamos' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Estadísticas de préstamos obtenidas exitosamente' 
+  })
+  async getEstadisticasPrestamos(@GetUser('userId') usuarioId: string) {
+    return await this.fondosService.getEstadisticasPrestamos(usuarioId);
+  }
+
+  @Get(':id/progreso-prestamo')
+  @ApiOperation({ summary: 'Obtener progreso de pago de un préstamo específico' })
+  @ApiParam({ name: 'id', description: 'ID del fondo préstamo' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Progreso del préstamo obtenido exitosamente' 
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Fondo no encontrado' 
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'El fondo no es de tipo préstamo' 
+  })
+  async getProgresoPrestamo(
+    @Param('id') id: string,
+    @GetUser('userId') usuarioId: string
+  ) {
+    const fondo = await this.fondosService.findOne(id, usuarioId);
+    return this.fondosService.getProgresoPrestamo(fondo);
+  }
+
+  @Get('estadisticas/deudas')
+  @ApiOperation({ summary: 'Obtener estadísticas específicas de deudas' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Estadísticas de deudas obtenidas exitosamente' 
+  })
+  async getEstadisticasDeudas(@GetUser('userId') usuarioId: string) {
+    return await this.fondosService.getEstadisticasDeudas(usuarioId);
+  }
+
+  @Get(':id/progreso-deuda')
+  @ApiOperation({ summary: 'Obtener progreso de pago de una deuda específica' })
+  @ApiParam({ name: 'id', description: 'ID del fondo deuda' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Progreso de la deuda obtenido exitosamente' 
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Fondo no encontrado' 
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'El fondo no es de tipo deuda' 
+  })
+  async getProgresoDeuda(
+    @Param('id') id: string,
+    @GetUser('userId') usuarioId: string
+  ) {
+    const fondo = await this.fondosService.findOne(id, usuarioId);
+    return this.fondosService.getProgresoDeuda(fondo);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un fondo por ID' })
   @ApiParam({ name: 'id', description: 'ID del fondo' })

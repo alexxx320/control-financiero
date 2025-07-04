@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, BehaviorSubject, throwError } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { Fondo, CreateFondoDto, UpdateFondoDto, TipoFondo } from '../models/fondo.model';
+import { Fondo, CreateFondoDto, UpdateFondoDto, TipoFondo, EstadisticasPrestamos, ProgresoPrestamo, EstadisticasDeudas, ProgresoDeuda } from '../models/fondo.model';
 
 @Injectable({
   providedIn: 'root'
@@ -197,8 +197,60 @@ export class FondoService {
       );
   }
 
-  // 🔧 MODIFICADO: Solo dos tipos de fondo
+  // 🔧 MODIFICADO: Cuatro tipos de fondo incluyen deudas
   obtenerTiposFondo(): TipoFondo[] {
-    return ['registro', 'ahorro'];
+    return ['registro', 'ahorro', 'prestamo', 'deuda'];
+  }
+
+  // Métodos específicos para préstamos
+  obtenerEstadisticasPrestamos(): Observable<EstadisticasPrestamos> {
+    return this.http.get<EstadisticasPrestamos>(`${this.apiUrl}/estadisticas/prestamos`)
+      .pipe(
+        catchError(error => {
+          console.error('Error al obtener estadísticas de préstamos:', error);
+          throw error;
+        })
+      );
+  }
+
+  obtenerProgresoPrestamo(fondoId: string): Observable<ProgresoPrestamo> {
+    return this.http.get<ProgresoPrestamo>(`${this.apiUrl}/${fondoId}/progreso-prestamo`)
+      .pipe(
+        catchError(error => {
+          console.error('Error al obtener progreso del préstamo:', error);
+          throw error;
+        })
+      );
+  }
+
+  // Utilidad para obtener solo préstamos
+  obtenerPrestamos(): Observable<Fondo[]> {
+    return this.obtenerFondos('prestamo');
+  }
+
+  // 🆕 NUEVO: Métodos específicos para deudas
+  obtenerEstadisticasDeudas(): Observable<EstadisticasDeudas> {
+    return this.http.get<EstadisticasDeudas>(`${this.apiUrl}/estadisticas/deudas`)
+      .pipe(
+        catchError(error => {
+          console.error('Error al obtener estadísticas de deudas:', error);
+          throw error;
+        })
+      );
+  }
+
+  obtenerProgresoDeuda(fondoId: string): Observable<ProgresoDeuda> {
+    return this.http.get<ProgresoDeuda>(`${this.apiUrl}/${fondoId}/progreso-deuda`)
+      .pipe(
+        catchError(error => {
+          console.error('Error al obtener progreso de la deuda:', error);
+          throw error;
+        })
+      );
+  }
+
+  // Utilidad para obtener solo deudas
+  obtenerDeudas(): Observable<Fondo[]> {
+    return this.obtenerFondos('deuda');
   }
 }
