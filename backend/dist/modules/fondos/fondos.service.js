@@ -276,7 +276,7 @@ let FondosService = class FondosService {
             if (tipo === financiero_interface_1.TipoTransaccion.INGRESO) {
                 nuevoSaldo = fondo.saldoActual + monto;
                 console.log(`💰 PRÉSTAMO - Cobro realizado: ${monto}, saldo anterior: ${fondo.saldoActual}, nuevo saldo: ${nuevoSaldo}`);
-                console.log(`🎯 PRÉSTAMO - Total prestado se mantiene: ${fondo.metaAhorro} (sin cambios)`);
+                console.log(`🎯 PRÉSTAMO - Préstamo total se mantiene: ${fondo.metaAhorro} (sin cambios)`);
                 return await this.fondoModel
                     .findOneAndUpdate({ _id: fondoId, usuarioId: new mongoose_2.Types.ObjectId(usuarioId) }, { saldoActual: nuevoSaldo }, { new: true })
                     .exec();
@@ -285,7 +285,7 @@ let FondosService = class FondosService {
                 nuevoSaldo = fondo.saldoActual - monto;
                 const nuevaMeta = fondo.metaAhorro + monto;
                 console.log(`💳 PRÉSTAMO - Nuevo préstamo otorgado: ${monto}, saldo anterior: ${fondo.saldoActual}, nuevo saldo: ${nuevoSaldo}`);
-                console.log(`🎯 PRÉSTAMO - Total prestado actualizado: ${fondo.metaAhorro} → ${nuevaMeta}`);
+                console.log(`🎯 PRÉSTAMO - Préstamo total actualizado: ${fondo.metaAhorro} → ${nuevaMeta}`);
                 return await this.fondoModel
                     .findOneAndUpdate({ _id: fondoId, usuarioId: new mongoose_2.Types.ObjectId(usuarioId) }, {
                     saldoActual: nuevoSaldo,
