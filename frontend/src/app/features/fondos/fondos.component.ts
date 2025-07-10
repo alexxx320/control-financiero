@@ -13,6 +13,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { MatTooltipModule } from '@angular/material/tooltip'; // 🆕 NUEVO
+import { MatCheckboxModule } from '@angular/material/checkbox'; // 🆕 NUEVO: Para el filtro
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -48,6 +49,7 @@ import { NumberFormatDirective } from '../../shared/directives/number-format.dir
     MatChipsModule,
     MatGridListModule,
     MatTooltipModule, // 🆕 NUEVO
+    MatCheckboxModule, // 🆕 NUEVO: Para el filtro
     NumberFormatDirective // 🆕 NUEVO: Directiva para formatear números
   ],
   template: `
@@ -82,6 +84,58 @@ import { NumberFormatDirective } from '../../shared/directives/number-format.dir
           </div>
         </div>
       </div>
+
+      <!-- 🆕 NUEVO: Sección de filtros por tipo de fondo -->
+      <mat-card class="filtros-card mb-2">
+        <mat-card-content>
+          <div class="filtros-section">
+            <div class="filtros-header">
+              <h3><mat-icon>filter_list</mat-icon>Filtrar por Tipo de Fondo</h3>
+              <div class="filtros-actions">
+                <button mat-button (click)="seleccionarTodosTipos()" 
+                        [disabled]="tiposFondoSeleccionados.length === tiposFondo.length">
+                  <mat-icon>select_all</mat-icon>
+                  Todos
+                </button>
+                <button mat-button (click)="limpiarFiltroTipos()" 
+                        [disabled]="tiposFondoSeleccionados.length === 0">
+                  <mat-icon>clear_all</mat-icon>
+                  Limpiar
+                </button>
+              </div>
+            </div>
+            <div class="filtros-grid">
+              <div class="filtro-tipo" 
+                   *ngFor="let tipo of tiposFondo" 
+                   [class]="'filtro-' + tipo">
+                <mat-checkbox 
+                  [checked]="esTipoSeleccionado(tipo)"
+                  (change)="toggleTipoFondo(tipo, $event.checked)"
+                  class="filtro-checkbox">
+                  <div class="filtro-content">
+                    <div class="filtro-icon">
+                      <mat-icon>{{ obtenerIconoTipo(tipo) }}</mat-icon>
+                    </div>
+                    <div class="filtro-info">
+                      <span class="filtro-nombre">{{ obtenerNombreTipoCorto(tipo) }}</span>
+                      <span class="filtro-contador">({{ contarFondosPorTipo(tipo) }})</span>
+                    </div>
+                  </div>
+                </mat-checkbox>
+              </div>
+            </div>
+            <div class="filtros-resumen" *ngIf="hayFiltrosActivos()">
+              <span class="resumen-texto">
+                <mat-icon>info</mat-icon>
+                Mostrando {{ fondosFiltrados.length }} de {{ todosFondos.length }} fondos
+              </span>
+              <span class="tipos-activos">
+                Tipos: {{ tiposFondoSeleccionados.join(', ') | titlecase }}
+              </span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
 
       <mat-card class="form-card mb-2" *ngIf="mostrarFormulario">
         <mat-card-header>
@@ -220,7 +274,7 @@ import { NumberFormatDirective } from '../../shared/directives/number-format.dir
       </mat-card>
 
       <div class="fondos-grid">
-        <mat-card *ngFor="let fondo of fondos" 
+        <mat-card *ngFor="let fondo of fondosFiltrados" 
                   class="fondo-card" 
                   [class.fondo-inactivo]="!fondo.activo">
           <mat-card-header>
@@ -1017,7 +1071,160 @@ import { NumberFormatDirective } from '../../shared/directives/number-format.dir
       }
     }
 
-    /* 🆕 NUEVO: Estilos para la tarjeta de información de tipos */
+    /* 🆕 NUEVO: Estilos para la tarjeta de filtros */
+    .filtros-card {
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, #f1f3f4 0%, #e8eaf6 100%);
+      border-left: 4px solid #3f51b5;
+    }
+
+    .filtros-section {
+      padding: 4px 0;
+    }
+
+    .filtros-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .filtros-header h3 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      color: #3f51b5;
+      font-weight: 500;
+      font-size: 1.1em;
+    }
+
+    .filtros-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .filtros-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .filtro-tipo {
+      background: white;
+      border-radius: 8px;
+      padding: 8px;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+
+    .filtro-tipo:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .filtro-tipo.filtro-registro {
+      border-left: 4px solid #6c757d;
+    }
+
+    .filtro-tipo.filtro-ahorro {
+      border-left: 4px solid #28a745;
+    }
+
+    .filtro-tipo.filtro-prestamo {
+      border-left: 4px solid #ffc107;
+    }
+
+    .filtro-tipo.filtro-deuda {
+      border-left: 4px solid #dc3545;
+    }
+
+    .filtro-checkbox {
+      width: 100%;
+    }
+
+    .filtro-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .filtro-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(63, 81, 181, 0.1);
+    }
+
+    .filtro-registro .filtro-icon {
+      background: rgba(108, 117, 125, 0.1);
+      color: #6c757d;
+    }
+
+    .filtro-ahorro .filtro-icon {
+      background: rgba(40, 167, 69, 0.1);
+      color: #28a745;
+    }
+
+    .filtro-prestamo .filtro-icon {
+      background: rgba(255, 193, 7, 0.1);
+      color: #ffc107;
+    }
+
+    .filtro-deuda .filtro-icon {
+      background: rgba(220, 53, 69, 0.1);
+      color: #dc3545;
+    }
+
+    .filtro-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .filtro-nombre {
+      font-weight: 500;
+      font-size: 0.9em;
+      color: #333;
+    }
+
+    .filtro-contador {
+      font-size: 0.8em;
+      color: #666;
+      margin-top: 2px;
+    }
+
+    .filtros-resumen {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(63, 81, 181, 0.1);
+      border: 1px solid rgba(63, 81, 181, 0.2);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-top: 12px;
+    }
+
+    .resumen-texto {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+      color: #3f51b5;
+      font-size: 0.9em;
+    }
+
+    .tipos-activos {
+      font-size: 0.85em;
+      color: #666;
+      font-style: italic;
+    }
     .info-card {
       margin-bottom: 20px;
       background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
@@ -1180,6 +1387,55 @@ import { NumberFormatDirective } from '../../shared/directives/number-format.dir
       .tipo-content small {
         font-size: 0.75em;
       }
+
+      /* 🆕 NUEVO: Responsive para filtros en móviles */
+      .filtros-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+
+      .filtros-header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+      }
+
+      .filtros-actions {
+        width: 100%;
+        justify-content: space-around;
+      }
+
+      .filtros-resumen {
+        flex-direction: column;
+        gap: 8px;
+        align-items: flex-start;
+      }
+
+      .resumen-texto {
+        font-size: 0.85em;
+      }
+
+      .tipos-activos {
+        font-size: 0.8em;
+        width: 100%;
+      }
+
+      .filtro-content {
+        gap: 8px;
+      }
+
+      .filtro-icon {
+        width: 28px;
+        height: 28px;
+      }
+
+      .filtro-nombre {
+        font-size: 0.85em;
+      }
+
+      .filtro-contador {
+        font-size: 0.75em;
+      }
     }
   `]
 })
@@ -1209,6 +1465,11 @@ export class FondosComponent implements OnInit, OnDestroy {
   fondosActivos = 0;
   fondosInactivos = 0;
 
+  // 🆕 NUEVO: Variables para el filtro por tipo
+  todosFondos: Fondo[] = []; // Lista completa sin filtros
+  fondosFiltrados: Fondo[] = []; // Lista filtrada que se muestra
+  tiposFondoSeleccionados: TipoFondo[] = []; // Tipos seleccionados para el filtro
+
   constructor(
     private fb: FormBuilder,
     private fondoService: FondoService,
@@ -1229,6 +1490,8 @@ export class FondosComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.cargarTiposFondo();
+    // 🆕 NUEVO: Inicializar filtros con todos los tipos seleccionados
+    this.tiposFondoSeleccionados = [...this.tiposFondo];
     this.cargarFondos();
     
     // 🆕 NUEVO: Cargar categorías para transacciones
@@ -1259,17 +1522,16 @@ export class FondosComponent implements OnInit, OnDestroy {
         next: (todosFondos) => {
           console.log('✅ Todos los fondos cargados para contadores:', todosFondos);
           
+          // 🆕 NUEVO: Guardar lista completa
+          this.todosFondos = todosFondos;
+          
           // Actualizar contadores con todos los fondos
           this.actualizarContadoresConTodos(todosFondos);
           
-          // Filtrar para mostrar según preferencia del usuario
-          if (this.mostrarInactivos) {
-            this.fondos = todosFondos;
-          } else {
-            this.fondos = todosFondos.filter(f => f.activo);
-          }
+          // 🆕 NUEVO: Aplicar filtros (estado activo/inactivo + tipo)
+          this.aplicarFiltros();
           
-          console.log('✅ Fondos mostrados:', this.fondos.length, 'de', todosFondos.length);
+          console.log('✅ Fondos mostrados:', this.fondosFiltrados.length, 'de', todosFondos.length);
         },
         error: (error) => {
           console.error('❌ Error cargando fondos:', error);
@@ -1280,7 +1542,8 @@ export class FondosComponent implements OnInit, OnDestroy {
           }
           
           this.notificationService.error(mensaje);
-          this.fondos = [];
+          this.todosFondos = [];
+          this.fondosFiltrados = [];
           this.actualizarContadores();
         }
       });
@@ -1289,12 +1552,9 @@ export class FondosComponent implements OnInit, OnDestroy {
     this.fondoService.fondos$
       .pipe(takeUntil(this.destroy$))
       .subscribe(fondos => {
-        // Este observable podría contener solo fondos activos, así que manejamos diferente
-        if (this.mostrarInactivos) {
-          this.fondos = fondos;
-        } else {
-          this.fondos = fondos.filter(f => f.activo);
-        }
+        // 🆕 NUEVO: Actualizar lista completa y aplicar filtros
+        this.todosFondos = fondos;
+        this.aplicarFiltros();
         this.actualizarContadores();
       });
   }
@@ -1314,14 +1574,16 @@ export class FondosComponent implements OnInit, OnDestroy {
 
   // 🆕 NUEVO: Actualizar contadores de fondos
   private actualizarContadores(): void {
-    this.totalFondos = this.fondos.length;
-    this.fondosActivos = this.fondos.filter(f => f.activo).length;
-    this.fondosInactivos = this.fondos.filter(f => !f.activo).length;
+    // 🆕 NUEVO: Usar la lista completa para contadores reales
+    this.totalFondos = this.todosFondos.length;
+    this.fondosActivos = this.todosFondos.filter(f => f.activo).length;
+    this.fondosInactivos = this.todosFondos.filter(f => !f.activo).length;
     
     console.log('📊 Contadores actualizados:', {
       total: this.totalFondos,
       activos: this.fondosActivos,
-      inactivos: this.fondosInactivos
+      inactivos: this.fondosInactivos,
+      filtrados: this.fondosFiltrados.length
     });
   }
 
@@ -1330,8 +1592,86 @@ export class FondosComponent implements OnInit, OnDestroy {
     this.mostrarInactivos = !this.mostrarInactivos;
     console.log('🔄 Cambiando filtro de fondos inactivos:', this.mostrarInactivos);
     
-    // 🆕 NUEVO: Recargar para aplicar el nuevo filtro
-    this.cargarFondos();
+    // 🆕 NUEVO: Aplicar filtros sin recargar desde el servidor
+    this.aplicarFiltros();
+  }
+
+  // 🆕 NUEVO: Método para aplicar todos los filtros
+  private aplicarFiltros(): void {
+    let fondosFiltrados = [...this.todosFondos];
+    
+    // Filtro por estado activo/inactivo
+    if (!this.mostrarInactivos) {
+      fondosFiltrados = fondosFiltrados.filter(f => f.activo);
+    }
+    
+    // Filtro por tipo de fondo
+    if (this.tiposFondoSeleccionados.length > 0 && this.tiposFondoSeleccionados.length < this.tiposFondo.length) {
+      fondosFiltrados = fondosFiltrados.filter(f => this.tiposFondoSeleccionados.includes(f.tipo));
+    }
+    
+    this.fondosFiltrados = fondosFiltrados;
+    
+    console.log('🔎 Filtros aplicados:', {
+      total: this.todosFondos.length,
+      filtrados: this.fondosFiltrados.length,
+      mostrarInactivos: this.mostrarInactivos,
+      tiposSeleccionados: this.tiposFondoSeleccionados
+    });
+  }
+
+  // 🆕 NUEVO: Métodos para el filtro por tipo de fondo
+  toggleTipoFondo(tipo: TipoFondo, seleccionado: boolean): void {
+    if (seleccionado) {
+      if (!this.tiposFondoSeleccionados.includes(tipo)) {
+        this.tiposFondoSeleccionados.push(tipo);
+      }
+    } else {
+      this.tiposFondoSeleccionados = this.tiposFondoSeleccionados.filter(t => t !== tipo);
+    }
+    
+    console.log('🔄 Tipo de fondo', tipo, seleccionado ? 'seleccionado' : 'deseleccionado');
+    console.log('🔄 Tipos seleccionados:', this.tiposFondoSeleccionados);
+    
+    this.aplicarFiltros();
+  }
+
+  esTipoSeleccionado(tipo: TipoFondo): boolean {
+    return this.tiposFondoSeleccionados.includes(tipo);
+  }
+
+  seleccionarTodosTipos(): void {
+    this.tiposFondoSeleccionados = [...this.tiposFondo];
+    console.log('✅ Todos los tipos seleccionados');
+    this.aplicarFiltros();
+  }
+
+  limpiarFiltroTipos(): void {
+    this.tiposFondoSeleccionados = [];
+    console.log('🧽 Filtros de tipo limpiados');
+    this.aplicarFiltros();
+  }
+
+  hayFiltrosActivos(): boolean {
+    return this.tiposFondoSeleccionados.length > 0 && this.tiposFondoSeleccionados.length < this.tiposFondo.length;
+  }
+
+  contarFondosPorTipo(tipo: TipoFondo): number {
+    const fondosDelTipo = this.todosFondos.filter(f => f.tipo === tipo);
+    if (!this.mostrarInactivos) {
+      return fondosDelTipo.filter(f => f.activo).length;
+    }
+    return fondosDelTipo.length;
+  }
+
+  obtenerNombreTipoCorto(tipo: TipoFondo): string {
+    const nombres: Record<TipoFondo, string> = {
+      'registro': 'Registro',
+      'ahorro': 'Ahorro',
+      'prestamo': 'Préstamo',
+      'deuda': 'Deuda'
+    };
+    return nombres[tipo] || tipo;
   }
 
   abrirDialogoFondo(): void {
