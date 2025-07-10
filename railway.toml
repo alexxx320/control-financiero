@@ -1,12 +1,6 @@
+# Railway config - apuntar directamente al backend
 [build]
-command = "npm install && npm run build"
+command = "cd backend && npm ci && npm run build"
 
 [deploy]
-startCommand = "npm run start:prod"
-
-# Railway debe usar el directorio backend como root
-[source]
-directory = "backend"
-
-[env]
-NODE_ENV = "production"
+startCommand = "cd backend && npm run start:prod"
