@@ -1,18 +1,9 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
-  "services": [
-    {
-      "name": "backend",
-      "source": {
-        "type": "local",
-        "path": "./backend"
-      },
-      "build": {
-        "command": "npm install && npm run build"
-      },
-      "deploy": {
-        "startCommand": "npm run start:prod"
-      }
-    }
-  ]
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "startCommand": "bash start.sh"
+  }
 }

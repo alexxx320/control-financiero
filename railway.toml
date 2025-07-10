@@ -4,10 +4,9 @@ command = "npm install && npm run build"
 [deploy]
 startCommand = "npm run start:prod"
 
+# Railway debe usar el directorio backend como root
+[source]
+directory = "backend"
+
 [env]
 NODE_ENV = "production"
-PORT = "$PORT"
-
-# Indicar que el código está en el directorio backend
-[source]
-path = "./backend"
