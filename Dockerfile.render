@@ -1,13 +1,11 @@
-# Dockerfile súper rápido - solo runtime (2-3 minutos máximo)
+# Para Render.com
 FROM node:18-alpine
 
 WORKDIR /app
 
-# Copiar package.json y instalar solo dependencias de producción
 COPY backend/package*.json ./
 RUN npm ci --production --silent
 
-# Copiar el build ya compilado
 COPY backend/dist ./dist
 
 EXPOSE 3000
