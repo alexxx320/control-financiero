@@ -86,13 +86,14 @@ let FondosService = class FondosService {
         });
         return fondoGuardado;
     }
-    async findAll(usuarioId) {
+    async findAll(usuarioId, incluirInactivos = false) {
+        const filtro = { usuarioId: new mongoose_2.Types.ObjectId(usuarioId) };
+        if (!incluirInactivos) {
+            filtro.activo = true;
+        }
         return await this.fondoModel
-            .find({
-            usuarioId: new mongoose_2.Types.ObjectId(usuarioId),
-            activo: true
-        })
-            .sort({ fechaCreacion: -1 })
+            .find(filtro)
+            .sort({ activo: -1, fechaCreacion: -1 })
             .exec();
     }
     async findOne(id, usuarioId) {
@@ -195,6 +196,30 @@ let FondosService = class FondosService {
         });
         return fondoActualizado;
     }
+    async toggleEstado(id, usuarioId) {
+        console.log(`🔄 [FONDOS] Cambiando estado del fondo ${id}...`);
+        const fondoExistente = await this.findOne(id, usuarioId);
+        const nuevoEstado = !fondoExistente.activo;
+        console.log(`🔄 Estado actual: ${fondoExistente.activo}, nuevo estado: ${nuevoEstado}`);
+        if (!nuevoEstado) {
+            const transaccionesCount = await this.transaccionModel.countDocuments({
+                fondoId: new mongoose_2.Types.ObjectId(id),
+                usuarioId: new mongoose_2.Types.ObjectId(usuarioId)
+            });
+            console.log(`📋 Fondo tiene ${transaccionesCount} transacciones asociadas`);
+            if (transaccionesCount > 0) {
+                console.log(`⚠️ [FONDOS] Desactivando fondo "${fondoExistente.nombre}" con ${transaccionesCount} transacciones`);
+            }
+        }
+        const fondoActualizado = await this.fondoModel
+            .findOneAndUpdate({ _id: id, usuarioId: new mongoose_2.Types.ObjectId(usuarioId) }, { activo: nuevoEstado }, { new: true })
+            .exec();
+        if (!fondoActualizado) {
+            throw new common_1.NotFoundException(`Fondo con ID "${id}" no encontrado`);
+        }
+        console.log(`✅ [FONDOS] Estado del fondo "${fondoActualizado.nombre}" cambiado a: ${nuevoEstado ? 'ACTIVO' : 'INACTIVO'}`);
+        return fondoActualizado;
+    }
     async remove(id, usuarioId) {
         console.log(`🗑️ Eliminando fondo ${id} y sus transacciones asociadas...`);
         const fondo = await this.findOne(id, usuarioId);
@@ -218,14 +243,17 @@ let FondosService = class FondosService {
             .exec();
         console.log(`✅ Fondo "${fondo.nombre}" eliminado exitosamente`);
     }
-    async findByTipo(tipo, usuarioId) {
-        return await this.fondoModel
-            .find({
+    async findByTipo(tipo, usuarioId, incluirInactivos = false) {
+        const filtro = {
             tipo,
-            usuarioId: new mongoose_2.Types.ObjectId(usuarioId),
-            activo: true
-        })
-            .sort({ fechaCreacion: -1 })
+            usuarioId: new mongoose_2.Types.ObjectId(usuarioId)
+        };
+        if (!incluirInactivos) {
+            filtro.activo = true;
+        }
+        return await this.fondoModel
+            .find(filtro)
+            .sort({ activo: -1, fechaCreacion: -1 })
             .exec();
     }
     async getTotalFondos(usuarioId) {

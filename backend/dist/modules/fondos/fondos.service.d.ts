@@ -8,11 +8,12 @@ export declare class FondosService {
     private transaccionModel;
     constructor(fondoModel: Model<FondoDocument>, transaccionModel: Model<TransaccionDocument>);
     create(createFondoDto: CreateFondoDto, usuarioId: string): Promise<Fondo>;
-    findAll(usuarioId: string): Promise<Fondo[]>;
+    findAll(usuarioId: string, incluirInactivos?: boolean): Promise<Fondo[]>;
     findOne(id: string, usuarioId: string): Promise<Fondo>;
     update(id: string, updateFondoDto: UpdateFondoDto, usuarioId: string): Promise<Fondo>;
+    toggleEstado(id: string, usuarioId: string): Promise<Fondo>;
     remove(id: string, usuarioId: string): Promise<void>;
-    findByTipo(tipo: string, usuarioId: string): Promise<Fondo[]>;
+    findByTipo(tipo: string, usuarioId: string, incluirInactivos?: boolean): Promise<Fondo[]>;
     getTotalFondos(usuarioId: string): Promise<number>;
     getFondosConMetas(usuarioId: string): Promise<Fondo[]>;
     actualizarSaldo(fondoId: string, tipo: TipoTransaccion, monto: number, usuarioId: string): Promise<Fondo>;

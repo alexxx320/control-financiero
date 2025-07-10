@@ -15,12 +15,15 @@ export class FondoService {
 
   constructor(private http: HttpClient) {}
 
-  obtenerFondos(tipo?: string): Observable<Fondo[]> {
+  obtenerFondos(tipo?: string, incluirInactivos: boolean = false): Observable<Fondo[]> {
     console.log('🏦 Obteniendo fondos del backend...');
     
     let params = new HttpParams();
     if (tipo) {
       params = params.set('tipo', tipo);
+    }
+    if (incluirInactivos) {
+      params = params.set('incluirInactivos', 'true');
     }
 
     return this.http.get<Fondo[]>(this.apiUrl, { params })
@@ -228,6 +231,11 @@ export class FondoService {
     return this.obtenerFondos('prestamo');
   }
 
+  // 🆕 NUEVO: Obtener fondos incluyendo inactivos (para administración)
+  obtenerTodosLosFondos(): Observable<Fondo[]> {
+    return this.obtenerFondos(undefined, true); // Incluir inactivos
+  }
+
   // 🆕 NUEVO: Métodos específicos para deudas
   obtenerEstadisticasDeudas(): Observable<EstadisticasDeudas> {
     return this.http.get<EstadisticasDeudas>(`${this.apiUrl}/estadisticas/deudas`)
@@ -252,5 +260,40 @@ export class FondoService {
   // Utilidad para obtener solo deudas
   obtenerDeudas(): Observable<Fondo[]> {
     return this.obtenerFondos('deuda');
+  }
+
+  // 🆕 NUEVO: Método para cambiar estado activo/inactivo
+  toggleEstadoFondo(id: string): Observable<{ fondo: Fondo; message: string }> {
+    console.log('🔄 Cambiando estado del fondo:', id);
+    
+    return this.http.patch<{ fondo: Fondo; message: string }>(`${this.apiUrl}/${id}/toggle-estado`, {})
+      .pipe(
+        tap(response => {
+          console.log('✅ Estado del fondo cambiado exitosamente:', response);
+          
+          // Actualizar el fondo en el subject
+          const fondosActuales = this.fondosSubject.value;
+          const index = fondosActuales.findIndex(f => f._id === id);
+          if (index !== -1) {
+            fondosActuales[index] = response.fondo;
+            this.fondosSubject.next([...fondosActuales]);
+          }
+        }),
+        catchError(error => {
+          console.error('❌ Error al cambiar estado del fondo:', error);
+          
+          let mensaje = 'Error al cambiar el estado del fondo';
+          if (error.status === 404) {
+            mensaje = 'Fondo no encontrado';
+          } else if (error.status === 401) {
+            mensaje = 'No autorizado para modificar este fondo';
+          }
+          
+          return throwError(() => ({
+            ...error,
+            message: mensaje
+          }));
+        })
+      );
   }
 }

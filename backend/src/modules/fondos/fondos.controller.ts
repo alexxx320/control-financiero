@@ -33,7 +33,7 @@ export class FondosController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Obtener todos mis fondos activos' })
+  @ApiOperation({ summary: 'Obtener todos mis fondos' })
   @ApiResponse({ 
     status: 200, 
     description: 'Lista de fondos obtenida exitosamente',
@@ -44,15 +44,24 @@ export class FondosController {
     required: false, 
     description: 'Filtrar por tipo de fondo' 
   })
+  @ApiQuery({ 
+    name: 'incluirInactivos', 
+    required: false, 
+    description: 'Incluir fondos inactivos en la respuesta',
+    type: 'boolean'
+  })
   async findAll(
     @Query('tipo') tipo: string,
+    @Query('incluirInactivos') incluirInactivos: string,
     @GetUser('userId') usuarioId: string
   ): Promise<Fondo[]> {
     console.log('FondosController - Obtener fondos para usuario:', usuarioId);
+    const incluirInactivosBool = incluirInactivos === 'true';
+    
     if (tipo) {
-      return await this.fondosService.findByTipo(tipo, usuarioId);
+      return await this.fondosService.findByTipo(tipo, usuarioId, incluirInactivosBool);
     }
-    return await this.fondosService.findAll(usuarioId);
+    return await this.fondosService.findAll(usuarioId, incluirInactivosBool);
   }
 
   @Get('estadisticas')
@@ -157,6 +166,39 @@ export class FondosController {
     @GetUser('userId') usuarioId: string
   ): Promise<Fondo> {
     return await this.fondosService.findOne(id, usuarioId);
+  }
+
+  @Patch(':id/toggle-estado')
+  @ApiOperation({ summary: 'Activar o desactivar un fondo' })
+  @ApiParam({ name: 'id', description: 'ID del fondo' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Estado del fondo actualizado exitosamente',
+    type: Fondo
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Fondo no encontrado' 
+  })
+  async toggleEstado(
+    @Param('id') id: string,
+    @GetUser('userId') usuarioId: string
+  ): Promise<{ fondo: Fondo; message: string }> {
+    console.log('🔄 Backend - Cambiando estado del fondo:', { id, usuarioId });
+    
+    const fondoActualizado = await this.fondosService.toggleEstado(id, usuarioId);
+    const mensaje = `Fondo ${fondoActualizado.activo ? 'activado' : 'desactivado'} exitosamente`;
+    
+    console.log('✅ Backend - Estado del fondo actualizado:', {
+      id: fondoActualizado._id,
+      nombre: fondoActualizado.nombre,
+      activo: fondoActualizado.activo
+    });
+    
+    return {
+      fondo: fondoActualizado,
+      message: mensaje
+    };
   }
 
   @Patch(':id')

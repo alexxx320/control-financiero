@@ -5,7 +5,7 @@ export declare class FondosController {
     private readonly fondosService;
     constructor(fondosService: FondosService);
     create(createFondoDto: CreateFondoDto, usuarioId: string): Promise<Fondo>;
-    findAll(tipo: string, usuarioId: string): Promise<Fondo[]>;
+    findAll(tipo: string, incluirInactivos: string, usuarioId: string): Promise<Fondo[]>;
     getEstadisticas(usuarioId: string): Promise<{
         totalFondos: number;
         fondosConMetas: number;
@@ -40,6 +40,10 @@ export declare class FondosController {
         estaLiquidada: boolean;
     }>;
     findOne(id: string, usuarioId: string): Promise<Fondo>;
+    toggleEstado(id: string, usuarioId: string): Promise<{
+        fondo: Fondo;
+        message: string;
+    }>;
     update(id: string, updateFondoDto: UpdateFondoDto, usuarioId: string): Promise<Fondo>;
     remove(id: string, usuarioId: string): Promise<{
         message: string;

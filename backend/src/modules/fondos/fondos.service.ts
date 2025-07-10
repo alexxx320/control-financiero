@@ -88,13 +88,17 @@ export class FondosService {
     return fondoGuardado;
   }
 
-  async findAll(usuarioId: string): Promise<Fondo[]> {
+  async findAll(usuarioId: string, incluirInactivos: boolean = false): Promise<Fondo[]> {
+    const filtro: any = { usuarioId: new Types.ObjectId(usuarioId) };
+    
+    // Solo filtrar por activos si no se requieren los inactivos
+    if (!incluirInactivos) {
+      filtro.activo = true;
+    }
+    
     return await this.fondoModel
-      .find({ 
-        usuarioId: new Types.ObjectId(usuarioId),
-        activo: true 
-      })
-      .sort({ fechaCreacion: -1 })
+      .find(filtro)
+      .sort({ activo: -1, fechaCreacion: -1 }) // Activos primero, luego por fecha
       .exec();
   }
 
@@ -233,6 +237,49 @@ export class FondosService {
     return fondoActualizado;
   }
 
+  /**
+   * Cambiar estado activo/inactivo de un fondo
+   */
+  async toggleEstado(id: string, usuarioId: string): Promise<Fondo> {
+    console.log(`🔄 [FONDOS] Cambiando estado del fondo ${id}...`);
+    
+    // Verificar que el fondo existe y pertenece al usuario
+    const fondoExistente = await this.findOne(id, usuarioId);
+    const nuevoEstado = !fondoExistente.activo;
+    
+    console.log(`🔄 Estado actual: ${fondoExistente.activo}, nuevo estado: ${nuevoEstado}`);
+    
+    // Si se está desactivando el fondo, validar que no tenga transacciones pendientes
+    if (!nuevoEstado) {
+      const transaccionesCount = await this.transaccionModel.countDocuments({ 
+        fondoId: new Types.ObjectId(id),
+        usuarioId: new Types.ObjectId(usuarioId)
+      });
+      
+      console.log(`📋 Fondo tiene ${transaccionesCount} transacciones asociadas`);
+      
+      if (transaccionesCount > 0) {
+        console.log(`⚠️ [FONDOS] Desactivando fondo "${fondoExistente.nombre}" con ${transaccionesCount} transacciones`);
+      }
+    }
+    
+    const fondoActualizado = await this.fondoModel
+      .findOneAndUpdate(
+        { _id: id, usuarioId: new Types.ObjectId(usuarioId) },
+        { activo: nuevoEstado }, 
+        { new: true }
+      )
+      .exec();
+
+    if (!fondoActualizado) {
+      throw new NotFoundException(`Fondo con ID "${id}" no encontrado`);
+    }
+
+    console.log(`✅ [FONDOS] Estado del fondo "${fondoActualizado.nombre}" cambiado a: ${nuevoEstado ? 'ACTIVO' : 'INACTIVO'}`);
+    
+    return fondoActualizado;
+  }
+
   async remove(id: string, usuarioId: string): Promise<void> {
     console.log(`🗑️ Eliminando fondo ${id} y sus transacciones asociadas...`);
     
@@ -268,14 +315,20 @@ export class FondosService {
     console.log(`✅ Fondo "${fondo.nombre}" eliminado exitosamente`);
   }
 
-  async findByTipo(tipo: string, usuarioId: string): Promise<Fondo[]> {
+  async findByTipo(tipo: string, usuarioId: string, incluirInactivos: boolean = false): Promise<Fondo[]> {
+    const filtro: any = {
+      tipo, 
+      usuarioId: new Types.ObjectId(usuarioId)
+    };
+    
+    // Solo filtrar por activos si no se requieren los inactivos
+    if (!incluirInactivos) {
+      filtro.activo = true;
+    }
+    
     return await this.fondoModel
-      .find({ 
-        tipo, 
-        usuarioId: new Types.ObjectId(usuarioId),
-        activo: true 
-      })
-      .sort({ fechaCreacion: -1 })
+      .find(filtro)
+      .sort({ activo: -1, fechaCreacion: -1 }) // Activos primero, luego por fecha
       .exec();
   }
 

@@ -25,6 +25,7 @@ export declare class DashboardController {
         fondos: {
             id: any;
             progresoMeta: number;
+            _id?: import("mongoose").Types.ObjectId;
             usuarioId: import("mongoose").Types.ObjectId;
             nombre: string;
             descripcion: string;

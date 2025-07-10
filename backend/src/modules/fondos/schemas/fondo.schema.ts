@@ -6,6 +6,8 @@ export type FondoDocument = Fondo & Document;
 
 @Schema({ timestamps: true })
 export class Fondo {
+  _id?: Types.ObjectId;
+
   @Prop({ 
     required: true, 
     type: Types.ObjectId, 

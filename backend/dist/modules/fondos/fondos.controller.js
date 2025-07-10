@@ -28,12 +28,13 @@ let FondosController = class FondosController {
         console.log('FondosController - Crear fondo para usuario:', usuarioId);
         return await this.fondosService.create(createFondoDto, usuarioId);
     }
-    async findAll(tipo, usuarioId) {
+    async findAll(tipo, incluirInactivos, usuarioId) {
         console.log('FondosController - Obtener fondos para usuario:', usuarioId);
+        const incluirInactivosBool = incluirInactivos === 'true';
         if (tipo) {
-            return await this.fondosService.findByTipo(tipo, usuarioId);
+            return await this.fondosService.findByTipo(tipo, usuarioId, incluirInactivosBool);
         }
-        return await this.fondosService.findAll(usuarioId);
+        return await this.fondosService.findAll(usuarioId, incluirInactivosBool);
     }
     async getEstadisticas(usuarioId) {
         const totalFondos = await this.fondosService.getTotalFondos(usuarioId);
@@ -62,6 +63,20 @@ let FondosController = class FondosController {
     }
     async findOne(id, usuarioId) {
         return await this.fondosService.findOne(id, usuarioId);
+    }
+    async toggleEstado(id, usuarioId) {
+        console.log('🔄 Backend - Cambiando estado del fondo:', { id, usuarioId });
+        const fondoActualizado = await this.fondosService.toggleEstado(id, usuarioId);
+        const mensaje = `Fondo ${fondoActualizado.activo ? 'activado' : 'desactivado'} exitosamente`;
+        console.log('✅ Backend - Estado del fondo actualizado:', {
+            id: fondoActualizado._id,
+            nombre: fondoActualizado.nombre,
+            activo: fondoActualizado.activo
+        });
+        return {
+            fondo: fondoActualizado,
+            message: mensaje
+        };
     }
     async update(id, updateFondoDto, usuarioId) {
         return await this.fondosService.update(id, updateFondoDto, usuarioId);
@@ -95,7 +110,7 @@ __decorate([
 ], FondosController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Obtener todos mis fondos activos' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Obtener todos mis fondos' }),
     (0, swagger_1.ApiResponse)({
         status: 200,
         description: 'Lista de fondos obtenida exitosamente',
@@ -106,10 +121,17 @@ __decorate([
         required: false,
         description: 'Filtrar por tipo de fondo'
     }),
+    (0, swagger_1.ApiQuery)({
+        name: 'incluirInactivos',
+        required: false,
+        description: 'Incluir fondos inactivos en la respuesta',
+        type: 'boolean'
+    }),
     __param(0, (0, common_1.Query)('tipo')),
-    __param(1, (0, get_user_decorator_1.GetUser)('userId')),
+    __param(1, (0, common_1.Query)('incluirInactivos')),
+    __param(2, (0, get_user_decorator_1.GetUser)('userId')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:paramtypes", [String, String, String]),
     __metadata("design:returntype", Promise)
 ], FondosController.prototype, "findAll", null);
 __decorate([
@@ -211,6 +233,25 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], FondosController.prototype, "findOne", null);
+__decorate([
+    (0, common_1.Patch)(':id/toggle-estado'),
+    (0, swagger_1.ApiOperation)({ summary: 'Activar o desactivar un fondo' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID del fondo' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Estado del fondo actualizado exitosamente',
+        type: fondo_schema_1.Fondo
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 404,
+        description: 'Fondo no encontrado'
+    }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, get_user_decorator_1.GetUser)('userId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], FondosController.prototype, "toggleEstado", null);
 __decorate([
     (0, common_1.Patch)(':id'),
     (0, swagger_1.ApiOperation)({ summary: 'Actualizar un fondo' }),

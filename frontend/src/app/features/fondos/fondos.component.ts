@@ -54,11 +54,32 @@ import { NumberFormatDirective } from '../../shared/directives/number-format.dir
     <div class="fondos-container">
       <div class="header-section mb-2">
         <div class="header-content">
-          <h2>Gestión de Fondos</h2>
-          <button mat-raised-button color="primary" (click)="abrirDialogoFondo()">
-            <mat-icon>add</mat-icon>
-            Nuevo Fondo
-          </button>
+          <div class="header-left">
+            <h2>Gestión de Fondos</h2>
+            <div class="fondos-stats" *ngIf="totalFondos > 0">
+              <span class="stat-item activos">{{fondosActivos}} Activos</span>
+              <span class="stat-separator">•</span>
+              <span class="stat-item inactivos" *ngIf="fondosInactivos > 0">{{fondosInactivos}} Inactivos</span>
+              <span class="stat-separator" *ngIf="fondosInactivos > 0">•</span>
+              <span class="stat-item total">{{totalFondos}} Total</span>
+            </div>
+          </div>
+          <div class="header-right">
+            <div class="info-inactivos" *ngIf="fondosInactivos > 0 && !mostrarInactivos">
+              <span class="info-text">👁️ Hay {{fondosInactivos}} fondo(s) inactivo(s)</span>
+            </div>
+            <button mat-icon-button 
+                    (click)="toggleMostrarInactivos()" 
+                    [color]="mostrarInactivos ? 'accent' : 'primary'"
+                    [matTooltip]="mostrarInactivos ? 'Ocultar fondos inactivos' : 'Mostrar fondos inactivos'"
+                    *ngIf="fondosInactivos > 0">
+              <mat-icon>{{mostrarInactivos ? 'visibility_off' : 'visibility'}}</mat-icon>
+            </button>
+            <button mat-raised-button color="primary" (click)="abrirDialogoFondo()">
+              <mat-icon>add</mat-icon>
+              Nuevo Fondo
+            </button>
+          </div>
         </div>
       </div>
 
@@ -199,15 +220,27 @@ import { NumberFormatDirective } from '../../shared/directives/number-format.dir
       </mat-card>
 
       <div class="fondos-grid">
-        <mat-card *ngFor="let fondo of fondos" class="fondo-card">
+        <mat-card *ngFor="let fondo of fondos" 
+                  class="fondo-card" 
+                  [class.fondo-inactivo]="!fondo.activo">
           <mat-card-header>
-            <div mat-card-avatar class="fondo-avatar">
+            <div mat-card-avatar class="fondo-avatar" [class.avatar-inactivo]="!fondo.activo">
               <mat-icon>{{ obtenerIconoTipo(fondo.tipo) }}</mat-icon>
             </div>
-            <mat-card-title>{{ fondo.nombre }}</mat-card-title>
+            <mat-card-title>
+              {{ fondo.nombre }}
+              <mat-chip class="estado-chip inactivo" *ngIf="!fondo.activo">INACTIVO</mat-chip>
+            </mat-card-title>
             <mat-card-subtitle>{{ fondo.tipo | titlecase }}</mat-card-subtitle>
             <div class="card-actions">
-              <button mat-icon-button (click)="editarFondo(fondo)">
+              <!-- 🆕 NUEVO: Botón para cambiar estado -->
+              <button mat-icon-button 
+                      (click)="toggleEstadoFondo(fondo)"
+                      [color]="fondo.activo ? 'warn' : 'primary'"
+                      [matTooltip]="fondo.activo ? 'Desactivar fondo' : 'Activar fondo'">
+                <mat-icon>{{ fondo.activo ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+              <button mat-icon-button (click)="editarFondo(fondo)" [disabled]="!fondo.activo">
                 <mat-icon>edit</mat-icon>
               </button>
               <button mat-icon-button color="warn" (click)="eliminarFondo(fondo)">
@@ -333,14 +366,15 @@ import { NumberFormatDirective } from '../../shared/directives/number-format.dir
 
           <!-- 🆕 BOTONES MOVIDOS AL FINAL DE LA TARJETA -->
           <mat-card-actions class="card-actions-bottom">
-            <button mat-button color="primary" (click)="verDetalleFondo(fondo)">
+            <button mat-button color="primary" (click)="verDetalleFondo(fondo)" [disabled]="!fondo.activo">
               <mat-icon>visibility</mat-icon>
               Ver Detalle
             </button>
             <!-- 🆕 Botón circular compacto para crear transacción -->
             <button mat-fab color="accent" (click)="crearTransaccionEnFondo(fondo)" 
                     class="btn-add-transaction"
-                    matTooltip="Nueva transacción">
+                    matTooltip="Nueva transacción"
+                    [disabled]="!fondo.activo">
               <mat-icon>add</mat-icon>
             </button>
           </mat-card-actions>
@@ -413,12 +447,76 @@ import { NumberFormatDirective } from '../../shared/directives/number-format.dir
     .header-content {
       display: flex;
       justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+    }
+
+    .header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .header-right {
+      display: flex;
       align-items: center;
+      gap: 12px;
+    }
+
+    /* 🆕 NUEVO: Estilos para información de fondos inactivos */
+    .info-inactivos {
+      background: rgba(255, 193, 7, 0.1);
+      border: 1px solid rgba(255, 193, 7, 0.3);
+      border-radius: 16px;
+      padding: 6px 12px;
+      margin-right: 8px;
+    }
+
+    .info-text {
+      font-size: 0.85em;
+      color: #f57600;
+      font-weight: 500;
     }
 
     .header-content h2 {
       margin: 0;
       font-weight: 500;
+    }
+
+    /* 🆕 NUEVO: Estilos para las estadísticas del header */
+    .fondos-stats {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9em;
+      margin-top: 4px;
+    }
+
+    .stat-item {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-weight: 500;
+      font-size: 0.85em;
+    }
+
+    .stat-item.activos {
+      background: rgba(76, 175, 80, 0.1);
+      color: #2e7d32;
+    }
+
+    .stat-item.inactivos {
+      background: rgba(158, 158, 158, 0.1);
+      color: #616161;
+    }
+
+    .stat-item.total {
+      background: rgba(33, 150, 243, 0.1);
+      color: #1976d2;
+    }
+
+    .stat-separator {
+      color: rgba(0, 0, 0, 0.3);
+      font-weight: bold;
     }
 
     .form-card {
@@ -481,6 +579,36 @@ import { NumberFormatDirective } from '../../shared/directives/number-format.dir
 
     .fondo-card .fondo-info {
       flex: 1;
+    }
+
+    /* 🆕 NUEVO: Estilos para fondos inactivos */
+    .fondo-card.fondo-inactivo {
+      opacity: 0.7;
+      border-left-color: #9e9e9e !important;
+      background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+    }
+
+    .fondo-card.fondo-inactivo:hover {
+      transform: none;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .avatar-inactivo {
+      background-color: #9e9e9e !important;
+      opacity: 0.7;
+    }
+
+    /* 🆕 NUEVO: Estilos para el chip de estado */
+    .estado-chip {
+      margin-left: 8px;
+      font-size: 0.7em !important;
+      height: 20px !important;
+      font-weight: 600;
+    }
+
+    .estado-chip.inactivo {
+      background-color: #f5f5f5 !important;
+      color: #757575 !important;
     }
 
     .fondo-card mat-card-header {
@@ -817,6 +945,33 @@ import { NumberFormatDirective } from '../../shared/directives/number-format.dir
         align-items: flex-start;
       }
 
+      .header-right {
+        width: 100%;
+        justify-content: space-between;
+        flex-wrap: wrap;
+      }
+
+      .info-inactivos {
+        margin-right: 0;
+        margin-bottom: 8px;
+        width: 100%;
+        text-align: center;
+      }
+
+      .info-text {
+        font-size: 0.8em;
+      }
+
+      .fondos-stats {
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .stat-item {
+        font-size: 0.8em;
+        padding: 3px 6px;
+      }
+
       .fondos-grid {
         grid-template-columns: 1fr;
       }
@@ -849,17 +1004,16 @@ import { NumberFormatDirective } from '../../shared/directives/number-format.dir
         font-size: 0.7em;
       }
 
-      /* 🆕 NUEVO: Ajustes para botones al final en móvil */
-      .fondo-card .card-actions-bottom {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 12px;
+      /* 🆕 NUEVO: Ajustes para chips de estado en móvil */
+      .estado-chip {
+        font-size: 0.65em !important;
+        height: 18px !important;
+        margin-left: 4px;
       }
 
-      .fondo-card .card-actions-bottom .btn-add-transaction {
-        transform: scale(0.75);
+      /* 🆕 NUEVO: Ajustes para botones deshabilitados en móvil */
+      button[disabled] {
+        opacity: 0.5;
       }
     }
 
@@ -1049,6 +1203,12 @@ export class FondosComponent implements OnInit, OnDestroy {
   // 🆕 NUEVO: Variables para transacciones
   categorias: CategoriaTransaccion[] = [];
 
+  // 🆕 NUEVO: Variables para el filtro de fondos
+  mostrarInactivos = false;
+  totalFondos = 0;
+  fondosActivos = 0;
+  fondosInactivos = 0;
+
   constructor(
     private fb: FormBuilder,
     private fondoService: FondoService,
@@ -1092,12 +1252,24 @@ export class FondosComponent implements OnInit, OnDestroy {
   cargarFondos(): void {
     console.log('🏦 Cargando fondos desde el backend...');
     
-    this.fondoService.obtenerFondos()
+    // 🆕 NUEVO: Siempre cargar todos los fondos para obtener contadores correctos
+    this.fondoService.obtenerFondos(undefined, true) // Siempre incluir inactivos para contadores
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (fondos) => {
-          console.log('✅ Fondos cargados exitosamente:', fondos);
-          this.fondos = fondos;
+        next: (todosFondos) => {
+          console.log('✅ Todos los fondos cargados para contadores:', todosFondos);
+          
+          // Actualizar contadores con todos los fondos
+          this.actualizarContadoresConTodos(todosFondos);
+          
+          // Filtrar para mostrar según preferencia del usuario
+          if (this.mostrarInactivos) {
+            this.fondos = todosFondos;
+          } else {
+            this.fondos = todosFondos.filter(f => f.activo);
+          }
+          
+          console.log('✅ Fondos mostrados:', this.fondos.length, 'de', todosFondos.length);
         },
         error: (error) => {
           console.error('❌ Error cargando fondos:', error);
@@ -1109,6 +1281,7 @@ export class FondosComponent implements OnInit, OnDestroy {
           
           this.notificationService.error(mensaje);
           this.fondos = [];
+          this.actualizarContadores();
         }
       });
     
@@ -1116,8 +1289,49 @@ export class FondosComponent implements OnInit, OnDestroy {
     this.fondoService.fondos$
       .pipe(takeUntil(this.destroy$))
       .subscribe(fondos => {
-        this.fondos = fondos;
+        // Este observable podría contener solo fondos activos, así que manejamos diferente
+        if (this.mostrarInactivos) {
+          this.fondos = fondos;
+        } else {
+          this.fondos = fondos.filter(f => f.activo);
+        }
+        this.actualizarContadores();
       });
+  }
+
+  // 🆕 NUEVO: Actualizar contadores con la lista completa de fondos
+  private actualizarContadoresConTodos(todosFondos: Fondo[]): void {
+    this.totalFondos = todosFondos.length;
+    this.fondosActivos = todosFondos.filter(f => f.activo).length;
+    this.fondosInactivos = todosFondos.filter(f => !f.activo).length;
+    
+    console.log('📊 Contadores actualizados con todos los fondos:', {
+      total: this.totalFondos,
+      activos: this.fondosActivos,
+      inactivos: this.fondosInactivos
+    });
+  }
+
+  // 🆕 NUEVO: Actualizar contadores de fondos
+  private actualizarContadores(): void {
+    this.totalFondos = this.fondos.length;
+    this.fondosActivos = this.fondos.filter(f => f.activo).length;
+    this.fondosInactivos = this.fondos.filter(f => !f.activo).length;
+    
+    console.log('📊 Contadores actualizados:', {
+      total: this.totalFondos,
+      activos: this.fondosActivos,
+      inactivos: this.fondosInactivos
+    });
+  }
+
+  // 🆕 NUEVO: Toggle para mostrar/ocultar fondos inactivos
+  toggleMostrarInactivos(): void {
+    this.mostrarInactivos = !this.mostrarInactivos;
+    console.log('🔄 Cambiando filtro de fondos inactivos:', this.mostrarInactivos);
+    
+    // 🆕 NUEVO: Recargar para aplicar el nuevo filtro
+    this.cargarFondos();
   }
 
   abrirDialogoFondo(): void {
@@ -1447,6 +1661,54 @@ export class FondosComponent implements OnInit, OnDestroy {
     }
     const progreso = (fondo.saldoActual / fondo.metaAhorro) * 100;
     return Math.min(Math.round(progreso), 100);
+  }
+
+  // 🆕 NUEVO: Método para cambiar estado del fondo
+  toggleEstadoFondo(fondo: Fondo): void {
+    const accion = fondo.activo ? 'desactivar' : 'activar';
+    const confirmacion = confirm(`¿Está seguro de ${accion} el fondo "${fondo.nombre}"?`);
+    
+    if (!confirmacion) {
+      return;
+    }
+    
+    console.log(`🔄 ${accion} fondo:`, fondo.nombre);
+    
+    this.fondoService.toggleEstadoFondo(fondo._id!)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          console.log('✅ Estado del fondo cambiado:', response);
+          this.notificationService.success(response.message);
+          
+          // 🆕 NUEVO: Siempre recargar fondos para mantener contadores correctos
+          this.cargarFondos();
+          
+          // 🆕 NUEVO: Si se desactivó un fondo, sugerir mostrar inactivos
+          if (!response.fondo.activo && !this.mostrarInactivos) {
+            setTimeout(() => {
+              const mostrar = confirm(
+                `El fondo "${response.fondo.nombre}" ha sido desactivado.\n\n` +
+                `¿Desea mostrar los fondos inactivos para poder gestionarlos?`
+              );
+              if (mostrar) {
+                this.mostrarInactivos = true;
+                this.cargarFondos();
+              }
+            }, 1000);
+          }
+        },
+        error: (error) => {
+          console.error('❌ Error al cambiar estado del fondo:', error);
+          
+          let mensaje = 'Error al cambiar el estado del fondo';
+          if (error.message) {
+            mensaje = error.message;
+          }
+          
+          this.notificationService.error(mensaje);
+        }
+      });
   }
 
   private mostrarMensaje(mensaje: string): void {
