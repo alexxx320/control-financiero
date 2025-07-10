@@ -1,14 +1,26 @@
-# Dockerfile súper rápido - solo runtime (2-3 minutos máximo)
+# Dockerfile para Railway - Solo runtime
 FROM node:18-alpine
 
 WORKDIR /app
 
-# Copiar package.json y instalar solo dependencias de producción
-COPY backend/package*.json ./
-RUN npm ci --production --silent
+# Variables para optimizar npm
+ENV NODE_ENV=production \
+    NPM_CONFIG_UPDATE_NOTIFIER=false \
+    NPM_CONFIG_FUND=false \
+    NPM_CONFIG_AUDIT=false
 
-# Copiar el build ya compilado
+# Copiar package.json del backend
+COPY backend/package*.json ./
+
+# Instalar solo dependencias de producción
+RUN npm ci --production --silent && npm cache clean --force
+
+# Copiar el build compilado
 COPY backend/dist ./dist
+
+# Crear usuario no-root
+RUN adduser -D nestjs
+USER nestjs
 
 EXPOSE 3000
 
