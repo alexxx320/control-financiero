@@ -270,17 +270,7 @@ import { NumberFormatDirective } from '../../shared/directives/number-format.dir
                 </div>
               </div>
 
-              <!-- Barra de Progreso para Ahorros -->
-              <div class="progreso-section" *ngIf="fondo.tipo === 'ahorro' && fondo.metaAhorro && fondo.metaAhorro > 0 && fondo.saldoActual > 0">
-                <div class="progreso-header">
-                  <span>Progreso hacia la meta:</span>
-                  <span class="progreso-porcentaje">{{ calcularProgresoMeta(fondo) }}%</span>
-                </div>
-                <mat-progress-bar 
-                  mode="determinate" 
-                  [value]="calcularProgresoMeta(fondo)">
-                </mat-progress-bar>
-              </div>
+
 
               <!-- Barra de Progreso para Préstamos -->
               <div class="progreso-section" *ngIf="PrestamoUtils.esPrestamo(fondo)">
@@ -320,6 +310,27 @@ import { NumberFormatDirective } from '../../shared/directives/number-format.dir
             </div>
           </mat-card-content>
 
+          <!-- Barra de Progreso para Ahorros - MOVIDA AL FINAL -->
+          <div class="progreso-section-bottom" *ngIf="fondo.tipo === 'ahorro' && fondo.metaAhorro && fondo.metaAhorro > 0">
+            <div class="progreso-header">
+              <span>Progreso hacia la meta:</span>
+              <span class="progreso-porcentaje">{{ calcularProgresoMeta(fondo) }}%</span>
+            </div>
+            <mat-progress-bar 
+              mode="determinate" 
+              [value]="calcularProgresoMeta(fondo)"
+              [class]="'progreso-' + obtenerClaseProgreso(calcularProgresoMeta(fondo))">
+            </mat-progress-bar>
+            <div class="progreso-info" *ngIf="fondo.saldoActual > 0">
+              <span class="restante" *ngIf="calcularProgresoMeta(fondo) < 100">
+                Faltan: {{ (fondo.metaAhorro! - fondo.saldoActual) | currency:'COP':'symbol':'1.0-0' }}
+              </span>
+              <span class="completada" *ngIf="calcularProgresoMeta(fondo) >= 100">
+                🎉 ¡Meta completada! Excedente: {{ (fondo.saldoActual - fondo.metaAhorro!) | currency:'COP':'symbol':'1.0-0' }}
+              </span>
+            </div>
+          </div>
+
           <!-- 🆕 BOTONES MOVIDOS AL FINAL DE LA TARJETA -->
           <mat-card-actions class="card-actions-bottom">
             <button mat-button color="primary" (click)="verDetalleFondo(fondo)">
@@ -345,7 +356,7 @@ import { NumberFormatDirective } from '../../shared/directives/number-format.dir
             </div>
           </mat-card-content>
         </mat-card>
-    <!-- 🔧 INFORMACIÓN DE TIPOS DE FONDO -->
+    <!-- 🔧 INFORMACIÓN DE TIPOS DE FONDO - VERSIÓN COMPLETA -->
     <mat-card class="info-card mb-2">
       <mat-card-content>
         <div class="tipos-info">
@@ -356,7 +367,7 @@ import { NumberFormatDirective } from '../../shared/directives/number-format.dir
               <div class="tipo-content">
                 <h4>📝 Registro</h4>
                 <p>Para llevar control de ingresos y gastos sin metas específicas</p>
-                <small>• Sin meta de ahorro • Control de movimientos</small>
+                <small>• Sin meta de ahorro • Control de movimientos • Ideal para gastos cotidianos</small>
               </div>
             </div>
             <div class="tipo-item ahorro">
@@ -364,7 +375,23 @@ import { NumberFormatDirective } from '../../shared/directives/number-format.dir
               <div class="tipo-content">
                 <h4>💰 Ahorro</h4>
                 <p>Para ahorrar dinero con metas específicas</p>
-                <small>• Con meta de ahorro • Seguimiento de progreso</small>
+                <small>• Con meta de ahorro obligatoria • Seguimiento de progreso • Para objetivos financieros</small>
+              </div>
+            </div>
+            <div class="tipo-item prestamo">
+              <mat-icon>account_balance</mat-icon>
+              <div class="tipo-content">
+                <h4>💵 Préstamo</h4>
+                <p>Para controlar dinero que has prestado a otros (cuentas por cobrar)</p>
+                <small>• Monto prestado obligatorio • Seguimiento de pagos recibidos • Saldo negativo = pendiente</small>
+              </div>
+            </div>
+            <div class="tipo-item deuda">
+              <mat-icon>credit_card</mat-icon>
+              <div class="tipo-content">
+                <h4>🔴 Deuda</h4>
+                <p>Para controlar dinero que debes a otros (cuentas por pagar)</p>
+                <small>• Monto de deuda obligatorio • Seguimiento de pagos realizados • Saldo negativo = pendiente</small>
               </div>
             </div>
           </div>
@@ -647,6 +674,71 @@ import { NumberFormatDirective } from '../../shared/directives/number-format.dir
       margin-top: 16px;
     }
 
+    /* 🆕 NUEVO: Estilos para la barra de progreso en la parte inferior */
+    .progreso-section-bottom {
+      padding: 12px 16px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e8f5e8 100%);
+      border-top: 1px solid rgba(76, 175, 80, 0.2);
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      margin-bottom: 0;
+    }
+
+    .progreso-section-bottom .progreso-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 0.85em;
+      font-weight: 500;
+      color: #2e7d32;
+    }
+
+    .progreso-section-bottom .progreso-porcentaje {
+      font-weight: 600;
+      color: #1b5e20;
+    }
+
+    .progreso-section-bottom mat-progress-bar {
+      height: 6px;
+      border-radius: 3px;
+      margin-bottom: 6px;
+    }
+
+    .progreso-section-bottom .progreso-info {
+      text-align: center;
+      font-size: 0.75em;
+      margin-top: 4px;
+    }
+
+    .progreso-section-bottom .restante {
+      color: #616161;
+      font-weight: 500;
+    }
+
+    .progreso-section-bottom .completada {
+      color: #2e7d32;
+      font-weight: 600;
+      background: rgba(76, 175, 80, 0.1);
+      padding: 4px 8px;
+      border-radius: 12px;
+      display: inline-block;
+    }
+
+    /* Clases de color para el progreso */
+    .progreso-bajo {
+      --mdc-linear-progress-active-indicator-color: #f44336 !important;
+      --mdc-linear-progress-buffer-color: rgba(244, 67, 54, 0.2) !important;
+    }
+
+    .progreso-medio {
+      --mdc-linear-progress-active-indicator-color: #ff9800 !important;
+      --mdc-linear-progress-buffer-color: rgba(255, 152, 0, 0.2) !important;
+    }
+
+    .progreso-alto {
+      --mdc-linear-progress-active-indicator-color: #4caf50 !important;
+      --mdc-linear-progress-buffer-color: rgba(76, 175, 80, 0.2) !important;
+    }
+
     /* 🆕 NUEVO: Estilos para botones al final de la tarjeta */
     .fondo-card .card-actions-bottom {
       display: flex;
@@ -744,6 +836,19 @@ import { NumberFormatDirective } from '../../shared/directives/number-format.dir
         margin-top: 8px;
       }
 
+      /* 🆕 NUEVO: Ajustes para la barra de progreso inferior en móvil */
+      .progreso-section-bottom {
+        padding: 10px 12px;
+      }
+
+      .progreso-section-bottom .progreso-header {
+        font-size: 0.8em;
+      }
+
+      .progreso-section-bottom .progreso-info {
+        font-size: 0.7em;
+      }
+
       /* 🆕 NUEVO: Ajustes para botones al final en móvil */
       .fondo-card .card-actions-bottom {
         flex-direction: row;
@@ -755,6 +860,171 @@ import { NumberFormatDirective } from '../../shared/directives/number-format.dir
 
       .fondo-card .card-actions-bottom .btn-add-transaction {
         transform: scale(0.75);
+      }
+    }
+
+    /* 🆕 NUEVO: Estilos para la tarjeta de información de tipos */
+    .info-card {
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-left: 4px solid #6c757d;
+    }
+
+    .tipos-info h3 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+      color: #495057;
+      font-weight: 500;
+    }
+
+    .tipos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .tipo-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px;
+      background: white;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .tipo-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .tipo-item.registro {
+      border-left: 4px solid #6c757d;
+    }
+
+    .tipo-item.ahorro {
+      border-left: 4px solid #28a745;
+    }
+
+    .tipo-item.prestamo {
+      border-left: 4px solid #ffc107;
+    }
+
+    .tipo-item.deuda {
+      border-left: 4px solid #dc3545;
+    }
+
+    .tipo-item mat-icon {
+      color: #6c757d;
+      margin-top: 4px;
+    }
+
+    .tipo-item.registro mat-icon {
+      color: #6c757d;
+    }
+
+    .tipo-item.ahorro mat-icon {
+      color: #28a745;
+    }
+
+    .tipo-item.prestamo mat-icon {
+      color: #ffc107;
+    }
+
+    .tipo-item.deuda mat-icon {
+      color: #dc3545;
+    }
+
+    .tipo-content {
+      flex: 1;
+    }
+
+    .tipo-content h4 {
+      margin: 0 0 8px 0;
+      font-size: 1.1em;
+      font-weight: 600;
+    }
+
+    .tipo-content p {
+      margin: 0 0 8px 0;
+      color: #6c757d;
+      font-size: 0.9em;
+      line-height: 1.4;
+    }
+
+    .tipo-content small {
+      color: #868e96;
+      font-size: 0.8em;
+      display: block;
+      line-height: 1.3;
+    }
+
+    /* Responsive en móviles */
+    @media (max-width: 768px) {
+      .fondos-container {
+        padding: 16px;
+      }
+
+      .header-content {
+        flex-direction: column;
+        gap: 16px;
+        align-items: flex-start;
+      }
+
+      .fondos-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .form-row {
+        flex-direction: column;
+      }
+
+      .half-width {
+        width: 100%;
+      }
+
+      .card-actions {
+        position: relative;
+        top: auto;
+        right: auto;
+        margin-top: 8px;
+      }
+
+      /* 🆕 NUEVO: Ajustes para botones al final en móvil */
+      .fondo-card .card-actions-bottom {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+      }
+
+      .fondo-card .card-actions-bottom .btn-add-transaction {
+        transform: scale(0.75);
+      }
+
+      /* Responsive para la información de tipos en móviles */
+      .tipos-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .tipo-item {
+        padding: 12px;
+      }
+      
+      .tipo-content h4 {
+        font-size: 1em;
+      }
+      
+      .tipo-content p {
+        font-size: 0.85em;
+      }
+      
+      .tipo-content small {
+        font-size: 0.75em;
       }
     }
   `]
@@ -1166,9 +1436,9 @@ export class FondosComponent implements OnInit, OnDestroy {
 
   // 🔧 NUEVO MÉTODO: Clase CSS según progreso
   obtenerClaseProgreso(progreso: number): string {
-    if (progreso >= 80) return 'progreso-alto';
-    if (progreso >= 50) return 'progreso-medio';
-    return 'progreso-bajo';
+    if (progreso >= 80) return 'alto';
+    if (progreso >= 50) return 'medio';
+    return 'bajo';
   }
 
   calcularProgresoMeta(fondo: Fondo): number {

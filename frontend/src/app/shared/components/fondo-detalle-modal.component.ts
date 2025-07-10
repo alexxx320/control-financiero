@@ -11,7 +11,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
-import { Fondo } from '../../core/models/fondo.model';
+import { Fondo, PrestamoUtils, DeudaUtils, TipoFondo } from '../../core/models/fondo.model';
 import { Transaccion, TipoTransaccion } from '../../core/models/transaccion.model';
 import { TransaccionService } from '../../core/services/transaccion.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -43,7 +43,7 @@ import { CategoriaUtils } from '../utils/categoria.utils';
             <h2 mat-dialog-title>{{ fondo.nombre }}</h2>
             <div class="fondo-tipo">
               <mat-chip [class]="'chip-' + fondo.tipo">
-                {{ fondo.tipo === 'registro' ? '📝 Registro' : '💰 Ahorro' }}
+                {{ obtenerEtiquetaTipo(fondo.tipo) }}
               </mat-chip>
             </div>
           </div>
@@ -58,15 +58,17 @@ import { CategoriaUtils } from '../utils/categoria.utils';
         <mat-card class="info-card">
           <mat-card-content>
             <div class="info-grid">
+              <!-- Información común para todos los tipos -->
               <div class="info-item">
-                <div class="info-label">{{ fondo.saldoActual >= 0 ? 'Saldo Actual' : 'Deuda Actual' }}</div>
-                <div class="info-value" [class]="fondo.saldoActual >= 0 ? 'saldo' : 'deuda'">
-                  {{ (fondo.saldoActual >= 0 ? fondo.saldoActual : -fondo.saldoActual) | currency:'COP':'symbol':'1.0-0' }}
+                <div class="info-label">{{ obtenerEtiquetaSaldo() }}</div>
+                <div class="info-value" [class]="obtenerClaseSaldo()">
+                  {{ formatearSaldo() | currency:'COP':'symbol':'1.0-0' }}
                 </div>
               </div>
               
-              <div class="info-item" *ngIf="fondo.metaAhorro && fondo.metaAhorro > 0">
-                <div class="info-label">Meta de Ahorro</div>
+              <!-- Meta específica por tipo de fondo -->
+              <div class="info-item" *ngIf="mostrarMeta()">
+                <div class="info-label">{{ obtenerEtiquetaMeta() }}</div>
                 <div class="info-value meta">{{ fondo.metaAhorro | currency:'COP':'symbol':'1.0-0' }}</div>
               </div>
               
@@ -82,9 +84,9 @@ import { CategoriaUtils } from '../utils/categoria.utils';
             </div>
 
             <!-- Progreso hacia la meta (solo para fondos de ahorro con saldo positivo) -->
-            <div class="progreso-section" *ngIf="fondo.metaAhorro && fondo.metaAhorro > 0 && fondo.saldoActual > 0">
+            <div class="progreso-section ahorro" *ngIf="fondo.tipo === 'ahorro' && fondo.metaAhorro && fondo.metaAhorro > 0 && fondo.saldoActual > 0">
               <div class="progreso-header">
-                <span>Progreso hacia la meta</span>
+                <span>Progreso hacia la meta de ahorro</span>
                 <span class="progreso-porcentaje">{{ calcularProgresoMeta() }}%</span>
               </div>
               <mat-progress-bar 
@@ -227,6 +229,16 @@ import { CategoriaUtils } from '../utils/categoria.utils';
       color: #388e3c;
     }
 
+    .chip-prestamo {
+      background-color: #fff3e0;
+      color: #f57c00;
+    }
+
+    .chip-deuda {
+      background-color: #ffebee;
+      color: #d32f2f;
+    }
+
     .modal-content {
       padding: 0 !important;
       max-height: calc(90vh - 140px);
@@ -288,9 +300,13 @@ import { CategoriaUtils } from '../utils/categoria.utils';
     .progreso-section {
       margin-top: 20px;
       padding: 16px;
-      background-color: rgba(76, 175, 80, 0.05);
       border-radius: 8px;
-      border-left: 4px solid #4caf50;
+      border-left: 4px solid;
+    }
+
+    .progreso-section.ahorro {
+      background-color: rgba(76, 175, 80, 0.05);
+      border-left-color: #4caf50;
     }
 
     .progreso-header {
@@ -408,7 +424,6 @@ import { CategoriaUtils } from '../utils/categoria.utils';
       width: 36px;
       height: 36px;
       border-radius: 50%;
-      flex-shrink: 0;
     }
 
     .icon-ingreso {
@@ -556,6 +571,10 @@ export class FondoDetalleModalComponent implements OnInit, OnDestroy {
 
   transacciones: Transaccion[] = [];
   cargandoTransacciones = true;
+  
+  // Hacer utils disponibles en el template
+  PrestamoUtils = PrestamoUtils;
+  DeudaUtils = DeudaUtils;
 
   constructor(
     public dialogRef: MatDialogRef<FondoDetalleModalComponent>,
@@ -592,8 +611,70 @@ export class FondoDetalleModalComponent implements OnInit, OnDestroy {
       });
   }
 
-  obtenerIconoTipo(tipo: string): string {
-    return tipo === 'registro' ? 'assignment' : 'savings';
+  obtenerIconoTipo(tipo: TipoFondo): string {
+    const iconos: Record<TipoFondo, string> = {
+      'registro': 'assignment',
+      'ahorro': 'savings',
+      'prestamo': 'account_balance',
+      'deuda': 'credit_card'
+    };
+    return iconos[tipo] || 'account_balance_wallet';
+  }
+
+  obtenerEtiquetaTipo(tipo: TipoFondo): string {
+    const etiquetas: Record<TipoFondo, string> = {
+      'registro': '📝 Registro',
+      'ahorro': '💰 Ahorro',
+      'prestamo': '💵 Préstamo',
+      'deuda': '🔴 Deuda'
+    };
+    return etiquetas[tipo] || tipo;
+  }
+
+  obtenerEtiquetaSaldo(): string {
+    switch (this.fondo.tipo) {
+      case 'prestamo':
+        return PrestamoUtils.getTextoSaldo(this.fondo);
+      case 'deuda':
+        return DeudaUtils.getTextoSaldo(this.fondo);
+      default:
+        return this.fondo.saldoActual >= 0 ? 'Saldo Actual' : 'Deuda Actual';
+    }
+  }
+
+  formatearSaldo(): number {
+    switch (this.fondo.tipo) {
+      case 'prestamo':
+        return PrestamoUtils.formatearMonto(this.fondo);
+      case 'deuda':
+        return DeudaUtils.formatearMonto(this.fondo);
+      default:
+        return this.fondo.saldoActual >= 0 ? this.fondo.saldoActual : -this.fondo.saldoActual;
+    }
+  }
+
+  obtenerClaseSaldo(): string {
+    if (this.fondo.tipo === 'prestamo' || this.fondo.tipo === 'deuda') {
+      return this.fondo.saldoActual < 0 ? 'deuda' : 'saldo';
+    }
+    return this.fondo.saldoActual >= 0 ? 'saldo' : 'deuda';
+  }
+
+  mostrarMeta(): boolean {
+    return this.fondo.metaAhorro != null && this.fondo.metaAhorro > 0;
+  }
+
+  obtenerEtiquetaMeta(): string {
+    switch (this.fondo.tipo) {
+      case 'ahorro':
+        return 'Meta de Ahorro';
+      case 'prestamo':
+        return 'Monto Total Prestado';
+      case 'deuda':
+        return 'Monto Total de la Deuda';
+      default:
+        return 'Meta';
+    }
   }
 
   calcularProgresoMeta(): number {
