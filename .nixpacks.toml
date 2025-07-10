@@ -1,8 +1,9 @@
+# Configuración optimizada para Railway con Nixpacks
 [phases.setup]
 nixPkgs = ["nodejs", "npm"]
 
 [phases.install]
-cmds = ["npm install"]
+cmds = ["npm ci --production=false --silent"]
 
 [phases.build]
 cmds = ["npm run build"]
@@ -10,6 +11,9 @@ cmds = ["npm run build"]
 [start]
 cmd = "npm run start:prod"
 
-# Configurar el directorio de trabajo
+# Variables de entorno
 [variables]
-NIXPACKS_PATH = "./backend"
+NPM_CONFIG_UPDATE_NOTIFIER = "false"
+NPM_CONFIG_FUND = "false"
+NPM_CONFIG_AUDIT = "false"
+NODE_ENV = "production"

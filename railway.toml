@@ -5,10 +5,9 @@ command = "npm install && npm run build"
 startCommand = "npm run start:prod"
 
 [env]
-PORT = "3000"
 NODE_ENV = "production"
+PORT = "$PORT"
 
-# Configurar el directorio de trabajo para el backend
-[[services]]
-name = "control-financiero-backend"
-source = "./backend"
+# Indicar que el código está en el directorio backend
+[source]
+path = "./backend"
