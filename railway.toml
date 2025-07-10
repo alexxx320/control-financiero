@@ -1,0 +1,13 @@
+[build]
+command = "cd backend && npm install && npm run build"
+
+[deploy]
+startCommand = "cd backend && npm run start:prod"
+
+[env]
+PORT = "3000"
+NODE_ENV = "production"
+
+[[services]]
+name = "control-financiero-backend"
+source = "./backend"
