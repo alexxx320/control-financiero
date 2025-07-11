@@ -1,0 +1,4 @@
+Deploy forzado - Solucionando problema de MongoDB variables
+Timestamp: 2025-07-11 08:30:00
+Problema: Railway no lee MONGODB_URI de variables de entorno
+Solución: Verificar variables + deploy forzado
