@@ -52,7 +52,9 @@ import { NumberFormatDirective } from '../../shared/directives/number-format.dir
     MatCheckboxModule, // 🆕 NUEVO: Para el filtro
     NumberFormatDirective // 🆕 NUEVO: Directiva para formatear números
   ],
-  template: `
+  templateUrl: './fondos.component.html',
+  styleUrls: ['./fondos.component.scss']
+})
     <div class="fondos-container">
       <div class="header-section mb-2">
         <div class="header-content">

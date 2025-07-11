@@ -1,0 +1,105 @@
+<!-- Template HTML para fondos.component.html -->
+<div class="fondos-container">
+  <div class="header-section mb-2">
+    <div class="header-content">
+      <div class="header-left">
+        <h2>Gestión de Fondos</h2>
+        <div class="fondos-stats" *ngIf="totalFondos > 0">
+          <span class="stat-item activos">{{fondosActivos}} Activos</span>
+          <span class="stat-separator">•</span>
+          <span class="stat-item inactivos" *ngIf="fondosInactivos > 0">{{fondosInactivos}} Inactivos</span>
+          <span class="stat-separator" *ngIf="fondosInactivos > 0">•</span>
+          <span class="stat-item total">{{totalFondos}} Total</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="info-inactivos" *ngIf="fondosInactivos > 0 && !mostrarInactivos">
+          <span class="info-text">👁️ Hay {{fondosInactivos}} fondo(s) inactivo(s)</span>
+        </div>
+        <button mat-icon-button 
+                (click)="toggleMostrarInactivos()" 
+                [color]="mostrarInactivos ? 'accent' : 'primary'"
+                [matTooltip]="mostrarInactivos ? 'Ocultar fondos inactivos' : 'Mostrar fondos inactivos'"
+                *ngIf="fondosInactivos > 0">
+          <mat-icon>{{mostrarInactivos ? 'visibility_off' : 'visibility'}}</mat-icon>
+        </button>
+        <button mat-raised-button color="primary" (click)="abrirDialogoFondo()">
+          <mat-icon>add</mat-icon>
+          Nuevo Fondo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sección de filtros por tipo de fondo -->
+  <mat-card class="filtros-card mb-2">
+    <mat-card-content>
+      <div class="filtros-section">
+        <div class="filtros-header">
+          <h3><mat-icon>filter_list</mat-icon>Filtrar por Tipo de Fondo</h3>
+          <div class="filtros-actions">
+            <button mat-button (click)="seleccionarTodosTipos()" 
+                    [disabled]="tiposFondoSeleccionados.length === tiposFondo.length">
+              <mat-icon>select_all</mat-icon>
+              Todos
+            </button>
+            <button mat-button (click)="limpiarFiltroTipos()" 
+                    [disabled]="tiposFondoSeleccionados.length === 0">
+              <mat-icon>clear_all</mat-icon>
+              Limpiar
+            </button>
+          </div>
+        </div>
+        <div class="filtros-grid">
+          <div class="filtro-tipo" 
+               *ngFor="let tipo of tiposFondo" 
+               [class]="'filtro-' + tipo">
+            <mat-checkbox 
+              [checked]="esTipoSeleccionado(tipo)"
+              (change)="toggleTipoFondo(tipo, $event.checked)"
+              class="filtro-checkbox">
+              <div class="filtro-content">
+                <div class="filtro-icon">
+                  <mat-icon>{{ obtenerIconoTipo(tipo) }}</mat-icon>
+                </div>
+                <div class="filtro-info">
+                  <span class="filtro-nombre">{{ obtenerNombreTipoCorto(tipo) }}</span>
+                  <span class="filtro-contador">({{ contarFondosPorTipo(tipo) }})</span>
+                </div>
+              </div>
+            </mat-checkbox>
+          </div>
+        </div>
+        <div class="filtros-resumen" *ngIf="hayFiltrosActivos()">
+          <span class="resumen-texto">
+            <mat-icon>info</mat-icon>
+            Mostrando {{ fondosFiltrados.length }} de {{ todosFondos.length }} fondos
+          </span>
+          <span class="tipos-activos">
+            Tipos: {{ tiposFondoSeleccionados.join(', ') | titlecase }}
+          </span>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Resto del template... Grid de fondos, etc. -->
+  <div class="fondos-grid">
+    <mat-card *ngFor="let fondo of fondosFiltrados" 
+              class="fondo-card" 
+              [class.fondo-inactivo]="!fondo.activo">
+      <!-- Contenido de las tarjetas de fondos -->
+      <mat-card-header>
+        <div mat-card-avatar class="fondo-avatar" [class.avatar-inactivo]="!fondo.activo">
+          <mat-icon>{{ obtenerIconoTipo(fondo.tipo) }}</mat-icon>
+        </div>
+        <mat-card-title>
+          {{ fondo.nombre }}
+          <mat-chip class="estado-chip inactivo" *ngIf="!fondo.activo">INACTIVO</mat-chip>
+        </mat-card-title>
+        <mat-card-subtitle>{{ fondo.tipo | titlecase }}</mat-card-subtitle>
+      </mat-card-header>
+      <!-- Más contenido de la tarjeta... -->
+    </mat-card>
+  </div>
+</div>

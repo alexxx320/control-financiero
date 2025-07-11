@@ -1,0 +1,57 @@
+# Dockerfile completo para Backend + Frontend
+# Etapa 1: Build del Frontend
+FROM node:18-alpine AS frontend-build
+
+WORKDIR /app/frontend
+
+# Copiar archivos del frontend
+COPY frontend/package*.json ./
+RUN npm ci --silent
+
+# Copiar código fuente del frontend
+COPY frontend/ ./
+
+# Build del frontend
+RUN npm run build:prod
+
+# Etapa 2: Build del Backend
+FROM node:18-alpine AS backend-build
+
+WORKDIR /app/backend
+
+# Copiar archivos del backend
+COPY backend/package*.json ./
+RUN npm ci --silent
+
+# Copiar código fuente del backend
+COPY backend/ ./
+
+# Build del backend
+RUN npm run build
+
+# Etapa 3: Runtime - Servir Frontend + Backend
+FROM node:18-alpine AS production
+
+WORKDIR /app
+
+# Variables de entorno
+ENV NODE_ENV=production \
+    NPM_CONFIG_UPDATE_NOTIFIER=false \
+    NPM_CONFIG_FUND=false \
+    NPM_CONFIG_AUDIT=false
+
+# Instalar dependencias de producción del backend
+COPY backend/package*.json ./
+RUN npm ci --production --silent && npm cache clean --force
+
+# Copiar builds
+COPY --from=backend-build /app/backend/dist ./dist
+COPY --from=frontend-build /app/frontend/dist ./public
+
+# Crear usuario no-root
+RUN adduser -D appuser
+USER appuser
+
+EXPOSE 3000
+
+CMD ["node", "dist/main"]
