@@ -251,6 +251,20 @@
   gap: 8px;
 }
 
+.deuda-info {
+  background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+  border-radius: 8px;
+  padding: 12px;
+  border-left: 4px solid #f44336;
+  margin-bottom: 16px;
+}
+
+.deuda-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .stat-item {
   display: flex;
   justify-content: space-between;
@@ -283,11 +297,39 @@
   font-weight: 700;
 }
 
+.progreso-section {
+  margin: 16px;
+  padding: 12px;
+  background: rgba(0,0,0,0.02);
+  border-radius: 8px;
+}
+
+.progreso-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 0.9em;
+  font-weight: 500;
+}
+
+.progreso-porcentaje {
+  font-weight: 600;
+}
+
 .progreso-porcentaje.prestamo {
   color: #ff9800;
 }
 
+.progreso-porcentaje.deuda {
+  color: #f44336;
+}
+
 .prestamo-progress {
+  height: 8px;
+  border-radius: 4px;
+}
+
+.deuda-progress {
   height: 8px;
   border-radius: 4px;
 }
@@ -300,29 +342,7 @@
   padding: 8px;
   background: #e8f5e8;
   border-radius: 6px;
-}
-
-.deuda-info {
-  background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
-  border-radius: 8px;
-  padding: 12px;
-  border-left: 4px solid #f44336;
-  margin-bottom: 16px;
-}
-
-.deuda-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.progreso-porcentaje.deuda {
-  color: #f44336;
-}
-
-.deuda-progress {
-  height: 8px;
-  border-radius: 4px;
+  font-size: 0.9em;
 }
 
 .meta-valor {

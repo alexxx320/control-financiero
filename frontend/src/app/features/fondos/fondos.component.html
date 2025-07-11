@@ -204,9 +204,47 @@
           <p *ngIf="fondo.descripcion" class="descripcion">{{ fondo.descripcion }}</p>
           
           <div class="saldo-info">
-            <div class="saldo-label">Saldo Actual:</div>
+            <div class="saldo-label">
+              {{ PrestamoUtils.esPrestamo(fondo) ? PrestamoUtils.getTextoSaldo(fondo) : DeudaUtils.esDeuda(fondo) ? DeudaUtils.getTextoSaldo(fondo) : (fondo.saldoActual >= 0 ? 'Saldo Actual:' : 'Deuda Actual:') }}
+            </div>
             <div class="saldo-valor" [class]="fondo.saldoActual >= 0 ? 'saldo-positivo' : 'saldo-negativo'">
-              {{ fondo.saldoActual | currency:'COP':'symbol':'1.0-0' }}
+              {{ PrestamoUtils.esPrestamo(fondo) ? (PrestamoUtils.formatearMonto(fondo) | currency:'COP':'symbol':'1.0-0') : DeudaUtils.esDeuda(fondo) ? (DeudaUtils.formatearMonto(fondo) | currency:'COP':'symbol':'1.0-0') : (fondo.saldoActual >= 0 ? fondo.saldoActual : -fondo.saldoActual) | currency:'COP':'symbol':'1.0-0' }}
+            </div>
+          </div>
+
+          <!-- Información específica para Préstamos -->
+          <div class="prestamo-info" *ngIf="PrestamoUtils.esPrestamo(fondo)">
+            <div class="prestamo-stats">
+              <div class="stat-item">
+                <span class="stat-label">Monto Prestado:</span>
+                <span class="stat-value prestado">{{ fondo.metaAhorro | currency:'COP':'symbol':'1.0-0' }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Monto Pagado:</span>
+                <span class="stat-value pagado">{{ PrestamoUtils.calcularProgreso(fondo).montoPagado | currency:'COP':'symbol':'1.0-0' }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Pendiente:</span>
+                <span class="stat-value pendiente">{{ PrestamoUtils.calcularProgreso(fondo).montoPendiente | currency:'COP':'symbol':'1.0-0' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Información específica para Deudas -->
+          <div class="deuda-info" *ngIf="DeudaUtils.esDeuda(fondo)">
+            <div class="deuda-stats">
+              <div class="stat-item">
+                <span class="stat-label">Total Deuda:</span>
+                <span class="stat-value total-deuda">{{ fondo.metaAhorro | currency:'COP':'symbol':'1.0-0' }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Monto Pagado:</span>
+                <span class="stat-value pagado">{{ DeudaUtils.calcularProgreso(fondo).montoPagado | currency:'COP':'symbol':'1.0-0' }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Pendiente:</span>
+                <span class="stat-value pendiente">{{ DeudaUtils.calcularProgreso(fondo).montoPendiente | currency:'COP':'symbol':'1.0-0' }}</span>
+              </div>
             </div>
           </div>
 
@@ -220,6 +258,38 @@
           </div>
         </div>
       </mat-card-content>
+
+      <!-- Barra de Progreso para Préstamos -->
+      <div class="progreso-section" *ngIf="PrestamoUtils.esPrestamo(fondo)">
+        <div class="progreso-header">
+          <span>Progreso de pago:</span>
+          <span class="progreso-porcentaje prestamo">{{ PrestamoUtils.calcularProgreso(fondo).porcentajePagado.toFixed(1) }}%</span>
+        </div>
+        <mat-progress-bar 
+          mode="determinate" 
+          [value]="PrestamoUtils.calcularProgreso(fondo).porcentajePagado"
+          class="prestamo-progress">
+        </mat-progress-bar>
+        <div class="progreso-status" *ngIf="PrestamoUtils.calcularProgreso(fondo).estaCompletado">
+          🎉 ¡Préstamo completamente pagado!
+        </div>
+      </div>
+
+      <!-- Barra de Progreso para Deudas -->
+      <div class="progreso-section" *ngIf="DeudaUtils.esDeuda(fondo)">
+        <div class="progreso-header">
+          <span>Progreso de pago:</span>
+          <span class="progreso-porcentaje deuda">{{ DeudaUtils.calcularProgreso(fondo).porcentajePagado.toFixed(1) }}%</span>
+        </div>
+        <mat-progress-bar 
+          mode="determinate" 
+          [value]="DeudaUtils.calcularProgreso(fondo).porcentajePagado"
+          class="deuda-progress">
+        </mat-progress-bar>
+        <div class="progreso-status" *ngIf="DeudaUtils.calcularProgreso(fondo).estaLiquidada">
+          🎉 ¡Deuda completamente liquidada!
+        </div>
+      </div>
 
       <!-- Barra de progreso para ahorros -->
       <div class="progreso-section-bottom" *ngIf="fondo.tipo === 'ahorro' && fondo.metaAhorro && fondo.metaAhorro > 0">
