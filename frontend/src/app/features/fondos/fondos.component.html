@@ -1,6 +1,6 @@
-<!-- Template HTML para fondos.component.html -->
 <div class="fondos-container">
-  <div class="header-section mb-2">
+  <!-- Header con estadísticas -->
+  <div class="header-section">
     <div class="header-content">
       <div class="header-left">
         <h2>Gestión de Fondos</h2>
@@ -32,7 +32,7 @@
   </div>
 
   <!-- Sección de filtros por tipo de fondo -->
-  <mat-card class="filtros-card mb-2">
+  <mat-card class="filtros-card">
     <mat-card-content>
       <div class="filtros-section">
         <div class="filtros-header">
@@ -83,12 +83,97 @@
     </mat-card-content>
   </mat-card>
 
-  <!-- Resto del template... Grid de fondos, etc. -->
+  <!-- Formulario para crear/editar fondos -->
+  <mat-card class="form-card" *ngIf="mostrarFormulario">
+    <mat-card-header>
+      <mat-card-title>{{ fondoEditando ? 'Editar Fondo' : 'Nuevo Fondo' }}</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="fondoForm" (ngSubmit)="guardarFondo()" class="fondo-form">
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Nombre del Fondo</mat-label>
+            <input matInput formControlName="nombre" placeholder="Ej: Fondo de Emergencia">
+            <mat-error *ngIf="fondoForm.get('nombre')?.hasError('required')">
+              El nombre es requerido
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Descripción</mat-label>
+            <textarea matInput formControlName="descripcion" rows="3" 
+                      placeholder="Descripción opcional del fondo"></textarea>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="half-width">
+            <mat-label>Tipo de Fondo</mat-label>
+            <mat-select formControlName="tipo" (selectionChange)="onTipoChange($event.value)">
+              <mat-option value="registro">📝 Registro</mat-option>
+              <mat-option value="ahorro">💰 Ahorro</mat-option>
+              <mat-option value="prestamo">💵 Préstamo</mat-option>
+              <mat-option value="deuda">🔴 Deuda</mat-option>
+            </mat-select>
+            <mat-error *ngIf="fondoForm.get('tipo')?.hasError('required')">
+              El tipo es requerido
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="half-width">
+            <mat-label>Saldo Inicial</mat-label>
+            <input matInput type="number" formControlName="saldoActual" 
+                   placeholder="0" step="0.01">
+            <span matTextPrefix>$</span>
+            <mat-error *ngIf="fondoForm.get('saldoActual')?.hasError('required')">
+              El saldo inicial es requerido
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row" *ngIf="tipoSeleccionado === 'ahorro' || tipoSeleccionado === 'prestamo' || tipoSeleccionado === 'deuda'">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>
+              {{ tipoSeleccionado === 'ahorro' ? 'Meta de Ahorro' : 
+                 tipoSeleccionado === 'prestamo' ? 'Monto Total del Préstamo' : 'Monto Total de la Deuda' }}
+            </mat-label>
+            <input matInput type="number" formControlName="metaAhorro" 
+                   placeholder="Ingresa el monto" min="1" step="1000" required>
+            <span matTextPrefix>$</span>
+            <mat-hint>
+              <strong>Obligatorio:</strong> 
+              {{ tipoSeleccionado === 'ahorro' ? 'Define tu meta de ahorro' : 
+                 tipoSeleccionado === 'prestamo' ? 'Monto total prestado' : 'Monto total de deuda' }}
+            </mat-hint>
+            <mat-error *ngIf="fondoForm.get('metaAhorro')?.hasError('required')">
+              Este campo es obligatorio
+            </mat-error>
+            <mat-error *ngIf="fondoForm.get('metaAhorro')?.hasError('min')">
+              El monto debe ser mayor a $0
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="form-actions">
+          <button mat-button type="button" (click)="cancelarEdicion()">
+            Cancelar
+          </button>
+          <button mat-raised-button color="primary" type="submit" 
+                  [disabled]="fondoForm.invalid || guardando">
+            {{ fondoEditando ? 'Actualizar' : 'Crear' }} Fondo
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Grid de fondos -->
   <div class="fondos-grid">
     <mat-card *ngFor="let fondo of fondosFiltrados" 
               class="fondo-card" 
               [class.fondo-inactivo]="!fondo.activo">
-      <!-- Contenido de las tarjetas de fondos -->
       <mat-card-header>
         <div mat-card-avatar class="fondo-avatar" [class.avatar-inactivo]="!fondo.activo">
           <mat-icon>{{ obtenerIconoTipo(fondo.tipo) }}</mat-icon>
@@ -98,8 +183,133 @@
           <mat-chip class="estado-chip inactivo" *ngIf="!fondo.activo">INACTIVO</mat-chip>
         </mat-card-title>
         <mat-card-subtitle>{{ fondo.tipo | titlecase }}</mat-card-subtitle>
+        <div class="card-actions">
+          <button mat-icon-button 
+                  (click)="toggleEstadoFondo(fondo)"
+                  [color]="fondo.activo ? 'warn' : 'primary'"
+                  [matTooltip]="fondo.activo ? 'Desactivar fondo' : 'Activar fondo'">
+            <mat-icon>{{ fondo.activo ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          <button mat-icon-button (click)="editarFondo(fondo)" [disabled]="!fondo.activo">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" (click)="eliminarFondo(fondo)">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
       </mat-card-header>
-      <!-- Más contenido de la tarjeta... -->
+      
+      <mat-card-content class="fondo-content">
+        <div class="fondo-info">
+          <p *ngIf="fondo.descripcion" class="descripcion">{{ fondo.descripcion }}</p>
+          
+          <div class="saldo-info">
+            <div class="saldo-label">Saldo Actual:</div>
+            <div class="saldo-valor" [class]="fondo.saldoActual >= 0 ? 'saldo-positivo' : 'saldo-negativo'">
+              {{ fondo.saldoActual | currency:'COP':'symbol':'1.0-0' }}
+            </div>
+          </div>
+
+          <div class="meta-info" *ngIf="fondo.tipo === 'ahorro' && fondo.metaAhorro && fondo.metaAhorro > 0">
+            <div class="meta-label">Meta de Ahorro:</div>
+            <div class="meta-valor">{{ fondo.metaAhorro | currency:'COP':'symbol':'1.0-0' }}</div>
+          </div>
+
+          <div class="fecha-creacion" *ngIf="fondo.fechaCreacion">
+            Creado: {{ fondo.fechaCreacion | date:'dd/MM/yyyy' }}
+          </div>
+        </div>
+      </mat-card-content>
+
+      <!-- Barra de progreso para ahorros -->
+      <div class="progreso-section-bottom" *ngIf="fondo.tipo === 'ahorro' && fondo.metaAhorro && fondo.metaAhorro > 0">
+        <div class="progreso-header">
+          <span>Progreso hacia la meta:</span>
+          <span class="progreso-porcentaje">{{ calcularProgresoMeta(fondo) }}%</span>
+        </div>
+        <mat-progress-bar 
+          mode="determinate" 
+          [value]="calcularProgresoMeta(fondo)"
+          [class]="'progreso-' + obtenerClaseProgreso(calcularProgresoMeta(fondo))">
+        </mat-progress-bar>
+        <div class="progreso-info" *ngIf="fondo.saldoActual > 0">
+          <span class="restante" *ngIf="calcularProgresoMeta(fondo) < 100">
+            Faltan: {{ (fondo.metaAhorro! - fondo.saldoActual) | currency:'COP':'symbol':'1.0-0' }}
+          </span>
+          <span class="completada" *ngIf="calcularProgresoMeta(fondo) >= 100">
+            🎉 ¡Meta completada! Excedente: {{ (fondo.saldoActual - fondo.metaAhorro!) | currency:'COP':'symbol':'1.0-0' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Botones de acción -->
+      <mat-card-actions class="card-actions-bottom">
+        <button mat-button color="primary" (click)="verDetalleFondo(fondo)" [disabled]="!fondo.activo">
+          <mat-icon>visibility</mat-icon>
+          Ver Detalle
+        </button>
+        <button mat-fab color="accent" (click)="crearTransaccionEnFondo(fondo)" 
+                class="btn-add-transaction"
+                matTooltip="Nueva transacción"
+                [disabled]="!fondo.activo">
+          <mat-icon>add</mat-icon>
+        </button>
+      </mat-card-actions>
+    </mat-card>
+
+    <!-- Tarjeta para crear nuevo fondo -->
+    <mat-card class="nuevo-fondo-card" (click)="abrirDialogoFondo()" 
+              *ngIf="!mostrarFormulario">
+      <mat-card-content>
+        <div class="nuevo-fondo-content">
+          <mat-icon class="add-icon">add_circle_outline</mat-icon>
+          <h3>Crear Nuevo Fondo</h3>
+          <p>Agrega un nuevo fondo para organizar tus finanzas</p>
+        </div>
+      </mat-card-content>
     </mat-card>
   </div>
+
+  <!-- Información de tipos de fondo -->
+  <mat-card class="info-card">
+    <mat-card-content>
+      <div class="tipos-info">
+        <h3><mat-icon>info</mat-icon> Tipos de Fondos Disponibles</h3>
+        <div class="tipos-grid">
+          <div class="tipo-item registro">
+            <mat-icon>assignment</mat-icon>
+            <div class="tipo-content">
+              <h4>📝 Registro</h4>
+              <p>Para llevar control de ingresos y gastos sin metas específicas</p>
+              <small>• Sin meta de ahorro • Control de movimientos • Ideal para gastos cotidianos</small>
+            </div>
+          </div>
+          <div class="tipo-item ahorro">
+            <mat-icon>savings</mat-icon>
+            <div class="tipo-content">
+              <h4>💰 Ahorro</h4>
+              <p>Para ahorrar dinero con metas específicas</p>
+              <small>• Con meta de ahorro obligatoria • Seguimiento de progreso • Para objetivos financieros</small>
+            </div>
+          </div>
+          <div class="tipo-item prestamo">
+            <mat-icon>account_balance</mat-icon>
+            <div class="tipo-content">
+              <h4>💵 Préstamo</h4>
+              <p>Para controlar dinero que has prestado a otros</p>
+              <small>• Monto prestado obligatorio • Seguimiento de pagos recibidos</small>
+            </div>
+          </div>
+          <div class="tipo-item deuda">
+            <mat-icon>credit_card</mat-icon>
+            <div class="tipo-content">
+              <h4>🔴 Deuda</h4>
+              <p>Para controlar dinero que debes a otros</p>
+              <small>• Monto de deuda obligatorio • Seguimiento de pagos realizados</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
 </div>
