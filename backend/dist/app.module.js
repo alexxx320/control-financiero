@@ -31,9 +31,20 @@ exports.AppModule = AppModule = __decorate([
             }),
             mongoose_1.MongooseModule.forRootAsync({
                 imports: [config_1.ConfigModule],
-                useFactory: async (configService) => ({
-                    uri: configService.get('MONGODB_URI', 'mongodb://localhost:27017/control-financiero'),
-                }),
+                useFactory: async (configService) => {
+                    const mongoUri = configService.get('MONGODB_URI', 'mongodb://localhost:27017/control-financiero');
+                    const nodeEnv = configService.get('NODE_ENV', 'development');
+                    console.log('🔧 MongoDB Configuration:');
+                    console.log('NODE_ENV:', nodeEnv);
+                    console.log('MONGODB_URI (first 30 chars):', mongoUri.substring(0, 30) + '...');
+                    console.log('Is Atlas URI?:', mongoUri.includes('mongodb+srv'));
+                    return {
+                        uri: mongoUri,
+                        retryWrites: true,
+                        serverSelectionTimeoutMS: 10000,
+                        socketTimeoutMS: 45000,
+                    };
+                },
                 inject: [config_1.ConfigService],
             }),
             auth_module_1.AuthModule,

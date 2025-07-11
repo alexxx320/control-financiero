@@ -7,7 +7,8 @@ WORKDIR /app
 ENV NODE_ENV=production \
     NPM_CONFIG_UPDATE_NOTIFIER=false \
     NPM_CONFIG_FUND=false \
-    NPM_CONFIG_AUDIT=false
+    NPM_CONFIG_AUDIT=false \
+    DEBUG=mongoose:*
 
 # Copiar package.json del backend
 COPY backend/package*.json ./
