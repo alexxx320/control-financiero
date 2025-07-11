@@ -5,8 +5,11 @@ const app_module_1 = require("./app.module");
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const config_1 = require("@nestjs/config");
+const path_1 = require("path");
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
+    app.useStaticAssets((0, path_1.join)(__dirname, '..', 'public'));
+    app.setBaseViewsDir((0, path_1.join)(__dirname, '..', 'public'));
     app.setGlobalPrefix('api');
     app.enableCors({
         origin: [

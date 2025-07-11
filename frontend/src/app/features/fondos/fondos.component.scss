@@ -1,4 +1,5 @@
-/* Estilos básicos para fondos */
+/* Estilos completos para fondos.component.scss */
+
 .fondos-container {
   max-width: 1200px;
   margin: 0 auto;
@@ -28,7 +29,25 @@
   gap: 12px;
 }
 
-/* Estadísticas */
+.info-inactivos {
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 16px;
+  padding: 6px 12px;
+  margin-right: 8px;
+}
+
+.info-text {
+  font-size: 0.85em;
+  color: #f57600;
+  font-weight: 500;
+}
+
+.header-content h2 {
+  margin: 0;
+  font-weight: 500;
+}
+
 .fondos-stats {
   display: flex;
   align-items: center;
@@ -64,125 +83,12 @@
   font-weight: bold;
 }
 
-/* Filtros */
-.filtros-card {
-  margin-bottom: 20px;
-  background: linear-gradient(135deg, #f1f3f4 0%, #e8eaf6 100%);
-  border-left: 4px solid #3f51b5;
-}
-
-.filtros-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.filtros-header h3 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  color: #3f51b5;
-  font-weight: 500;
-}
-
-.filtros-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.filtro-tipo {
-  background: white;
-  border-radius: 8px;
-  padding: 8px;
-  transition: all 0.3s ease;
-}
-
-.filtro-tipo:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.filtro-content {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-}
-
-.filtro-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: rgba(63, 81, 181, 0.1);
-}
-
-/* Grid de fondos */
-.fondos-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 20px;
-  align-items: stretch;
-}
-
-.fondo-card {
-  transition: all 0.3s ease;
-  border-left: 4px solid #2196f3;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.fondo-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-.fondo-avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  color: white;
-  background-color: #2196f3;
-}
-
-.saldo-info {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 16px;
-  padding: 12px;
-  background-color: rgba(33, 150, 243, 0.1);
-  border-radius: 4px;
-  border-left: 4px solid #2196f3;
-}
-
-.saldo-positivo {
-  color: #2196f3;
-}
-
-.saldo-negativo {
-  color: #f44336;
-}
-
-.meta-info {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 16px;
-  padding: 8px;
-  background-color: rgba(0,0,0,0.05);
-  border-radius: 4px;
-}
-
-/* Formulario */
 .form-card {
   margin-bottom: 20px;
+}
+
+.fondo-form {
+  max-width: 600px;
 }
 
 .form-row {
@@ -206,7 +112,634 @@
   margin-top: 20px;
 }
 
-/* Responsive */
+.fondos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+
+.fondo-card {
+  transition: all 0.3s ease;
+  border-left: 4px solid #2196f3;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.fondo-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.fondo-card .fondo-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.fondo-card .fondo-info {
+  flex: 1;
+}
+
+.fondo-card.fondo-inactivo {
+  opacity: 0.7;
+  border-left-color: #9e9e9e !important;
+  background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+}
+
+.fondo-card.fondo-inactivo:hover {
+  transform: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.avatar-inactivo {
+  background-color: #9e9e9e !important;
+  opacity: 0.7;
+}
+
+.estado-chip {
+  margin-left: 8px;
+  font-size: 0.7em !important;
+  height: 20px !important;
+  font-weight: 600;
+}
+
+.estado-chip.inactivo {
+  background-color: #f5f5f5 !important;
+  color: #757575 !important;
+}
+
+.fondo-card mat-card-header {
+  position: relative;
+}
+
+.card-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+}
+
+.fondo-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: white;
+  background-color: #2196f3;
+}
+
+.fondo-info {
+  margin-top: 16px;
+}
+
+.descripcion {
+  color: rgba(0,0,0,0.6);
+  margin-bottom: 16px;
+  font-style: italic;
+}
+
+.meta-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 8px;
+  background-color: rgba(0,0,0,0.05);
+  border-radius: 4px;
+}
+
+.saldo-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 12px;
+  background-color: rgba(33, 150, 243, 0.1);
+  border-radius: 4px;
+  border-left: 4px solid #2196f3;
+}
+
+.saldo-label, .meta-label {
+  font-weight: 500;
+}
+
+.saldo-valor {
+  font-weight: 600;
+  font-size: 1.1em;
+}
+
+.saldo-positivo {
+  color: #2196f3;
+}
+
+.saldo-negativo {
+  color: #f44336;
+}
+
+.prestamo-info {
+  background: linear-gradient(135deg, #fff3e0 0%, #ffecb3 100%);
+  border-radius: 8px;
+  padding: 12px;
+  border-left: 4px solid #ff9800;
+  margin-bottom: 16px;
+}
+
+.prestamo-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stat-label {
+  font-weight: 500;
+  color: #555;
+}
+
+.stat-value {
+  font-weight: 600;
+}
+
+.stat-value.prestado {
+  color: #ff9800;
+}
+
+.stat-value.pagado {
+  color: #4caf50;
+}
+
+.stat-value.pendiente {
+  color: #f44336;
+}
+
+.stat-value.total-deuda {
+  color: #d32f2f;
+  font-weight: 700;
+}
+
+.progreso-porcentaje.prestamo {
+  color: #ff9800;
+}
+
+.prestamo-progress {
+  height: 8px;
+  border-radius: 4px;
+}
+
+.progreso-status {
+  text-align: center;
+  font-weight: 500;
+  color: #4caf50;
+  margin-top: 8px;
+  padding: 8px;
+  background: #e8f5e8;
+  border-radius: 6px;
+}
+
+.deuda-info {
+  background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+  border-radius: 8px;
+  padding: 12px;
+  border-left: 4px solid #f44336;
+  margin-bottom: 16px;
+}
+
+.deuda-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progreso-porcentaje.deuda {
+  color: #f44336;
+}
+
+.deuda-progress {
+  height: 8px;
+  border-radius: 4px;
+}
+
+.meta-valor {
+  font-weight: 600;
+  color: #2196f3;
+}
+
+.progreso-section {
+  margin: 16px 0;
+}
+
+.progreso-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 0.9em;
+}
+
+.progreso-porcentaje {
+  font-weight: 600;
+}
+
+.balance-info {
+  text-align: center;
+  margin-top: 8px;
+  font-size: 0.9em;
+  color: rgba(0,0,0,0.7);
+}
+
+.fecha-creacion {
+  font-size: 0.8em;
+  color: rgba(0,0,0,0.5);
+  text-align: right;
+  margin-top: 16px;
+}
+
+.progreso-section-bottom {
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e8f5e8 100%);
+  border-top: 1px solid rgba(76, 175, 80, 0.2);
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  margin-bottom: 0;
+}
+
+.progreso-section-bottom .progreso-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 0.85em;
+  font-weight: 500;
+  color: #2e7d32;
+}
+
+.progreso-section-bottom .progreso-porcentaje {
+  font-weight: 600;
+  color: #1b5e20;
+}
+
+.progreso-section-bottom mat-progress-bar {
+  height: 6px;
+  border-radius: 3px;
+  margin-bottom: 6px;
+}
+
+.progreso-section-bottom .progreso-info {
+  text-align: center;
+  font-size: 0.75em;
+  margin-top: 4px;
+}
+
+.progreso-section-bottom .restante {
+  color: #616161;
+  font-weight: 500;
+}
+
+.progreso-section-bottom .completada {
+  color: #2e7d32;
+  font-weight: 600;
+  background: rgba(76, 175, 80, 0.1);
+  padding: 4px 8px;
+  border-radius: 12px;
+  display: inline-block;
+}
+
+.progreso-bajo {
+  --mdc-linear-progress-active-indicator-color: #f44336 !important;
+  --mdc-linear-progress-buffer-color: rgba(244, 67, 54, 0.2) !important;
+}
+
+.progreso-medio {
+  --mdc-linear-progress-active-indicator-color: #ff9800 !important;
+  --mdc-linear-progress-buffer-color: rgba(255, 152, 0, 0.2) !important;
+}
+
+.progreso-alto {
+  --mdc-linear-progress-active-indicator-color: #4caf50 !important;
+  --mdc-linear-progress-buffer-color: rgba(76, 175, 80, 0.2) !important;
+}
+
+.fondo-card .card-actions-bottom {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  margin-top: auto;
+  border-top: 1px solid rgba(0,0,0,0.05);
+  background-color: rgba(0,0,0,0.02);
+}
+
+.fondo-card .card-actions-bottom .btn-add-transaction {
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  transform: scale(0.8);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.fondo-card .card-actions-bottom .btn-add-transaction:hover {
+  transform: scale(0.9);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.fondo-card .card-actions-bottom button mat-icon {
+  margin-right: 4px;
+}
+
+.fondo-card .card-actions-bottom .btn-add-transaction mat-icon {
+  margin-right: 0;
+  font-size: 20px;
+}
+
+.nuevo-fondo-card {
+  border: 2px dashed #ccc;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+}
+
+.nuevo-fondo-card:hover {
+  border-color: #2196f3;
+  background-color: rgba(33, 150, 243, 0.05);
+}
+
+.nuevo-fondo-content {
+  text-align: center;
+  width: 100%;
+  color: rgba(0,0,0,0.6);
+}
+
+.add-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
+  color: #ccc;
+}
+
+.nuevo-fondo-card:hover .add-icon {
+  color: #2196f3;
+}
+
+.filtros-card {
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, #f1f3f4 0%, #e8eaf6 100%);
+  border-left: 4px solid #3f51b5;
+}
+
+.filtros-section {
+  padding: 4px 0;
+}
+
+.filtros-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.filtros-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: #3f51b5;
+  font-weight: 500;
+  font-size: 1.1em;
+}
+
+.filtros-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.filtros-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.filtro-tipo {
+  background: white;
+  border-radius: 8px;
+  padding: 8px;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.filtro-tipo:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.filtro-tipo.filtro-registro {
+  border-left: 4px solid #6c757d;
+}
+
+.filtro-tipo.filtro-ahorro {
+  border-left: 4px solid #28a745;
+}
+
+.filtro-tipo.filtro-prestamo {
+  border-left: 4px solid #ffc107;
+}
+
+.filtro-tipo.filtro-deuda {
+  border-left: 4px solid #dc3545;
+}
+
+.filtro-checkbox {
+  width: 100%;
+}
+
+.filtro-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.filtro-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(63, 81, 181, 0.1);
+}
+
+.filtro-registro .filtro-icon {
+  background: rgba(108, 117, 125, 0.1);
+  color: #6c757d;
+}
+
+.filtro-ahorro .filtro-icon {
+  background: rgba(40, 167, 69, 0.1);
+  color: #28a745;
+}
+
+.filtro-prestamo .filtro-icon {
+  background: rgba(255, 193, 7, 0.1);
+  color: #ffc107;
+}
+
+.filtro-deuda .filtro-icon {
+  background: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+}
+
+.filtro-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.filtro-nombre {
+  font-weight: 500;
+  font-size: 0.9em;
+  color: #333;
+}
+
+.filtro-contador {
+  font-size: 0.8em;
+  color: #666;
+  margin-top: 2px;
+}
+
+.filtros-resumen {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(63, 81, 181, 0.1);
+  border: 1px solid rgba(63, 81, 181, 0.2);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-top: 12px;
+}
+
+.resumen-texto {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: #3f51b5;
+  font-size: 0.9em;
+}
+
+.tipos-activos {
+  font-size: 0.85em;
+  color: #666;
+  font-style: italic;
+}
+
+.info-card {
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-left: 4px solid #6c757d;
+}
+
+.tipos-info h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  color: #495057;
+  font-weight: 500;
+}
+
+.tipos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.tipo-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.tipo-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.tipo-item.registro {
+  border-left: 4px solid #6c757d;
+}
+
+.tipo-item.ahorro {
+  border-left: 4px solid #28a745;
+}
+
+.tipo-item.prestamo {
+  border-left: 4px solid #ffc107;
+}
+
+.tipo-item.deuda {
+  border-left: 4px solid #dc3545;
+}
+
+.tipo-item mat-icon {
+  color: #6c757d;
+  margin-top: 4px;
+}
+
+.tipo-item.registro mat-icon {
+  color: #6c757d;
+}
+
+.tipo-item.ahorro mat-icon {
+  color: #28a745;
+}
+
+.tipo-item.prestamo mat-icon {
+  color: #ffc107;
+}
+
+.tipo-item.deuda mat-icon {
+  color: #dc3545;
+}
+
+.tipo-content {
+  flex: 1;
+}
+
+.tipo-content h4 {
+  margin: 0 0 8px 0;
+  font-size: 1.1em;
+  font-weight: 600;
+}
+
+.tipo-content p {
+  margin: 0 0 8px 0;
+  color: #6c757d;
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+.tipo-content small {
+  color: #868e96;
+  font-size: 0.8em;
+  display: block;
+  line-height: 1.3;
+}
+
 @media (max-width: 768px) {
   .fondos-container {
     padding: 16px;
@@ -218,6 +751,33 @@
     align-items: flex-start;
   }
 
+  .header-right {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  .info-inactivos {
+    margin-right: 0;
+    margin-bottom: 8px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .info-text {
+    font-size: 0.8em;
+  }
+
+  .fondos-stats {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .stat-item {
+    font-size: 0.8em;
+    padding: 3px 6px;
+  }
+
   .fondos-grid {
     grid-template-columns: 1fr;
   }
@@ -226,8 +786,116 @@
     flex-direction: column;
   }
 
+  .half-width {
+    width: 100%;
+  }
+
+  .card-actions {
+    position: relative;
+    top: auto;
+    right: auto;
+    margin-top: 8px;
+  }
+
+  .progreso-section-bottom {
+    padding: 10px 12px;
+  }
+
+  .progreso-section-bottom .progreso-header {
+    font-size: 0.8em;
+  }
+
+  .progreso-section-bottom .progreso-info {
+    font-size: 0.7em;
+  }
+
+  .estado-chip {
+    font-size: 0.65em !important;
+    height: 18px !important;
+    margin-left: 4px;
+  }
+
+  button[disabled] {
+    opacity: 0.5;
+  }
+
+  .tipos-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .tipo-item {
+    padding: 12px;
+  }
+  
+  .tipo-content h4 {
+    font-size: 1em;
+  }
+  
+  .tipo-content p {
+    font-size: 0.85em;
+  }
+  
+  .tipo-content small {
+    font-size: 0.75em;
+  }
+
   .filtros-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;
+  }
+
+  .filtros-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .filtros-actions {
+    width: 100%;
+    justify-content: space-around;
+  }
+
+  .filtros-resumen {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .resumen-texto {
+    font-size: 0.85em;
+  }
+
+  .tipos-activos {
+    font-size: 0.8em;
+    width: 100%;
+  }
+
+  .filtro-content {
+    gap: 8px;
+  }
+
+  .filtro-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .filtro-nombre {
+    font-size: 0.85em;
+  }
+
+  .filtro-contador {
+    font-size: 0.75em;
+  }
+
+  .fondo-card .card-actions-bottom {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .fondo-card .card-actions-bottom .btn-add-transaction {
+    transform: scale(0.75);
   }
 }
